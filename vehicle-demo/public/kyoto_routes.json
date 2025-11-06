@@ -1,0 +1,137 @@
+{
+  "nodes": [
+    {"id": "A1", "name": "京都駅", "coordinates": {"lat": 34.985849, "lng": 135.758766}, "type": "station"},
+    {"id": "A2", "name": "東寺", "coordinates": {"lat": 34.980556, "lng": 135.758766}, "type": "station"},
+    {"id": "A3", "name": "西本願寺", "coordinates": {"lat": 34.991389, "lng": 135.758766}, "type": "station"},
+    {"id": "A4", "name": "二条城", "coordinates": {"lat": 35.014239, "lng": 135.758766}, "type": "station"},
+    {"id": "A5", "name": "北大路駅", "coordinates": {"lat": 35.043889, "lng": 135.758766}, "type": "station"},
+    
+    {"id": "B1", "name": "九条駅", "coordinates": {"lat": 34.985849, "lng": 135.748000}, "type": "point"},
+    {"id": "B2", "name": "梅小路公園", "coordinates": {"lat": 34.991389, "lng": 135.748000}, "type": "point"},
+    {"id": "B3", "name": "四条大宮", "coordinates": {"lat": 35.003333, "lng": 135.748000}, "type": "point"},
+    {"id": "B4", "name": "丸太町駅", "coordinates": {"lat": 35.014239, "lng": 135.748000}, "type": "point"},
+    {"id": "B5", "name": "北野天満宮", "coordinates": {"lat": 35.031000, "lng": 135.748000}, "type": "point"},
+    
+    {"id": "C1", "name": "東福寺", "coordinates": {"lat": 34.985849, "lng": 135.773889}, "type": "point"},
+    {"id": "C2", "name": "三十三間堂", "coordinates": {"lat": 34.991389, "lng": 135.773889}, "type": "point"},
+    {"id": "C3", "name": "祇園四条", "coordinates": {"lat": 35.003333, "lng": 135.773889}, "type": "point"},
+    {"id": "C4", "name": "平安神宮", "coordinates": {"lat": 35.016111, "lng": 135.773889}, "type": "point"},
+    {"id": "C5", "name": "下鴨神社", "coordinates": {"lat": 35.038611, "lng": 135.773889}, "type": "point"},
+    
+    {"id": "D1", "name": "伏見稲荷", "coordinates": {"lat": 34.985849, "lng": 135.785000}, "type": "point"},
+    {"id": "D2", "name": "清水寺", "coordinates": {"lat": 34.994856, "lng": 135.785000}, "type": "point"},
+    {"id": "D3", "name": "八坂神社", "coordinates": {"lat": 35.003556, "lng": 135.785000}, "type": "point"},
+    {"id": "D4", "name": "南禅寺", "coordinates": {"lat": 35.016111, "lng": 135.785000}, "type": "point"},
+    {"id": "D5", "name": "銀閣寺", "coordinates": {"lat": 35.026944, "lng": 135.785000}, "type": "point"},
+    
+    {"id": "E1", "name": "竹田駅", "coordinates": {"lat": 34.965278, "lng": 135.758766}, "type": "point"},
+    {"id": "E2", "name": "七条駅", "coordinates": {"lat": 34.987222, "lng": 135.758766}, "type": "point"},
+    {"id": "E3", "name": "五条駅", "coordinates": {"lat": 34.993889, "lng": 135.758766}, "type": "point"},
+    {"id": "E4", "name": "四条烏丸", "coordinates": {"lat": 35.003611, "lng": 135.758766}, "type": "point"},
+    {"id": "E5", "name": "烏丸御池", "coordinates": {"lat": 35.012222, "lng": 135.758766}, "type": "point"},
+    
+    {"id": "F1", "name": "桂駅", "coordinates": {"lat": 34.985849, "lng": 135.715000}, "type": "point"},
+    {"id": "F2", "name": "西院駅", "coordinates": {"lat": 34.996667, "lng": 135.715000}, "type": "point"},
+    {"id": "F3", "name": "嵐山", "coordinates": {"lat": 35.011111, "lng": 135.676111}, "type": "point"},
+    {"id": "F4", "name": "太秦", "coordinates": {"lat": 35.018056, "lng": 135.715000}, "type": "point"},
+    {"id": "F5", "name": "金閣寺", "coordinates": {"lat": 35.039444, "lng": 135.729167}, "type": "point"},
+    
+    {"id": "G1", "name": "向日町", "coordinates": {"lat": 34.948889, "lng": 135.697778}, "type": "point"},
+    {"id": "G2", "name": "長岡京", "coordinates": {"lat": 34.923333, "lng": 135.697778}, "type": "point"},
+    {"id": "G3", "name": "西京極", "coordinates": {"lat": 34.995000, "lng": 135.722222}, "type": "point"},
+    {"id": "G4", "name": "龍安寺", "coordinates": {"lat": 35.034444, "lng": 135.718333}, "type": "point"},
+    {"id": "G5", "name": "仁和寺", "coordinates": {"lat": 35.031389, "lng": 135.713889}, "type": "point"},
+    
+    {"id": "H1", "name": "宇治", "coordinates": {"lat": 34.889444, "lng": 135.799444}, "type": "point"},
+    {"id": "H2", "name": "三条京阪", "coordinates": {"lat": 35.009377, "lng": 135.772255}, "type": "point"},
+    {"id": "H3", "name": "出町柳", "coordinates": {"lat": 35.033333, "lng": 135.772255}, "type": "point"},
+    {"id": "H4", "name": "鞍馬", "coordinates": {"lat": 35.120278, "lng": 135.769444}, "type": "point"},
+    
+    {"id": "I1", "name": "河原町五条", "coordinates": {"lat": 34.993889, "lng": 135.769444}, "type": "point"},
+    {"id": "I2", "name": "河原町三条", "coordinates": {"lat": 35.009377, "lng": 135.769444}, "type": "point"},
+    {"id": "I3", "name": "今出川", "coordinates": {"lat": 35.030278, "lng": 135.753333}, "type": "point"},
+    {"id": "I4", "name": "京都御所", "coordinates": {"lat": 35.025278, "lng": 135.762222}, "type": "point"},
+    
+    {"id": "J1", "name": "四条河原町", "coordinates": {"lat": 35.003889, "lng": 135.769444}, "type": "point"},
+    {"id": "J2", "name": "知恩院", "coordinates": {"lat": 35.005556, "lng": 135.781944}, "type": "point"},
+    {"id": "J3", "name": "詩仙堂", "coordinates": {"lat": 35.045278, "lng": 135.797778}, "type": "point"},
+    {"id": "J4", "name": "修学院", "coordinates": {"lat": 35.050000, "lng": 135.797778}, "type": "point"}
+  ],
+  "edges": [
+    {"from": "A1", "to": "A2", "distance_km": 0.6, "type": "drone"},
+    {"from": "A2", "to": "A3", "distance_km": 1.2, "type": "drone"},
+    {"from": "A3", "to": "A4", "distance_km": 2.5, "type": "drone"},
+    {"from": "A4", "to": "A5", "distance_km": 3.3, "type": "drone"},
+    
+    {"from": "B1", "to": "B2", "distance_km": 0.6, "type": "road"},
+    {"from": "B2", "to": "B3", "distance_km": 1.3, "type": "road"},
+    {"from": "B3", "to": "B4", "distance_km": 1.2, "type": "road"},
+    {"from": "B4", "to": "B5", "distance_km": 1.9, "type": "road"},
+    
+    {"from": "C1", "to": "C2", "distance_km": 0.6, "type": "road"},
+    {"from": "C2", "to": "C3", "distance_km": 1.3, "type": "road"},
+    {"from": "C3", "to": "C4", "distance_km": 1.4, "type": "road"},
+    {"from": "C4", "to": "C5", "distance_km": 2.5, "type": "road"},
+    
+    {"from": "D1", "to": "D2", "distance_km": 1.0, "type": "road"},
+    {"from": "D2", "to": "D3", "distance_km": 1.0, "type": "road"},
+    {"from": "D3", "to": "D4", "distance_km": 1.4, "type": "road"},
+    {"from": "D4", "to": "D5", "distance_km": 1.2, "type": "road"},
+    
+    {"from": "E1", "to": "A1", "distance_km": 2.3, "type": "road"},
+    {"from": "A1", "to": "E2", "distance_km": 0.2, "type": "road"},
+    {"from": "E2", "to": "E3", "distance_km": 0.7, "type": "road"},
+    {"from": "E3", "to": "A3", "distance_km": 0.3, "type": "road"},
+    {"from": "A3", "to": "E4", "distance_km": 1.3, "type": "road"},
+    {"from": "E4", "to": "E5", "distance_km": 1.0, "type": "road"},
+    {"from": "E5", "to": "A4", "distance_km": 0.2, "type": "road"},
+    
+    {"from": "F1", "to": "F2", "distance_km": 1.2, "type": "road"},
+    {"from": "F2", "to": "F3", "distance_km": 4.5, "type": "road"},
+    {"from": "F3", "to": "F4", "distance_km": 3.5, "type": "road"},
+    {"from": "F4", "to": "F5", "distance_km": 2.5, "type": "road"},
+    
+    {"from": "G2", "to": "G1", "distance_km": 2.8, "type": "road"},
+    {"from": "G1", "to": "F1", "distance_km": 4.0, "type": "highway"},
+    {"from": "G3", "to": "F2", "distance_km": 0.8, "type": "road"},
+    {"from": "G5", "to": "G4", "distance_km": 0.5, "type": "road"},
+    {"from": "G4", "to": "F5", "distance_km": 1.2, "type": "road"},
+    
+    {"from": "A1", "to": "B1", "distance_km": 1.2, "type": "road"},
+    {"from": "B1", "to": "F1", "distance_km": 4.5, "type": "road"},
+    
+    {"from": "A1", "to": "C1", "distance_km": 1.7, "type": "road"},
+    {"from": "C1", "to": "D1", "distance_km": 1.2, "type": "road"},
+    {"from": "D1", "to": "H1", "distance_km": 11.0, "type": "highway"},
+    
+    {"from": "A2", "to": "C2", "distance_km": 1.9, "type": "road"},
+    {"from": "C2", "to": "D2", "distance_km": 1.2, "type": "road"},
+    
+    {"from": "A3", "to": "B2", "distance_km": 1.2, "type": "road"},
+    {"from": "B2", "to": "I1", "distance_km": 2.4, "type": "road"},
+    {"from": "I1", "to": "C2", "distance_km": 0.5, "type": "road"},
+    
+    {"from": "B3", "to": "E4", "distance_km": 1.2, "type": "road"},
+    {"from": "E4", "to": "J1", "distance_km": 1.1, "type": "road"},
+    {"from": "J1", "to": "C3", "distance_km": 0.5, "type": "road"},
+    
+    {"from": "A4", "to": "B4", "distance_km": 1.2, "type": "road"},
+    {"from": "B4", "to": "I3", "distance_km": 1.8, "type": "road"},
+    {"from": "I3", "to": "I4", "distance_km": 1.0, "type": "road"},
+    
+    {"from": "D3", "to": "J2", "distance_km": 0.9, "type": "road"},
+    {"from": "C4", "to": "D4", "distance_km": 1.2, "type": "road"},
+    
+    {"from": "B5", "to": "F5", "distance_km": 2.0, "type": "road"},
+    {"from": "A5", "to": "C5", "distance_km": 1.7, "type": "road"},
+    {"from": "C5", "to": "H3", "distance_km": 0.6, "type": "road"},
+    
+    {"from": "I1", "to": "I2", "distance_km": 1.7, "type": "road"},
+    {"from": "I2", "to": "H2", "distance_km": 0.3, "type": "road"},
+    {"from": "H2", "to": "H3", "distance_km": 2.6, "type": "road"},
+    {"from": "H3", "to": "H4", "distance_km": 9.5, "type": "highway"},
+    
+    {"from": "D5", "to": "J3", "distance_km": 2.0, "type": "road"},
+    {"from": "J3", "to": "J4", "distance_km": 0.5, "type": "road"}
+  ]
+}

@@ -1,30 +1,33 @@
-// import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
+import { useState } from 'react'
 import './App.css'
-import ThreeScene from "./components/ThreeScene"
-
-
+// import NavigationPage from './pages/NavigationPage.jsx'
+// import MonitorPage from './pages/MonitorPage.jsx'
+import CyberpunkCityDemo from './pages/CyberpunkCityDemo.tsx'
 
 function App() {
+  // const [currentPage, setCurrentPage] = useState('cyberpunk') // 'navigation', 'monitor', または 'cyberpunk'
+  
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* 顶部标题 */}
-      {/* <header className="absolute top-5 left-10 text-2xl font-bold z-10">
-        未来自动驾驶 Demo 🚗
-      </header> */}
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* トップナビゲーションバー */}
+      <nav className="absolute top-0 left-0 right-0 z-30 bg-black/80 backdrop-blur-sm border-b border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold">未来都市システム</h1>
+          </div>
+         </div> 
+      </nav>
+      <CyberpunkCityDemo />
 
-      {/* Three.js 场景 */}
-      <ThreeScene />
-
-      {/* 底部说明区域 */}
-      {/* <div className="absolute bottom-5 left-10 z-10 bg-black/50 p-4 rounded-lg">
-        <h2 className="text-xl mb-2">行驶路径演示</h2>
-        <p className="text-gray-300">
-          本系统展示车辆从A点出发，在路径上自动变形为飞行模式，
-          然后落地行驶至B点，全程自动控制。
-        </p>
-      </div> */}
+      {/* ページコンテンツ */}
+      {/* {currentPage === 'cyberpunk' ? (
+        <CyberpunkCityDemo />
+      ) : (
+        <div className="pt-20">
+          {currentPage === 'navigation' && <NavigationPage />}
+          {currentPage === 'monitor' && <MonitorPage />}
+        </div>
+      )} */}
     </div>
   )
 }
