@@ -325,7 +325,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
       const pos3d = latLngToPosition3D(building.coordinates)
       
       // モデルの原点が底部にある場合、Y=0に配置
-      const yPosition = 8
+      const yPosition = 0
       
       const position = [pos3d.x, yPosition, pos3d.z] as [number, number, number]
       
