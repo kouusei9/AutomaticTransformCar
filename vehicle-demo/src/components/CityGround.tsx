@@ -1,37 +1,25 @@
-import React, { useMemo, useEffect, useRef, useState } from 'react'
+import React, { useMemo, useEffect, useRef, useState, Suspense } from 'react'
 import * as THREE from 'three'
-import { useTexture } from '@react-three/drei'
+import { useTexture, useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { LocationMarker } from './LocationMarker'
-import { RouteLine } from './RouteLine'
+import { PathLine } from './PathLine'
 import { latLngToPosition3D } from '../utils/coordinateConverter'
-import { type RouteData, type RouteEdge } from '../utils/routePathGenerator'
-import { DRONE_ALTITUDE } from '../utils/constants'
+import { type RouteData, type RouteEdge, createRoutePathFromNodeIds } from '../utils/routePathGenerator'
 
 /**
- * Cyberpunk City Ground Component
- * Renders aerial and ground routes with vertical connectors
+ * サイバーパンク都市地面コンポーネント
+ * 空中および地上ルートと垂直コネクターをレンダリング
  */
 
-// ==================== Constants ====================
+// ==================== 定数 ====================
 const GROUND_COLOR = new THREE.Color(0x0a0a0f)
 const LIGHT_INTENSITY = 0.6
 const DIRECTIONAL_LIGHT_INTENSITY = 0.8
 const ROUTE_DATA_URL = '/kyoto_routes.json'
 const GROUND_SIZE = 200
 
-// ==================== Types ====================
-interface Route {
-  startPos: [number, number, number]
-  endPos: [number, number, number]
-  distance: number
-}
-
-interface VerticalRoute {
-  startPos: [number, number, number]
-  endPos: [number, number, number]
-  nodeId: string
-}
+// ==================== 型定義 ====================
 
 interface ConvertedNode {
   id: string
@@ -46,10 +34,59 @@ interface NodeEdgeTypes {
   hasGround: boolean
 }
 
-// ==================== Components ====================
+interface CityBuilding {
+  id: string
+  name: string
+  type: string
+  coordinates: {
+    lat: number
+    lng: number
+  }
+  height: number
+  description: string
+  position?: [number, number, number]
+  scale?: number
+}
+
+// ==================== コンポーネント ====================
 
 /**
- * Ground plane with map texture
+ * 3D建築物モデルコンポーネント
+ */
+const Building3DModel: React.FC<{
+  position: [number, number, number]
+  scale?: number
+  height?: number
+}> = ({ position, scale = 1, height = 120 }) => {
+  try {
+    const { scene } = useGLTF('/futuristic_city.glb')
+    const clonedScene = useMemo(() => {
+      return scene.clone()
+    }, [scene])
+    
+    // 统一高度120m，调整缩放使建筑物大小合适
+    const adjustedScale = (height / 30) * scale * 0.5 // 基准scale调整
+    
+    return (
+      <primitive 
+        object={clonedScene} 
+        position={position}
+        scale={[adjustedScale, adjustedScale, adjustedScale]}
+        castShadow
+        receiveShadow
+      />
+    )
+  } catch (error) {
+    console.error('Error loading building model:', error)
+    return null
+  }
+}
+
+// GLTFモデルをプリロード
+useGLTF.preload('/futuristic_city.glb')
+
+/**
+ * マップテクスチャ付き地面平面
  */
 const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
   const textureResult = useTexture('/routes_map.png')
@@ -65,10 +102,8 @@ const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
       mapTexture.needsUpdate = true
       mapTexture.minFilter = THREE.LinearFilter
       mapTexture.magFilter = THREE.LinearFilter
-      
-      console.log('Map texture loaded:', mapTexture, 'Size:', size)
     } else {
-      console.error('Failed to load map texture:', mapTexture)
+      console.error('マップテクスチャの読み込みに失敗:', mapTexture)
     }
   }, [mapTexture, size])
   
@@ -95,8 +130,8 @@ const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
 }
 
 /**
- * Billboard Building Component
- * 建筑物图片，始终朝向相机
+ * ビルボード建物コンポーネント
+ * 建物の画像、常にカメラの方を向く
  */
 const BillboardBuilding: React.FC<{ 
   position: [number, number, number]
@@ -157,10 +192,10 @@ const BillboardBuilding: React.FC<{
 
 BillboardBuilding.displayName = 'BillboardBuilding'
 
-// ==================== Helper Functions ====================
+// ==================== ヘルパー関数 ====================
 
 /**
- * 统计每个节点连接的边类型
+ * 各ノードに接続されたエッジタイプを統計
  */
 function analyzeNodeEdgeTypes(edges: RouteEdge[]): Map<string, NodeEdgeTypes> {
   const nodeEdgeTypes = new Map<string, NodeEdgeTypes>()
@@ -168,13 +203,13 @@ function analyzeNodeEdgeTypes(edges: RouteEdge[]): Map<string, NodeEdgeTypes> {
   edges.forEach(edge => {
     const isDrone = edge.type === 'drone'
     
-    // 记录 from 节点
+    // fromノードを記録
     const fromTypes = nodeEdgeTypes.get(edge.from) || { hasDrone: false, hasGround: false }
     if (isDrone) fromTypes.hasDrone = true
     else fromTypes.hasGround = true
     nodeEdgeTypes.set(edge.from, fromTypes)
     
-    // 记录 to 节点
+    // toノードを記録
     const toTypes = nodeEdgeTypes.get(edge.to) || { hasDrone: false, hasGround: false }
     if (isDrone) toTypes.hasDrone = true
     else toTypes.hasGround = true
@@ -185,87 +220,90 @@ function analyzeNodeEdgeTypes(edges: RouteEdge[]): Map<string, NodeEdgeTypes> {
 }
 
 /**
- * 生成路线数据
+ * ルートデータを生成
+ * 車両と同じロジックでパスを生成
  */
 function generateRoutes(
   edges: RouteEdge[],
-  convertedNodes: ConvertedNode[],
-  nodeEdgeTypes: Map<string, NodeEdgeTypes>
+  _convertedNodes: ConvertedNode[],
+  _nodeEdgeTypes: Map<string, NodeEdgeTypes>,
+  routeData: RouteData
 ) {
-  const ground: Route[] = []
-  const aerial: Route[] = []
-  const vertical: VerticalRoute[] = []
+  const groundPaths: { path: THREE.CurvePath<THREE.Vector3>; edge: RouteEdge }[] = []
+  const aerialPaths: { path: THREE.CurvePath<THREE.Vector3>; edge: RouteEdge }[] = []
+  const highwayPaths: { path: THREE.CurvePath<THREE.Vector3>; edge: RouteEdge }[] = []
+  const airplanePaths: { path: THREE.CurvePath<THREE.Vector3>; edge: RouteEdge }[] = []
   
-  // 处理边
+  // 各エッジについて、車両と同じロジックでパスを生成
   edges.forEach(edge => {
-    const fromNode = convertedNodes.find(n => n.id === edge.from)
-    const toNode = convertedNodes.find(n => n.id === edge.to)
+    const nodeIds = [edge.from, edge.to]
+    const path = createRoutePathFromNodeIds(routeData.nodes, routeData.edges, nodeIds)
     
-    if (!fromNode || !toNode) return
-    
-    if (edge.type === 'drone') {
-      // 空中路线 - 提升到空中高度
-      aerial.push({
-        startPos: [fromNode.position[0], DRONE_ALTITUDE, fromNode.position[2]],
-        endPos: [toNode.position[0], DRONE_ALTITUDE, toNode.position[2]],
-        distance: edge.distance_km
-      })
-    } else {
-      // 地面路线
-      ground.push({
-        startPos: fromNode.position,
-        endPos: toNode.position,
-        distance: edge.distance_km
-      })
-    }
-  })
-  
-  // 为需要升降的节点创建垂直路线（既有drone又有ground连接的节点）
-  nodeEdgeTypes.forEach((types, nodeId) => {
-    if (types.hasDrone && types.hasGround) {
-      const node = convertedNodes.find(n => n.id === nodeId)
-      if (node) {
-        vertical.push({
-          startPos: node.position, // 地面位置
-          endPos: [node.position[0], DRONE_ALTITUDE, node.position[2]], // 空中位置
-          nodeId
-        })
+    if (path) {
+      const pathWithEdge = { path, edge }
+      if (edge.type === 'drone') {
+        aerialPaths.push(pathWithEdge)
+      } else if (edge.type === 'highway') {
+        highwayPaths.push(pathWithEdge)
+      } else if (edge.type === 'airplane') {
+        airplanePaths.push(pathWithEdge)
+      } else {
+        groundPaths.push(pathWithEdge)
       }
     }
   })
   
-  return { ground, aerial, vertical }
+  return { 
+    ground: groundPaths, 
+    aerial: aerialPaths, 
+    highway: highwayPaths,
+    airplane: airplanePaths
+  }
 }
 
-// ==================== Main Component ====================
+// ==================== メインコンポーネント ====================
 
 interface CityGroundProps {
   size?: number
   onRouteDataLoaded?: (data: RouteData) => void
+  highlightedRoute?: {
+    nodeIds: string[]
+  } | null
 }
 
 /**
- * CityGround Component
+ * CityGroundコンポーネント
  */
 export const CityGround: React.FC<CityGroundProps> = ({ 
   size = GROUND_SIZE,
-  onRouteDataLoaded 
+  onRouteDataLoaded,
+  highlightedRoute
 }) => {
   const [routeData, setRouteData] = useState<RouteData | null>(null)
+  const [cityBuildings, setCityBuildings] = useState<CityBuilding[]>([])
   
-  // 加载路线数据
+  // ルートデータを読み込み
   useEffect(() => {
     fetch(ROUTE_DATA_URL)
       .then(res => res.json())
       .then(data => {
-        console.log('Route data loaded:', data)
         setRouteData(data)
         onRouteDataLoaded?.(data)
       })
-      .catch(err => console.error('Failed to load route data:', err))
+      .catch(err => console.error('ルートデータの読み込みに失敗:', err))
   }, [onRouteDataLoaded])
   
-  // 转换节点坐标
+  // 建築物データを読み込み
+  useEffect(() => {
+    fetch('/kyoto_city.json')
+      .then(res => res.json())
+      .then(data => {
+        setCityBuildings(data.buildings || [])
+      })
+      .catch(err => console.error('建築物データの読み込みに失敗:', err))
+  }, [])
+  
+  // ノード座標を変換
   const convertedNodes = useMemo<ConvertedNode[]>(() => {
     if (!routeData) return []
     
@@ -278,24 +316,47 @@ export const CityGround: React.FC<CityGroundProps> = ({
     })
   }, [routeData])
   
-  // 生成路线 - 分离地面和空中路线，并计算升降节点
+  // 建築物座標を変換
+  const convertedBuildings = useMemo(() => {
+    const buildingScale = 10.0 // 渲染时使用的scale
+    const buildingHeight = 120 // 統一高度120m
+    
+    const buildings = cityBuildings.map(building => {
+      const pos3d = latLngToPosition3D(building.coordinates)
+      
+      // モデルの原点が底部にある場合、Y=0に配置
+      const yPosition = 8
+      
+      const position = [pos3d.x, yPosition, pos3d.z] as [number, number, number]
+      
+      return {
+        ...building,
+        position,
+        height: buildingHeight,
+        scale: buildingScale
+      }
+    })
+    return buildings
+  }, [cityBuildings])
+  
+  // ルートを生成 - 車両と同じロジックでパスを生成
   const routes = useMemo(() => {
     if (!routeData || convertedNodes.length === 0) {
-      return { ground: [], aerial: [], vertical: [] }
+      return { ground: [], aerial: [], highway: [], airplane: [] }
     }
     
     const nodeEdgeTypes = analyzeNodeEdgeTypes(routeData.edges)
-    return generateRoutes(routeData.edges, convertedNodes, nodeEdgeTypes)
+    return generateRoutes(routeData.edges, convertedNodes, nodeEdgeTypes, routeData)
   }, [routeData, convertedNodes])
   
-  // 查找特定建筑物位置
+  // 特定の建物位置を検索
   const buildingPosition = useMemo(() => {
-    return convertedNodes.find(n => n.id === 'D2')?.position || [-60, 0, -60]
+    return convertedNodes.find(n => n.id === 'D2')?.position || [-60, 60, -60]
   }, [convertedNodes])
   
   return (
     <group>
-      {/* 光照 */}
+      {/* 照明 */}
       <ambientLight intensity={LIGHT_INTENSITY * 1.5} color={0xffffff} />
       
       <directionalLight
@@ -316,51 +377,119 @@ export const CityGround: React.FC<CityGroundProps> = ({
       {/* 地面平面 */}
       <GroundPlane size={size} />
       
-      {/* 地面路线 */}
-      {routes.ground.map((route, index) => (
-        <RouteLine
-          key={`ground-${index}`}
-          startPos={route.startPos}
-          endPos={route.endPos}
-          color="#00ffff"
-          animated
-        />
-      ))}
+      {/* 地上ルート（車両と同じパスを使用） */}
+      {routes.ground.map((item, index) => {
+        const isHighlighted = highlightedRoute && 
+          highlightedRoute.nodeIds.some((nodeId, i) => {
+            if (i === highlightedRoute.nodeIds.length - 1) return false
+            const nextNodeId = highlightedRoute.nodeIds[i + 1]
+            return (item.edge.from === nodeId && item.edge.to === nextNodeId) ||
+                   (item.edge.from === nextNodeId && item.edge.to === nodeId)
+          })
+        return (
+          <PathLine
+            key={`ground-${index}`}
+            path={item.path}
+            color="#00ffff"
+            animated
+            lineWidth={2}
+            dimmed={highlightedRoute !== null && !isHighlighted}
+          />
+        )
+      })}
       
-      {/* 空中飞行路线（drone） */}
-      {routes.aerial.map((route, index) => (
-        <RouteLine
-          key={`aerial-${index}`}
-          startPos={route.startPos}
-          endPos={route.endPos}
-          color="#ff00ff"
-          animated
-        />
-      ))}
+      {/* ハイウェイルート（車両と同じパスを使用、幅広で曲線的） */}
+      {routes.highway.map((item, index) => {
+        const isHighlighted = highlightedRoute && 
+          highlightedRoute.nodeIds.some((nodeId, i) => {
+            if (i === highlightedRoute.nodeIds.length - 1) return false
+            const nextNodeId = highlightedRoute.nodeIds[i + 1]
+            return (item.edge.from === nodeId && item.edge.to === nextNodeId) ||
+                   (item.edge.from === nextNodeId && item.edge.to === nodeId)
+          })
+        return (
+          <PathLine
+            key={`highway-${index}`}
+            path={item.path}
+            color="#ffaa00"
+            animated
+            lineWidth={3.0}
+            dimmed={highlightedRoute !== null && !isHighlighted}
+          />
+        )
+      })}
       
-      {/* 垂直升降路线 */}
-      {routes.vertical.map((route) => (
-        <RouteLine
-          key={`vertical-${route.nodeId}`}
-          startPos={route.startPos}
-          endPos={route.endPos}
-          color="#ff00ff"
-          animated
-        />
-      ))}
+      {/* 空中飛行ルート（車両と同じパスを使用） */}
+      {routes.aerial.map((item, index) => {
+        const isHighlighted = highlightedRoute && 
+          highlightedRoute.nodeIds.some((nodeId, i) => {
+            if (i === highlightedRoute.nodeIds.length - 1) return false
+            const nextNodeId = highlightedRoute.nodeIds[i + 1]
+            return (item.edge.from === nodeId && item.edge.to === nextNodeId) ||
+                   (item.edge.from === nextNodeId && item.edge.to === nodeId)
+          })
+        return (
+          <PathLine
+            key={`aerial-${index}`}
+            path={item.path}
+            color="#ff00ff"
+            animated
+            lineWidth={2}
+            dimmed={highlightedRoute !== null && !isHighlighted}
+          />
+        )
+      })}
       
-      {/* 位置标记 */}
-      {convertedNodes.map((node, index) => (
-        <LocationMarker
-          key={node.id}
-          position={node.position}
-          name={node.name}
-          color={index === 0 ? '#ff00ff' : '#00ffff'}
-          scale={1.2}
-        />
-      ))}
+      {/* 飛行機ルート（地図外への航空路線） */}
+      {routes.airplane.map((item, index) => {
+        const isHighlighted = highlightedRoute && 
+          highlightedRoute.nodeIds.some((nodeId, i) => {
+            if (i === highlightedRoute.nodeIds.length - 1) return false
+            const nextNodeId = highlightedRoute.nodeIds[i + 1]
+            return (item.edge.from === nodeId && item.edge.to === nextNodeId) ||
+                   (item.edge.from === nextNodeId && item.edge.to === nodeId)
+          })
+        return (
+          <PathLine
+            key={`airplane-${index}`}
+            path={item.path}
+            color="#00ff00"
+            animated
+            lineWidth={2.5}
+            dimmed={highlightedRoute !== null && !isHighlighted}
+          />
+        )
+      })}
       
-      {/* 建筑物 */}
+      {/* 位置マーカー */}
+      {convertedNodes.map((node, index) => {
+        const isHighlighted = highlightedRoute && 
+          highlightedRoute.nodeIds.includes(node.id)
+        return (
+          <LocationMarker
+            key={node.id}
+            position={node.position}
+            name={node.name}
+            color={index === 0 ? '#ff00ff' : '#00ffff'}
+            scale={1.2}
+            dimmed={highlightedRoute !== null && !isHighlighted}
+          />
+        )
+      })}
+      
+      {/* 3D建築物モデル */}
+      <Suspense fallback={null}>
+        {convertedBuildings.map((building) => (
+          <Building3DModel
+            key={building.id}
+            position={building.position}
+            scale={building.scale}
+            height={building.height}
+          />
+        ))}
+      </Suspense>
+      
+      {/* 建物（旧ビルボード） */}
       <BillboardBuilding 
         position={buildingPosition as [number, number, number]}
         texturePath="/build_kiomizu.png"

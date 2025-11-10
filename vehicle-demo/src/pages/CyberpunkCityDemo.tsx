@@ -14,24 +14,27 @@ import { createRoutePathFromNodeIds } from '../utils/routePathGenerator'
 const VEHICLE_ROUTES = [
   {
     id: 1,
-    name: 'テストルート1',
-    nodeIds: ['A1', 'A2', 'A3', 'A4'],  // 簡略化：京都駅 → 七条 → 五条 → 西本願寺
-    color: '#00ffff',
-    speed: 0.008
+    name: 'テストルート1 (Airplane)',
+    nodeIds: ['D1', 'H1', 'OUT_H1'],  // Airplane テスト：伏見稲荷 → 宇治空港 → 地図外
+    color: '#00ff00',
+    speed: 0.010,
+    isCycle: true  // 到达终点后删除车辆
   },
   {
     id: 2,
-    name: 'テストルート2',
-    nodeIds: ['C1', 'C2', 'C3'],  // 簡略化：東福寺 → 三十三間堂 → 祇園
-    color: '#ff00ff',
-    speed: 0.012
+    name: 'テストルート2 (Drone)',
+    nodeIds: ['A2', 'A1', 'A3', 'A4'],  // Drone テスト：東寺 → 二条城
+    color: '#00ffff',
+    speed: 0.012,
+    isCycle: true  // A1→A2→A3→A4→A3→A2→A1 循环
   },
   {
     id: 3,
-    name: 'テストルート3',
-    nodeIds: ['A1', 'B1', 'F1'],  // 簡略化：京都駅 → 九条 → 桂
-    color: '#ffff00',
-    speed: 0.010
+    name: 'テストルート3 (Road)',
+    nodeIds: ['C1', 'C2', 'C3'],  // Road テスト：東福寺 → 三十三間堂 → 祇園
+    color: '#ff00ff',
+    speed: 0.012,
+    isCycle: true  // C1→C2→C3→C2→C1 循环
   }
 ]
 
@@ -78,6 +81,7 @@ export default function CyberpunkCityDemo() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
   const [routePaths, setRoutePaths] = useState<THREE.CurvePath<THREE.Vector3>[]>([])
   const [routeData, setRouteData] = useState<any>(null)
+  const [activeVehicles, setActiveVehicles] = useState<Set<number>>(new Set([0, 1, 2]))  // 活跃的车辆索引
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!)
   const controlsRef = useRef<any>(null!)
   const defaultCameraPos = new THREE.Vector3(100, 80, 100)
@@ -88,7 +92,6 @@ export default function CyberpunkCityDemo() {
     fetch('/kyoto_routes.json')
       .then(res => res.json())
       .then(data => {
-        console.log('ルートデータ読み込み完了:', data)
         setRouteData(data)
       })
       .catch(err => console.error('ルートデータの読み込みに失敗:', err))
@@ -100,10 +103,13 @@ export default function CyberpunkCityDemo() {
       const paths: THREE.CurvePath<THREE.Vector3>[] = []
       
       VEHICLE_ROUTES.forEach(route => {
+        // 直接使用原始节点序列，不添加返程节点
+        const nodeIds = route.nodeIds.slice()
+        
         const path = createRoutePathFromNodeIds(
           routeData.nodes,
           routeData.edges,
-          route.nodeIds
+          nodeIds
         )
         
         if (path) {
@@ -114,6 +120,18 @@ export default function CyberpunkCityDemo() {
       setRoutePaths(paths)
     }
   }, [routeData])
+
+  // ノードIDからノード名を取得する関数
+  const getNodeName = (nodeId: string): string => {
+    if (!routeData) return nodeId
+    const node = routeData.nodes.find((n: any) => n.id === nodeId)
+    return node ? node.name : nodeId
+  }
+
+  // ノードIDの配列をノード名の配列に変換
+  const getRouteNames = (nodeIds: string[]): string => {
+    return nodeIds.map(id => getNodeName(id)).join(' → ')
+  }
 
   const handleVehicleClick = (vehicleId: number) => (position: THREE.Vector3, forward: THREE.Vector3) => {
     if (!cameraRef.current || !controlsRef.current) return
@@ -170,6 +188,43 @@ export default function CyberpunkCityDemo() {
     if (followMode && selectedVehicleId === vehicleId) {
       setVehiclePosition(position)
       setVehicleForward(forward)
+    }
+  }
+
+  // 车辆到达终点的回调
+  const handleVehicleComplete = (vehicleId: number) => {
+    const route = VEHICLE_ROUTES[vehicleId]
+    
+    // 如果不是循环路线，删除车辆
+    if (!route.isCycle) {
+      setActiveVehicles(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(vehicleId)
+        return newSet
+      })
+      
+      // 如果正在跟随该车辆，取消跟随
+      if (selectedVehicleId === vehicleId) {
+        setFollowMode(false)
+        setSelectedVehicleId(null)
+        
+        if (cameraRef.current && controlsRef.current) {
+          gsap.to(cameraRef.current.position, {
+            x: defaultCameraPos.x,
+            y: defaultCameraPos.y,
+            z: defaultCameraPos.z,
+            duration: 1.2,
+            ease: 'power2.inOut'
+          })
+          gsap.to(controlsRef.current.target, {
+            x: defaultTarget.x,
+            y: defaultTarget.y,
+            z: defaultTarget.z,
+            duration: 1.2,
+            ease: 'power2.inOut'
+          })
+        }
+      }
     }
   }
 
@@ -244,7 +299,10 @@ export default function CyberpunkCityDemo() {
         
         <SkyEnvironment />
         <DistantCityscape />
-        <CityGround onRouteDataLoaded={setRouteData} />
+        <CityGround 
+          onRouteDataLoaded={setRouteData} 
+          highlightedRoute={selectedVehicleId !== null ? VEHICLE_ROUTES[selectedVehicleId] : null}
+        />
         
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
           <planeGeometry args={[200, 200]} />
@@ -252,41 +310,46 @@ export default function CyberpunkCityDemo() {
         </mesh>
         
         {/* 各車両が異なる経路を走行 */}
-        {(() => {
-          console.log('車両レンダリング中、routePaths.length:', routePaths.length)
-          return routePaths.length >= 3 ? (
-            <>
+        {routePaths.length >= 3 && (
+          <>
+            {activeVehicles.has(0) && (
               <Vehicle 
                 path={routePaths[0]}
                 speed={VEHICLE_ROUTES[0].speed} 
                 startPosition={0} 
                 onClick={handleVehicleClick(0)}
                 onPositionUpdate={handlePositionUpdate(0)}
+                onComplete={() => handleVehicleComplete(0)}
+                name={VEHICLE_ROUTES[0].name}
+                isCycle={VEHICLE_ROUTES[0].isCycle}
               />
+            )}
+            {activeVehicles.has(1) && (
               <Vehicle 
                 path={routePaths[1]}
                 speed={VEHICLE_ROUTES[1].speed} 
                 startPosition={0}
                 onClick={handleVehicleClick(1)}
                 onPositionUpdate={handlePositionUpdate(1)}
+                onComplete={() => handleVehicleComplete(1)}
+                name={VEHICLE_ROUTES[1].name}
+                isCycle={VEHICLE_ROUTES[1].isCycle}
               />
+            )}
+            {activeVehicles.has(2) && (
               <Vehicle 
                 path={routePaths[2]}
                 speed={VEHICLE_ROUTES[2].speed} 
                 startPosition={0}
                 onClick={handleVehicleClick(2)}
                 onPositionUpdate={handlePositionUpdate(2)}
+                onComplete={() => handleVehicleComplete(2)}
+                name={VEHICLE_ROUTES[2].name}
+                isCycle={VEHICLE_ROUTES[2].isCycle}
               />
-            </>
-          ) : (
-            <group>
-              <mesh position={[0, 5, 0]}>
-                <boxGeometry args={[2, 2, 2]} />
-                <meshStandardMaterial color="red" />
-              </mesh>
-            </group>
-          )
-        })()}
+            )}
+          </>
+        )}
         
         <gridHelper args={[200, 20, '#444', '#222']} position={[0, 0.1, 0]} />
         <fog attach="fog" args={['#000', 100, 400]} />
@@ -304,21 +367,87 @@ export default function CyberpunkCityDemo() {
           background: 'rgba(0, 0, 0, 0.7)',
           padding: '15px',
           borderRadius: '8px',
+          border: `1px solid ${selectedVehicleId !== null ? '#ff00ff' : '#00ffff'}`,
+          zIndex: 10,
+          pointerEvents: 'none',
+          textAlign: 'left'
+        }}
+      >
+        {selectedVehicleId !== null ? (
+          // 選択された車両の詳細情報
+          <>
+            <h2 style={{ margin: '0 0 10px 0', color: '#ff00ff', textAlign: 'left' }}>
+              🎯 車両追跡中
+            </h2>
+            <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>
+                {VEHICLE_ROUTES[selectedVehicleId].name}
+              </div>
+              <div>📍 ルート: {getRouteNames(VEHICLE_ROUTES[selectedVehicleId].nodeIds)}</div>
+              <div>⚡ 速度: {VEHICLE_ROUTES[selectedVehicleId].speed}</div>
+              <div>🔄 モード: {VEHICLE_ROUTES[selectedVehicleId].isCycle ? '循環' : '片道'}</div>
+              <div>🎨 カラー: <span style={{ color: VEHICLE_ROUTES[selectedVehicleId].color }}>■</span> {VEHICLE_ROUTES[selectedVehicleId].color}</div>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
+                再クリックで追跡解除
+              </div>
+            </div>
+          </>
+        ) : (
+          // 全体情報
+          <>
+            <h2 style={{ margin: '0 0 10px 0', color: '#ff00ff', textAlign: 'left' }}>
+              🚀 京都市街地ナビゲーション
+            </h2>
+            <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
+              {activeVehicles.has(0) && <div>🚗 車両1: {VEHICLE_ROUTES[0].name}</div>}
+              {activeVehicles.has(1) && <div>🚙 車両2: {VEHICLE_ROUTES[1].name}</div>}
+              {activeVehicles.has(2) && <div>🚕 車両3: {VEHICLE_ROUTES[2].name}</div>}
+              <div>• {routePaths.length > 0 ? `✓ ${routePaths.length}ルート読み込み完了` : '⏳ ルート読み込み中...'}</div>
+              <div>• アクティブ車両: {activeVehicles.size}台</div>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
+                クリックで車両を追跡 | マウスで視点操作
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ルート図例（右下角） */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          right: 20,
+          color: '#00ffff',
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          background: 'rgba(0, 0, 0, 0.7)',
+          padding: '12px 15px',
+          borderRadius: '8px',
           border: '1px solid #00ffff',
           zIndex: 10,
           pointerEvents: 'none'
         }}
       >
-        <h2 style={{ margin: '0 0 10px 0', color: '#ff00ff' }}>
-          🚀 京都市街地ナビゲーション
-        </h2>
-        <div style={{ lineHeight: '1.6' }}>
-          <div>🚗 車両1: {VEHICLE_ROUTES[0].name}</div>
-          <div>🚙 車両2: {VEHICLE_ROUTES[1].name}</div>
-          <div>🚕 車両3: {VEHICLE_ROUTES[2].name}</div>
-          <div>• {routePaths.length > 0 ? `✓ ${routePaths.length}ルート読み込み完了` : '⏳ ルート読み込み中...'}</div>
-          <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
-            クリックで車両を追跡 | マウスで視点操作
+        <h3 style={{ margin: '0 0 8px 0', color: '#ff00ff', fontSize: '14px' }}>
+          🗺️ ルート図例
+        </h3>
+        <div style={{ lineHeight: '1.8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#00ffff', fontSize: '16px' }}>━━</span>
+            <span>地上ルート (Road)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#ffaa00', fontSize: '16px' }}>━━</span>
+            <span>高速道路 (Highway)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#ff00ff', fontSize: '16px' }}>━━</span>
+            <span>ドローン (Drone)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#00ff00', fontSize: '16px' }}>━━</span>
+            <span>航空路線 (Airplane)</span>
           </div>
         </div>
       </div>

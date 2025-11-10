@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react'
 
 /**
- * DistantCityscape - 远处城市剪影
- * 在地图边缘创建朦胧的建筑轮廓
+ * DistantCityscape - 遠方都市シルエット
+ * マップの端に霞んだ建物の輪郭を作成
  */
 export const DistantCityscape: React.FC = () => {
-  // 生成随机建筑数据
+  // ランダムな建物データを生成
   const buildings = useMemo(() => {
     const buildingData = []
-    const radius = 150 // 距离中心的半径
-    const count = 40 // 建筑数量
+    const radius = 150 // 中心からの半径
+    const count = 40 // 建物の数
     
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2

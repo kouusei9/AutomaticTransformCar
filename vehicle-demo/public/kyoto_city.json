@@ -1,0 +1,148 @@
+{
+  "buildings": [
+    {
+      "id": "B01",
+      "name": "京都駅ビル",
+      "type": "station_building",
+      "coordinates": {
+        "lat": 34.985849,
+        "lng": 135.758766
+      },
+      "height": 60,
+      "description": "京都的地標性建築，高60米的現代化車站大樓"
+    },
+    {
+      "id": "B02",
+      "name": "京都タワー",
+      "type": "tower",
+      "coordinates": {
+        "lat": 34.987574,
+        "lng": 135.759363
+      },
+      "height": 131,
+      "description": "京都最高的建築物，高131米的觀景塔"
+    },
+    {
+      "id": "B03",
+      "name": "京都市役所",
+      "type": "government",
+      "coordinates": {
+        "lat": 35.012222,
+        "lng": 135.768333
+      },
+      "height": 45,
+      "description": "京都市政府辦公大樓"
+    },
+    {
+      "id": "B04",
+      "name": "四条河原町ビル群",
+      "type": "commercial",
+      "coordinates": {
+        "lat": 35.003889,
+        "lng": 135.769444
+      },
+      "height": 50,
+      "description": "四条河原町商業區高樓群"
+    },
+    {
+      "id": "B05",
+      "name": "京都大學時計台",
+      "type": "university",
+      "coordinates": {
+        "lat": 35.026111,
+        "lng": 135.781944
+      },
+      "height": 35,
+      "description": "京都大學標誌性建築時計台"
+    },
+    {
+      "id": "B06",
+      "name": "京都国際会館",
+      "type": "convention_center",
+      "coordinates": {
+        "lat": 35.062222,
+        "lng": 135.782778
+      },
+      "height": 40,
+      "description": "京都國際會議中心"
+    },
+    {
+      "id": "B07",
+      "name": "イオンモール京都",
+      "type": "shopping_mall",
+      "coordinates": {
+        "lat": 34.977778,
+        "lng": 135.746111
+      },
+      "height": 30,
+      "description": "大型購物中心AEON MALL"
+    },
+    {
+      "id": "B08",
+      "name": "京都ホテルオークラ",
+      "type": "hotel",
+      "coordinates": {
+        "lat": 35.011944,
+        "lng": 135.768889
+      },
+      "height": 60,
+      "description": "京都大倉飯店高層建築"
+    },
+    {
+      "id": "B09",
+      "name": "伊勢丹京都店",
+      "type": "department_store",
+      "coordinates": {
+        "lat": 34.985278,
+        "lng": 135.758611
+      },
+      "height": 55,
+      "description": "伊勢丹百貨京都店"
+    },
+    {
+      "id": "B10",
+      "name": "京都リサーチパーク",
+      "type": "research_park",
+      "coordinates": {
+        "lat": 34.994722,
+        "lng": 135.740556
+      },
+      "height": 40,
+      "description": "京都研究園區建築群"
+    }
+  ],
+  "districts": [
+    {
+      "name": "京都駅周辺",
+      "center": {
+        "lat": 34.985849,
+        "lng": 135.758766
+      },
+      "buildings": ["B01", "B02", "B09"]
+    },
+    {
+      "name": "四条河原町",
+      "center": {
+        "lat": 35.003889,
+        "lng": 135.769444
+      },
+      "buildings": ["B04", "B08"]
+    },
+    {
+      "name": "京都大學周辺",
+      "center": {
+        "lat": 35.026111,
+        "lng": 135.781944
+      },
+      "buildings": ["B05"]
+    },
+    {
+      "name": "国際会館周辺",
+      "center": {
+        "lat": 35.062222,
+        "lng": 135.782778
+      },
+      "buildings": ["B06"]
+    }
+  ]
+}

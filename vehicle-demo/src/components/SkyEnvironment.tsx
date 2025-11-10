@@ -3,50 +3,50 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 /**
- * Cyberpunk Sky Environment Component
+ * サイバーパンク空環境コンポーネント
  * 
- * Creates a futuristic night sky with:
- * - Gradient shader from horizon (dark purple) to top (blue)
- * - Animated glow rings and light beams
- * - Soft night atmosphere without sun
+ * 未来的な夜空を作成：
+ * - 地平線（ダークパープル）から頂上（ブルー）へのグラデーションシェーダー
+ * - アニメーション化されたグローリングと光線
+ * - 太陽のないソフトな夜の雰囲気
  */
 
-// ==================== Constants ====================
+// ==================== 定数 ====================
 
-// Color scheme for cyberpunk sky
-const HORIZON_COLOR = new THREE.Color(0x1a0033) // Dark purple at horizon
-const TOP_COLOR = new THREE.Color(0x000033) // Deep blue at top
-const GLOW_COLOR = new THREE.Color(0x4400ff) // Purple glow for rings
-const BEAM_COLOR = new THREE.Color(0x0066ff) // Cyan-blue for light beams
+// サイバーパンク空のカラースキーム
+const HORIZON_COLOR = new THREE.Color(0x1a0033) // 地平線のダークパープル
+const TOP_COLOR = new THREE.Color(0x000033) // 頂上のディープブルー
+const GLOW_COLOR = new THREE.Color(0x4400ff) // リング用のパープルグロー
+const BEAM_COLOR = new THREE.Color(0x0066ff) // 光線用のシアンブルー
 
-// Animation parameters
-const RING_SPEED = 0.3 // Speed of ring animation
-const BEAM_SPEED = 0.5 // Speed of beam animation
-const GLOW_INTENSITY = 0.8 // Intensity of glow effects
-const RING_COUNT = 3 // Number of glow rings
-const BEAM_COUNT = 5 // Number of light beams
+// アニメーションパラメータ
+const RING_SPEED = 0.3 // リングアニメーション速度
+const BEAM_SPEED = 0.5 // 光線アニメーション速度
+const GLOW_INTENSITY = 0.8 // グロー効果の強度
+const RING_COUNT = 3 // グローリングの数
+const BEAM_COUNT = 5 // 光線の数
 
-// Sky sphere parameters
-const SKY_RADIUS = 500 // Radius of sky sphere
-const SKY_SEGMENTS = 32 // Sphere segments for smoothness
+// 空球体パラメータ
+const SKY_RADIUS = 500 // 空球体の半径
+const SKY_SEGMENTS = 32 // 滑らかさのための球体セグメント
 
-// ==================== Shader Code ====================
+// ==================== シェーダーコード ====================
 
 /**
- * Creates the gradient sky shader with animated effects
+ * アニメーション効果付きグラデーション空シェーダーを作成
  */
 const createSkyShader = () => {
   return {
     uniforms: {
-      // Time for animation
+      // アニメーション用の時間
       time: { value: 0 },
-      // Gradient colors
+      // グラデーションカラー
       horizonColor: { value: HORIZON_COLOR },
       topColor: { value: TOP_COLOR },
-      // Glow effects
+      // グロー効果
       glowColor: { value: GLOW_COLOR },
       beamColor: { value: BEAM_COLOR },
-      // Animation parameters
+      // アニメーションパラメータ
       ringSpeed: { value: RING_SPEED },
       beamSpeed: { value: BEAM_SPEED },
       glowIntensity: { value: GLOW_INTENSITY },
@@ -58,11 +58,11 @@ const createSkyShader = () => {
       varying vec3 vNormal;
       
       void main() {
-        // Pass world position and normal to fragment shader
+        // ワールド位置と法線をフラグメントシェーダーに渡す
         vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
         vNormal = normalize(normalMatrix * normal);
         
-        // Standard vertex transformation
+        // 標準頂点変換
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,
@@ -81,33 +81,33 @@ const createSkyShader = () => {
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
       
-      // Calculate distance-based gradient
+      // 距離ベースのグラデーションを計算
       float getGradient(vec3 pos) {
-        // Normalize Y position to get 0-1 range (0 = bottom/horizon, 1 = top)
+        // Y位置を正規化して0-1範囲を取得（0 = 底部/地平線、1 = 頂上）
         float y = normalize(pos).y;
-        // Smooth step for gradient transition
+        // グラデーション遷移のためのスムーズステップ
         return smoothstep(-1.0, 1.0, y);
       }
       
-      // Create animated glow rings
+      // アニメーション化されたグローリングを作成
       float getGlowRings(vec3 pos, float time) {
         float rings = 0.0;
         
-        // Calculate distance from center in XZ plane (horizontal distance)
+        // XZ平面の中心からの距離を計算（水平距離）
         float dist = length(pos.xz);
         
-        // Create multiple animated rings
+        // 複数のアニメーション化されたリングを作成
         for (float i = 0.0; i < 3.0; i += 1.0) {
-          // Ring position based on time and index
+          // 時間とインデックスに基づくリング位置
           float ringPos = mod((time * ringSpeed + i * 0.5) * 100.0, 300.0);
           
-          // Calculate distance from ring
+          // リングからの距離を計算
           float ringDist = abs(dist - ringPos);
           
-          // Glow falloff (rings fade out with distance)
+          // グローフォールオフ（リングは距離とともにフェードアウト）
           float glow = 1.0 / (1.0 + ringDist * 0.1);
           
-          // Add pulsing effect
+          // パルス効果を追加
           float pulse = sin(time * 2.0 + i) * 0.3 + 0.7;
           
           rings += glow * pulse * glowIntensity;
@@ -116,34 +116,34 @@ const createSkyShader = () => {
         return rings;
       }
       
-      // Create light beams from top
+      // 頂上からの光線を作成
       float getLightBeams(vec3 pos, float time) {
         float beams = 0.0;
         
-        // Calculate angle around Y axis
+        // Y軸周りの角度を計算
         float angle = atan(pos.x, pos.z);
         
-        // Create multiple beams
+        // 複数の光線を作成
         for (float i = 0.0; i < 5.0; i += 1.0) {
-          // Beam angle based on index
+          // インデックスに基づく光線角度
           float beamAngle = (i / 5.0) * 3.14159 * 2.0;
           
-          // Animated beam angle
+          // アニメーション化された光線角度
           float animatedAngle = beamAngle + time * beamSpeed;
           
-          // Calculate angle difference
+          // 角度差を計算
           float angleDiff = abs(angle - animatedAngle);
-          // Wrap around for circular distance
+          // 円形距離のためのラップアラウンド
           angleDiff = min(angleDiff, 3.14159 * 2.0 - angleDiff);
           
-          // Beam width and intensity
+          // 光線幅と強度
           float beamWidth = 0.3;
           float beamIntensity = 1.0 - smoothstep(0.0, beamWidth, angleDiff);
           
-          // Height-based intensity (stronger at horizon)
+          // 高さベースの強度（地平線で強く）
           float heightFactor = 1.0 - smoothstep(-0.5, 0.5, pos.y);
           
-          // Fade with distance
+          // 距離によるフェード
           float dist = length(pos.xz);
           float distFactor = 1.0 / (1.0 + dist * 0.01);
           
@@ -154,61 +154,61 @@ const createSkyShader = () => {
       }
       
       void main() {
-        // Calculate base gradient from horizon to top
+        // 地平線から頂上へのベースグラデーションを計算
         float gradient = getGradient(vWorldPosition);
         vec3 skyColor = mix(horizonColor, topColor, gradient);
         
-        // Add glow rings
+        // グローリングを追加
         float rings = getGlowRings(vWorldPosition, time);
         vec3 ringGlow = glowColor * rings;
         
-        // Add light beams
+        // 光線を追加
         float beams = getLightBeams(vWorldPosition, time);
         vec3 beamGlow = beamColor * beams;
         
-        // Combine all effects
+        // すべての効果を組み合わせ
         vec3 finalColor = skyColor + ringGlow + beamGlow;
         
-        // Add subtle atmospheric glow based on position
+        // 位置に基づく微妙な大気グローを追加
         float atmosphericGlow = smoothstep(0.0, 0.3, gradient) * 0.1;
         finalColor += glowColor * atmosphericGlow;
         
-        // Output final color
+        // 最終カラーを出力
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `
   }
 }
 
-// ==================== Component ====================
+// ==================== コンポーネント ====================
 
 interface SkyEnvironmentProps {
-  /** Optional custom sky radius */
+  /** オプションのカスタム空半径 */
   radius?: number
-  /** Optional custom segments for sphere */
+  /** オプションの球体用カスタムセグメント */
   segments?: number
 }
 
 /**
- * SkyEnvironment Component
+ * SkyEnvironmentコンポーネント
  * 
- * Renders a cyberpunk night sky with:
- * - Gradient from dark purple (horizon) to deep blue (top)
- * - Animated glow rings
- * - Animated light beams
- * - Soft night atmosphere
+ * サイバーパンクの夜空をレンダリング：
+ * - ダークパープル（地平線）からディープブルー（頂上）へのグラデーション
+ * - アニメーション化されたグローリング
+ * - アニメーション化された光線
+ * - ソフトな夜の雰囲気
  */
 export const SkyEnvironment: React.FC<SkyEnvironmentProps> = ({
   radius = SKY_RADIUS,
   segments = SKY_SEGMENTS
 }) => {
-  // Create shader material
+  // シェーダーマテリアルを作成
   const shaderMaterial = useMemo(() => {
     const shader = createSkyShader()
     return new THREE.ShaderMaterial(shader)
   }, [])
 
-  // Update time uniform for animation
+  // アニメーション用の時間uniformを更新
   useFrame((state) => {
     if (shaderMaterial.uniforms) {
       shaderMaterial.uniforms.time.value = state.clock.elapsedTime
@@ -217,9 +217,9 @@ export const SkyEnvironment: React.FC<SkyEnvironmentProps> = ({
 
   return (
     <mesh scale={[radius, radius, radius]}>
-      {/* Sphere geometry for sky dome */}
+      {/* 空ドーム用の球体ジオメトリ */}
       <sphereGeometry args={[1, segments, segments]} />
-      {/* Shader material with gradient and animated effects */}
+      {/* グラデーションとアニメーション効果付きシェーダーマテリアル */}
       <primitive object={shaderMaterial} attach="material" side={THREE.BackSide} />
     </mesh>
   )

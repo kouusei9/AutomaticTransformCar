@@ -8,13 +8,15 @@ interface LocationMarkerProps {
   name: string
   color?: string
   scale?: number
+  dimmed?: boolean  // 是否变暗
 }
 
 export const LocationMarker: React.FC<LocationMarkerProps> = ({
   position,
   name,
   color = '#00ffff',
-  scale = 1.0
+  scale = 1.0,
+  dimmed = false
 }) => {
   const markerRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
@@ -23,20 +25,20 @@ export const LocationMarker: React.FC<LocationMarkerProps> = ({
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color(color),
       emissive: new THREE.Color(color),
-      emissiveIntensity: 0.8,
+      emissiveIntensity: dimmed ? 0.1 : 0.8,
       transparent: true,
-      opacity: 0.9
+      opacity: dimmed ? 0.15 : 0.9
     })
-  }, [color])
+  }, [color, dimmed])
   
   const glowMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(color),
       transparent: true,
-      opacity: 0.3,
+      opacity: dimmed ? 0.05 : 0.3,
       side: THREE.DoubleSide
     })
-  }, [color])
+  }, [color, dimmed])
   
   useFrame((state) => {
     if (markerRef.current && glowRef.current) {

@@ -2,8 +2,8 @@ import React, { useMemo } from 'react'
 import * as THREE from 'three'
 
 /**
- * SurroundingMountains - 环形山脉/建筑群
- * 在地图四周创建山脉或建筑群轮廓
+ * SurroundingMountains - 環状山脈/建物群
+ * マップの周囲に山脈または建物群の輪郭を作成
  */
 export const SurroundingMountains: React.FC = () => {
   const mountainLines = useMemo(() => {
@@ -11,7 +11,7 @@ export const SurroundingMountains: React.FC = () => {
     const segments = 60
     const radius = 180
     
-    // 创建环形山脉轮廓
+    // 環状山脈の輪郭を作成
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2
       const height = 30 + Math.sin(angle * 3) * 15 + Math.random() * 10
@@ -20,7 +20,7 @@ export const SurroundingMountains: React.FC = () => {
       const x = Math.cos(angle) * distance
       const z = Math.sin(angle) * distance
       
-      // 每两个点形成一条从地面到山顶的线段
+      // 2つのポイントごとに地面から山頂までの線分を形成
       points.push(new THREE.Vector3(x, 0, z))
       points.push(new THREE.Vector3(x, height, z))
     }

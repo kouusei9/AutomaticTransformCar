@@ -42,10 +42,13 @@
     {"id": "G4", "name": "龍安寺", "coordinates": {"lat": 35.034444, "lng": 135.718333}, "type": "point"},
     {"id": "G5", "name": "仁和寺", "coordinates": {"lat": 35.031389, "lng": 135.713889}, "type": "point"},
     
-    {"id": "H1", "name": "宇治", "coordinates": {"lat": 34.889444, "lng": 135.799444}, "type": "point"},
+    {"id": "H1", "name": "宇治", "coordinates": {"lat": 34.889444, "lng": 135.799444}, "type": "airport"},
     {"id": "H2", "name": "三条京阪", "coordinates": {"lat": 35.009377, "lng": 135.772255}, "type": "point"},
     {"id": "H3", "name": "出町柳", "coordinates": {"lat": 35.033333, "lng": 135.772255}, "type": "point"},
-    {"id": "H4", "name": "鞍馬", "coordinates": {"lat": 35.120278, "lng": 135.769444}, "type": "point"},
+    {"id": "H4", "name": "鞍馬", "coordinates": {"lat": 35.120278, "lng": 135.769444}, "type": "airport"},
+    
+    {"id": "OUT_H1", "name": "地図外（南）", "coordinates": {"lat": 34.800000, "lng": 135.799444}, "type": "outside"},
+    {"id": "OUT_H4", "name": "地図外（北）", "coordinates": {"lat": 35.200000, "lng": 135.769444}, "type": "outside"},
     
     {"id": "I1", "name": "河原町五条", "coordinates": {"lat": 34.993889, "lng": 135.769444}, "type": "point"},
     {"id": "I2", "name": "河原町三条", "coordinates": {"lat": 35.009377, "lng": 135.769444}, "type": "point"},
@@ -58,8 +61,8 @@
     {"id": "J4", "name": "修学院", "coordinates": {"lat": 35.050000, "lng": 135.797778}, "type": "point"}
   ],
   "edges": [
-    {"from": "A1", "to": "A2", "distance_km": 0.6, "type": "drone"},
-    {"from": "A2", "to": "A3", "distance_km": 1.2, "type": "drone"},
+    {"from": "A2", "to": "A1", "distance_km": 0.6, "type": "drone"},
+    {"from": "A1", "to": "A3", "distance_km": 1.2, "type": "drone"},
     {"from": "A3", "to": "A4", "distance_km": 2.5, "type": "drone"},
     {"from": "A4", "to": "A5", "distance_km": 3.3, "type": "drone"},
     
@@ -130,6 +133,9 @@
     {"from": "I2", "to": "H2", "distance_km": 0.3, "type": "road"},
     {"from": "H2", "to": "H3", "distance_km": 2.6, "type": "road"},
     {"from": "H3", "to": "H4", "distance_km": 9.5, "type": "highway"},
+    
+    {"from": "H1", "to": "OUT_H1", "distance_km": 15.0, "type": "airplane"},
+    {"from": "H4", "to": "OUT_H4", "distance_km": 15.0, "type": "airplane"},
     
     {"from": "D5", "to": "J3", "distance_km": 2.0, "type": "road"},
     {"from": "J3", "to": "J4", "distance_km": 0.5, "type": "road"}
