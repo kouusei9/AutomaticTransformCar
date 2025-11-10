@@ -3,10 +3,10 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { useState, useRef, useEffect } from 'react'
 import gsap from 'gsap'
 import * as THREE from 'three'
-import CityGround from '../components/CityGround'
-import SkyEnvironment from '../components/SkyEnvironment'
-import Vehicle from '../components/Vehicle'
-import DistantCityscape from '../components/DistantCityscape'
+import CityGround from '../components/website/CityGround'
+import SkyEnvironment from '../components/website/SkyEnvironment'
+import Vehicle from '../components/website/Vehicle'
+import DistantCityscape from '../components/website/DistantCityscape'
 import { createRoutePathFromNodeIds } from '../utils/routePathGenerator'
 
 // 車両ルート設定（後でAPIから取得可能）
@@ -89,7 +89,7 @@ export default function CyberpunkCityDemo() {
 
   // ルートデータを読み込み
   useEffect(() => {
-    fetch('/kyoto_routes.json')
+    fetch('/website-assets/kyoto_routes.json')
       .then(res => res.json())
       .then(data => {
         setRouteData(data)
