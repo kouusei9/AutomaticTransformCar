@@ -23,6 +23,10 @@ const HUDControlPanel = () => {
   // 保存路径规划时的坐标快照
   const [routeSnapshot, setRouteSnapshot] = useState({ start: null, end: null });
   
+  // 行程状态
+  const [tripStatus, setTripStatus] = useState('idle'); // 'idle' | 'loading' | 'active' | 'completed' | 'error'
+  const [errorMessage, setErrorMessage] = useState('');
+  
   // 基于真实物理的数据状态
   const [liveData, setLiveData] = useState({
     // 距离数据
@@ -113,6 +117,11 @@ const HUDControlPanel = () => {
           updateRouteProgress(newRemaining, newTraveled);
         }
         
+        // 检查是否到达终点
+        if (newRemaining <= 0) {
+          setTripStatus('completed');
+        }
+        
         return {
           ...prev,
           traveledDistance: newTraveled,
@@ -137,17 +146,41 @@ const HUDControlPanel = () => {
       end: { x: endPoint.x, z: endPoint.z }
     });
     
-    await requestRoute(start, destination);
+    // 设置加载状态 - ルート計算中画面
+    setTripStatus('loading');
+    setErrorMessage('');
+    
+    try {
+      const response = await requestRoute(start, destination);
+      
+      // ルート確定 - 路线确定
+      if (response && response.edges) {
+        if (typeof setRouteData === 'function') {
+          setRouteData(response.nodes || [], response.edges);
+        }
+      }
+      
+      // 成功后重置为 idle,等待用户点击 START
+      setTripStatus('idle');
+      
+    } catch (error) {
+      // エラー発生 - 错误画面
+      console.error('Route request failed:', error);
+      setTripStatus('error');
+      setErrorMessage(error.message || 'ルート計算に失敗しました');
+    }
   };
 
   const handleStartMoving = () => {
     if (route.path.length > 0) {
       setVehicleMoving(true);
+      setTripStatus('active');  // 设置为进行中
     }
   };
 
   const handleStopMoving = () => {
     setVehicleMoving(false);
+    setTripStatus('idle');  // 重置状态
   };
 
   const getStatusColor = (status) => {
@@ -177,6 +210,107 @@ const HUDControlPanel = () => {
 
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-[800px]">
+      {/* 加载状态 - ルート計算中画面 */}
+      {tripStatus === 'loading' && (
+        <div 
+          className="mb-4 rounded-xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0, 150, 255, 0.2) 0%, rgba(0, 100, 200, 0.3) 100%)',
+            border: '2px solid rgba(0, 150, 255, 0.5)',
+            boxShadow: '0 8px 32px rgba(0, 150, 255, 0.3)',
+          }}
+        >
+          <div className="p-6 text-center">
+            <div className="text-5xl mb-4 animate-spin">🔄</div>
+            <div className="text-2xl font-bold text-blue-400 mb-2">
+              ルート計算中...
+            </div>
+            <div className="text-cyan-300 text-sm">
+              シーン準備
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 错误状态 - エラー画面 */}
+      {tripStatus === 'error' && (
+        <div 
+          className="mb-4 rounded-xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(200, 50, 50, 0.3) 100%)',
+            border: '2px solid rgba(255, 68, 68, 0.5)',
+            boxShadow: '0 8px 32px rgba(255, 68, 68, 0.3)',
+          }}
+        >
+          <div className="p-6 text-center">
+            <div className="text-5xl mb-4">❌</div>
+            <div className="text-2xl font-bold text-red-400 mb-2">
+              エラーが発生しました
+            </div>
+            <div className="text-cyan-300 text-sm mb-4">
+              {errorMessage}
+            </div>
+            <button
+              onClick={() => setTripStatus('idle')}
+              className="px-6 py-2 rounded-full font-semibold text-sm transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)',
+                color: '#ffffff',
+              }}
+            >
+              戻る
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* 行程完成提示 - 到着画面 */}
+      {tripStatus === 'completed' && (
+        <div 
+          className="mb-4 rounded-xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 200, 100, 0.3) 100%)',
+            border: '2px solid rgba(0, 255, 136, 0.5)',
+            boxShadow: '0 8px 32px rgba(0, 255, 136, 0.3)',
+          }}
+        >
+          <div className="p-6 text-center">
+            <div className="text-6xl mb-4">🎉</div>
+            <div className="text-3xl font-bold text-green-400 mb-2">
+              到着しました!
+            </div>
+            <div className="text-cyan-300 text-lg mb-2">
+              目的地に到達
+            </div>
+            <div className="mt-4 text-white text-sm space-y-1">
+              <div>総距離: {(liveData.totalRouteDistance / 1000).toFixed(2)} km</div>
+              <div>統計表示</div>
+            </div>
+            <button
+              onClick={() => {
+                setTripStatus('idle');
+                setLiveData({
+                  totalRouteDistance: 0,
+                  traveledDistance: 0,
+                  remainingDistance: 0,
+                  currentSpeed: 0,
+                  averageSpeed: 60,
+                  temperature: 20,
+                  estimatedTime: 0,
+                });
+              }}
+              className="mt-4 px-6 py-2 rounded-full font-semibold text-sm transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                color: '#0a0f1e',
+              }}
+            >
+              新しい行程を開始
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* 主HUD面板 */}
       <div 
         className="relative rounded-2xl overflow-hidden"
@@ -311,7 +445,7 @@ const HUDControlPanel = () => {
                           <circle cx={endX} cy={endY} r="6" fill="#ef4444" />
                           <circle cx={endX} cy={endY} r="3" fill="#ffffff" />
                           
-                          {/* 🔥 车辆位置 (沿路径移动) */}
+                          {/* 车辆位置 (沿路径移动) */}
                           {vehicle.isMoving && (
                             <g>
                               <circle cx={vehicleX} cy={vehicleY} r="8" fill="#3b82f6" opacity="0.3">

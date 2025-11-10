@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Line } from '@react-three/drei';
 import * as THREE from 'three';
-import useVehicleStore from '../../store/useVehicleStore';
+import useVehicleStore from '../store/useVehicleStore';
 
 const PathCurve = () => {
   const { route } = useVehicleStore();

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Box } from '@react-three/drei';
-import useVehicleStore from '../../store/useVehicleStore';
+import useVehicleStore from '../store/useVehicleStore';
 
 const CarModel = () => {
   const meshRef = useRef();

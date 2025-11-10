@@ -4,33 +4,51 @@ import useVehicleStore from '../../store/useVehicleStore';
 
 const MiniMap = () => {
   const { vehicle, route } = useVehicleStore();
+  
+  // 所有 useState 和 useRef 必须在组件最顶部,在任何条件返回之前
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: window.innerWidth - 420, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const mapRef = useRef(null);
-  
-  // 🔥 删除独立的 vehicleProgress,改用 route 数据计算
-  // const [vehicleProgress, setVehicleProgress] = useState(0);
-  
-  // 🔥实时数据
+  const [isVisible, setIsVisible] = useState(false);
+  const [hasArrived, setHasArrived] = useState(false);
   const [liveStats, setLiveStats] = useState({
     speed: 0,
     distance: 0,
     eta: 0,
   });
+  
+  const mapRef = useRef(null);
+  
+  // 监听车辆状态 - START后显示
+  useEffect(() => {
+    if (vehicle.isMoving && route.path.length > 0) {
+      setIsVisible(true);
+      setHasArrived(false);
+    }
+  }, [vehicle.isMoving, route.path.length]);
+  
+  // 监听到达终点 - 隐藏MiniMap
+  useEffect(() => {
+    if (route.remainingDistance !== undefined && route.remainingDistance <= 0 && isVisible) {
+      // 延迟1秒后隐藏,让用户看到到达动画
+      setTimeout(() => {
+        setIsVisible(false);
+        setHasArrived(true);
+      }, 1000);
+    }
+  }, [route.remainingDistance, isVisible]);
 
   const scale = 10;
   const mapSize = isMinimized ? 150 : 300;
 
-  // 🔥 根据 route 数据计算车辆在路径上的位置
+  // 根据 route 数据计算车辆在路径上的位置
   const getVehiclePositionOnPath = () => {
     if (!route.start || !route.destination) {
       return [0, 0, 0];
     }
 
-    // 🔥 使用真实的行驶数据计算进度
-    // 如果有 route.distance 和 route.remainingDistance,使用它们
+    // 使用真实的行驶数据计算进度
     let progress = 0;
     
     if (route.distance && parseFloat(route.distance) > 0) {
@@ -50,7 +68,7 @@ const MiniMap = () => {
   const centerX = mapSize / 2;
   const centerY = mapSize / 2;
 
-  // 🔥 修复：以车辆为中心的坐标转换
+  // 以车辆为中心的坐标转换
   const toScreenCoords = (x, z) => {
     return {
       x: centerX + (x - vehiclePos[0]) * scale,
@@ -58,23 +76,7 @@ const MiniMap = () => {
     };
   };
 
-  // 🔥 删除独立的进度更新 - 改用 route 数据
-  // useEffect(() => {
-  //   if (!vehicle.isMoving) return;
-  //   const progressTimer = setInterval(() => {
-  //     setVehicleProgress(prev => ...);
-  //   }, 100);
-  //   return () => clearInterval(progressTimer);
-  // }, [vehicle.isMoving]);
-
-  // 🔥 删除重置进度的逻辑 - 不再需要
-  // useEffect(() => {
-  //   if (route.path.length > 0) {
-  //     setVehicleProgress(0);
-  //   }
-  // }, [route.path.length]);
-
-  // 🔥 新增：实时更新统计数据
+  // 实时更新统计数据
   useEffect(() => {
     const statsTimer = setInterval(() => {
       if (vehicle.isMoving) {
@@ -94,7 +96,7 @@ const MiniMap = () => {
     return () => clearInterval(statsTimer);
   }, [vehicle.isMoving]);
 
-  // 🔥 监听 route 变化,初始化数据
+  // 监听 route 变化,初始化数据
   useEffect(() => {
     if (route.path.length > 0) {
       setLiveStats(prev => ({
@@ -140,6 +142,11 @@ const MiniMap = () => {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, dragOffset]);
+
+  // 条件返回必须在所有 Hooks 之后
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <div
@@ -252,9 +259,9 @@ const MiniMap = () => {
                     filter="url(#glow)"
                   />
 
-                  {/* 🔥 路径动画点 - 实时移动 */}
+                  {/* 路径动画点 - 实时移动 */}
                   {!isMinimized && Array.from({ length: 5 }).map((_, index) => {
-                    // 🔥 计算实时进度
+                    // 计算实时进度
                     let currentProgress = 0;
                     if (route.distance && parseFloat(route.distance) > 0) {
                       const totalDist = parseFloat(route.distance);
@@ -338,7 +345,7 @@ const MiniMap = () => {
                 </g>
               )}
 
-              {/* 🔥 车辆位置 - 始终在中心 */}
+              {/* 车辆位置 - 始终在中心 */}
               <g transform={`translate(${centerX}, ${centerY})`}>
                 {/* 车辆外圈动画 */}
                 {vehicle.isMoving && (
@@ -448,7 +455,7 @@ const MiniMap = () => {
             {!isMinimized && vehicle.isMoving && (
               <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded px-2 py-1 text-xs text-cyan-300">
                 {(() => {
-                  // 🔥 计算实时进度
+                  // 计算实时进度
                   let currentProgress = 0;
                   if (route.distance && parseFloat(route.distance) > 0) {
                     const totalDist = parseFloat(route.distance);

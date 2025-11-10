@@ -5,7 +5,7 @@ const EnhancedFirstPersonScene = () => {
   const canvasRef = useRef(null);
   const { vehicle, route, weather, timeOfDay } = useVehicleStore();
   const [images, setImages] = useState({});
-  const roadOffsetRef = useRef(0); // 🔥 改用 ref 而不是 state
+  const roadOffsetRef = useRef(0); // 改用 ref 而不是 state
 
   // 加载图片资源
   useEffect(() => {
@@ -190,7 +190,7 @@ const EnhancedFirstPersonScene = () => {
       ctx.fillStyle = roadGradient;
       ctx.fillRect(0, roadY, width, height - roadY);
 
-      // 🔥 更新 roadOffset - 使用 ref 而不是 state
+      // roadOffset - 使用 ref 而不是 state
       if (vehicle.isMoving) {
         roadOffsetRef.current = (roadOffsetRef.current + 8) % 100;
       }
@@ -436,7 +436,7 @@ const EnhancedFirstPersonScene = () => {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [vehicle, route, weather, timeOfDay, images]); // 🔥 移除 roadOffset 依赖
+  }, [vehicle, route, weather, timeOfDay, images]); // 移除 roadOffset 依赖
 
   // 处理画布尺寸
   useEffect(() => {
