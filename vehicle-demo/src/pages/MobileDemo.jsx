@@ -8,7 +8,7 @@ const Dashboard = () => {
   const { ui } = useVehicleStore();
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden">
+    <div className="relative w-full h-[calc(100vh-5rem)] bg-black overflow-hidden">
       {/* 增强版第一人称驾驶场景 */}
       <EnhancedFirstPersonScene />
 
