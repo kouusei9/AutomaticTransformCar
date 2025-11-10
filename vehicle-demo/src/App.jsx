@@ -3,10 +3,10 @@ import './App.css'
 // import NavigationPage from './pages/NavigationPage.jsx'
 // import MonitorPage from './pages/MonitorPage.jsx'
 import CyberpunkCityDemo from './pages/CyberpunkCityDemo.tsx'
+import MobileDemo from './pages/MobileDemo.jsx'
 
 function App() {
-  // const [currentPage, setCurrentPage] = useState('cyberpunk') // 'navigation', 'monitor', または 'cyberpunk'
-  
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* トップナビゲーションバー */}
@@ -18,17 +18,9 @@ function App() {
          </div> 
       </nav> */}
       <CyberpunkCityDemo />
-
-      {/* ページコンテンツ */}
-      {/* {currentPage === 'cyberpunk' ? (
-        <CyberpunkCityDemo />
-      ) : (
-        <div className="pt-20">
-          {currentPage === 'navigation' && <NavigationPage />}
-          {currentPage === 'monitor' && <MonitorPage />}
-        </div>
-      )} */}
+      <MobileDemo />
     </div>
+
   )
 }
 
