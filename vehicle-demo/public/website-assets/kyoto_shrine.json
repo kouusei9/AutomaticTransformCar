@@ -1,0 +1,298 @@
+{
+  "shrines": [
+    {
+      "id": "S01",
+      "name": "伏見稲荷大社",
+      "nameEn": "Fushimi Inari Taisha",
+      "rank": "major",
+      "coordinates": {
+        "lat": 34.967146,
+        "lng": 135.772695
+      },
+      "description": "千本鳥居で有名な稲荷神社の総本社",
+      "established": 711,
+      "deity": "稲荷大神",
+      "features": ["千本鳥居", "狐の石像", "お山巡り"]
+    },
+    {
+      "id": "S02",
+      "name": "八坂神社",
+      "nameEn": "Yasaka Shrine",
+      "rank": "major",
+      "coordinates": {
+        "lat": 35.003611,
+        "lng": 135.778611
+      },
+      "description": "祇園祭で有名な京都を代表する神社",
+      "established": 656,
+      "deity": "素戔嗚尊",
+      "features": ["祇園祭", "美御前社", "縁結び"]
+    },
+    {
+      "id": "S03",
+      "name": "平安神宮",
+      "nameEn": "Heian Shrine",
+      "rank": "major",
+      "coordinates": {
+        "lat": 35.016194,
+        "lng": 135.782750
+      },
+      "description": "平安遷都1100年を記念して創建された朱色の大鳥居が特徴",
+      "established": 1895,
+      "deity": "桓武天皇・孝明天皇",
+      "features": ["大鳥居", "神苑", "時代祭"]
+    },
+    {
+      "id": "S04",
+      "name": "下鴨神社",
+      "nameEn": "Shimogamo Shrine",
+      "rank": "major",
+      "coordinates": {
+        "lat": 35.038889,
+        "lng": 135.772778
+      },
+      "description": "正式名称は賀茂御祖神社、世界遺産登録の古社",
+      "established": -90,
+      "deity": "賀茂建角身命・玉依媛命",
+      "features": ["糺の森", "世界遺産", "葵祭"]
+    },
+    {
+      "id": "S05",
+      "name": "上賀茂神社",
+      "nameEn": "Kamigamo Shrine",
+      "rank": "major",
+      "coordinates": {
+        "lat": 35.060278,
+        "lng": 135.752500
+      },
+      "description": "正式名称は賀茂別雷神社、京都最古の神社の一つ",
+      "established": -678,
+      "deity": "賀茂別雷大神",
+      "features": ["世界遺産", "立砂", "葵祭"]
+    },
+    {
+      "id": "S06",
+      "name": "北野天満宮",
+      "nameEn": "Kitano Tenmangu",
+      "rank": "major",
+      "coordinates": {
+        "lat": 35.031806,
+        "lng": 135.735528
+      },
+      "description": "学問の神様・菅原道真を祀る天満宮の総本社",
+      "established": 947,
+      "deity": "菅原道真",
+      "features": ["梅苑", "学問の神様", "宝物殿"]
+    },
+    {
+      "id": "S07",
+      "name": "貴船神社",
+      "nameEn": "Kifune Shrine",
+      "rank": "major",
+      "coordinates": {
+        "lat": 35.122778,
+        "lng": 135.762222
+      },
+      "description": "水の神様を祀る縁結びで有名な神社",
+      "established": null,
+      "deity": "高龗神",
+      "features": ["水占みくじ", "縁結び", "川床料理"]
+    },
+    {
+      "id": "S08",
+      "name": "松尾大社",
+      "nameEn": "Matsunoo Taisha",
+      "rank": "major",
+      "coordinates": {
+        "lat": 34.999167,
+        "lng": 135.684444
+      },
+      "description": "酒造の神様として知られる京都最古級の神社",
+      "established": 701,
+      "deity": "大山咋神・市杵島姫命",
+      "features": ["酒造の神", "亀の井", "磐座"]
+    },
+    {
+      "id": "S09",
+      "name": "今宮神社",
+      "nameEn": "Imamiya Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.043056,
+        "lng": 135.745833
+      },
+      "description": "玉の輿のお守りで有名な神社",
+      "established": 994,
+      "deity": "素戔嗚尊・大己貴命",
+      "features": ["玉の輿", "あぶり餅", "疫病退散"]
+    },
+    {
+      "id": "S10",
+      "name": "吉田神社",
+      "nameEn": "Yoshida Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.023889,
+        "lng": 135.784167
+      },
+      "description": "節分祭で有名な吉田山に鎮座する神社",
+      "established": 859,
+      "deity": "建御賀豆智命ほか",
+      "features": ["節分祭", "吉田山", "大元宮"]
+    },
+    {
+      "id": "S11",
+      "name": "車折神社",
+      "nameEn": "Kurumazaki Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.014722,
+        "lng": 135.706111
+      },
+      "description": "芸能の神様として芸能人の信仰を集める神社",
+      "established": 1190,
+      "deity": "清原頼業",
+      "features": ["芸能神社", "願い石", "玉垣"]
+    },
+    {
+      "id": "S12",
+      "name": "御金神社",
+      "nameEn": "Mikane Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.012500,
+        "lng": 135.760278
+      },
+      "description": "金運アップで有名な黄金の鳥居が特徴の神社",
+      "established": null,
+      "deity": "金山毘古命",
+      "features": ["金色の鳥居", "金運", "イチョウの木"]
+    },
+    {
+      "id": "S13",
+      "name": "安井金比羅宮",
+      "nameEn": "Yasui Konpiragu",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.001111,
+        "lng": 135.778333
+      },
+      "description": "縁切り縁結び碑で有名な神社",
+      "established": 1177,
+      "deity": "崇徳天皇・大物主神",
+      "features": ["縁切り縁結び碑", "悪縁切り", "良縁結び"]
+    },
+    {
+      "id": "S14",
+      "name": "野宮神社",
+      "nameEn": "Nonomiya Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.017222,
+        "lng": 135.674167
+      },
+      "description": "嵐山の竹林に囲まれた縁結びの神社",
+      "established": null,
+      "deity": "野宮大神",
+      "features": ["黒木鳥居", "竹林", "縁結び"]
+    },
+    {
+      "id": "S15",
+      "name": "地主神社",
+      "nameEn": "Jishu Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 34.994722,
+        "lng": 135.785000
+      },
+      "description": "清水寺境内にある恋愛成就で有名な神社",
+      "established": null,
+      "deity": "大国主命",
+      "features": ["恋占いの石", "縁結び", "世界遺産"]
+    },
+    {
+      "id": "S16",
+      "name": "晴明神社",
+      "nameEn": "Seimei Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.021944,
+        "lng": 135.754722
+      },
+      "description": "陰陽師・安倍晴明を祀る魔除けの神社",
+      "established": 1007,
+      "deity": "安倍晴明",
+      "features": ["五芒星", "晴明井", "陰陽道"]
+    },
+    {
+      "id": "S17",
+      "name": "岡崎神社",
+      "nameEn": "Okazaki Shrine",
+      "rank": "medium",
+      "coordinates": {
+        "lat": 35.018056,
+        "lng": 135.788889
+      },
+      "description": "子授け・安産祈願で有名なうさぎの神社",
+      "established": 794,
+      "deity": "素戔嗚尊ほか",
+      "features": ["うさぎ", "子授け", "安産"]
+    },
+    {
+      "id": "S18",
+      "name": "大将軍八神社",
+      "nameEn": "Taishogun Hachi Shrine",
+      "rank": "small",
+      "coordinates": {
+        "lat": 35.032778,
+        "lng": 135.731944
+      },
+      "description": "方位除けの神様を祀る神社",
+      "established": 794,
+      "deity": "素戔嗚尊ほか八神",
+      "features": ["方位除け", "星曼荼羅", "方除け"]
+    },
+    {
+      "id": "S19",
+      "name": "粟田神社",
+      "nameEn": "Awata Shrine",
+      "rank": "small",
+      "coordinates": {
+        "lat": 35.010556,
+        "lng": 135.785278
+      },
+      "description": "旅立ちの神様を祀る神社",
+      "established": 876,
+      "deity": "素戔嗚尊・大己貴命",
+      "features": ["旅立ち守護", "刀剣展示", "粟田祭"]
+    },
+    {
+      "id": "S20",
+      "name": "梨木神社",
+      "nameEn": "Nashinoki Shrine",
+      "rank": "small",
+      "coordinates": {
+        "lat": 35.020556,
+        "lng": 135.766667
+      },
+      "description": "京都三名水の一つ染井の水がある神社",
+      "established": 1885,
+      "deity": "三條実万・三條実美",
+      "features": ["染井の水", "萩の宮", "京都三名水"]
+    }
+  ],
+  "metadata": {
+    "total_shrines": 20,
+    "major_shrines": 8,
+    "medium_shrines": 10,
+    "small_shrines": 2,
+    "map_bounds": {
+      "north": 35.122778,
+      "south": 34.967146,
+      "east": 135.788889,
+      "west": 135.674167
+    },
+    "description": "京都府内の主要神社リスト（大神社を優先的に収録）",
+    "last_updated": "2025-11-11"
+  }
+}

@@ -48,6 +48,22 @@ interface CityBuilding {
   scale?: number
 }
 
+interface Shrine {
+  id: string
+  name: string
+  nameEn: string
+  rank: 'major' | 'medium' | 'small'
+  coordinates: {
+    lat: number
+    lng: number
+  }
+  description: string
+  established: number | null
+  deity: string
+  features: string[]
+  position?: [number, number, number]
+}
+
 // ==================== コンポーネント ====================
 
 /**
@@ -84,6 +100,52 @@ const Building3DModel: React.FC<{
 
 // GLTFモデルをプリロード
 useGLTF.preload('/website-assets/futuristic_city.glb')
+useGLTF.preload('/website-assets/shrine.glb')
+
+/**
+ * 神社3Dモデルコンポーネント
+ */
+const Shrine3DModel: React.FC<{
+  position: [number, number, number]
+  scale?: number
+  rank: 'major' | 'medium' | 'small'
+  name: string
+}> = ({ position, scale = 1, rank }) => {
+  try {
+    const { scene } = useGLTF('/website-assets/shrine.glb')
+    const clonedScene = useMemo(() => {
+      return scene.clone()
+    }, [scene])
+    
+    // ランクに応じてスケールを調整
+    const rankScale = rank === 'major' ? 1.2 : rank === 'medium' ? 1.0 : 0.8
+    const finalScale = scale * rankScale * 8.0 // 基準スケール
+    
+    return (
+      <group position={position}>
+        <primitive 
+          object={clonedScene} 
+          scale={[finalScale, finalScale, finalScale]}
+          castShadow
+          receiveShadow
+        />
+        {/* 神社名ラベル（オプション） */}
+        {/* <Text
+          position={[0, finalScale * 3, 0]}
+          fontSize={1.5}
+          color="#ff6b6b"
+          anchorX="center"
+          anchorY="bottom"
+        >
+          {name}
+        </Text> */}
+      </group>
+    )
+  } catch (error) {
+    console.error('Error loading shrine model:', error)
+    return null
+  }
+}
 
 /**
  * マップテクスチャ付き地面平面
@@ -281,6 +343,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
 }) => {
   const [routeData, setRouteData] = useState<RouteData | null>(null)
   const [cityBuildings, setCityBuildings] = useState<CityBuilding[]>([])
+  const [shrines, setShrines] = useState<Shrine[]>([])
   
   // ルートデータを読み込み
   useEffect(() => {
@@ -303,6 +366,16 @@ export const CityGround: React.FC<CityGroundProps> = ({
       .catch(err => console.error('建築物データの読み込みに失敗:', err))
   }, [])
   
+  // 神社データを読み込み
+  useEffect(() => {
+    fetch('/website-assets/kyoto_shrine.json')
+      .then(res => res.json())
+      .then(data => {
+        setShrines(data.shrines || [])
+      })
+      .catch(err => console.error('神社データの読み込みに失敗:', err))
+  }, [])
+  
   // ノード座標を変換
   const convertedNodes = useMemo<ConvertedNode[]>(() => {
     if (!routeData) return []
@@ -319,7 +392,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
   // 建築物座標を変換
   const convertedBuildings = useMemo(() => {
     const buildingScale = 10.0 // 渲染时使用的scale
-    const buildingHeight = 120 // 統一高度120m
+    // const buildingHeight =  120// 統一高度120m
     
     const buildings = cityBuildings.map(building => {
       const pos3d = latLngToPosition3D(building.coordinates)
@@ -332,12 +405,28 @@ export const CityGround: React.FC<CityGroundProps> = ({
       return {
         ...building,
         position,
-        height: buildingHeight,
+        height: building.height*2,
         scale: buildingScale
       }
     })
     return buildings
   }, [cityBuildings])
+  
+  // 神社座標を変換
+  const convertedShrines = useMemo(() => {
+    return shrines.map(shrine => {
+      const pos3d = latLngToPosition3D(shrine.coordinates)
+      
+      // 神社は地面レベルに配置
+      const yPosition = 0
+      const position = [pos3d.x, yPosition, pos3d.z] as [number, number, number]
+      
+      return {
+        ...shrine,
+        position
+      }
+    })
+  }, [shrines])
   
   // ルートを生成 - 車両と同じロジックでパスを生成
   const routes = useMemo(() => {
@@ -485,6 +574,18 @@ export const CityGround: React.FC<CityGroundProps> = ({
             position={building.position}
             scale={building.scale}
             height={building.height}
+          />
+        ))}
+      </Suspense>
+      
+      {/* 神社3Dモデル */}
+      <Suspense fallback={null}>
+        {convertedShrines.map((shrine) => (
+          <Shrine3DModel
+            key={shrine.id}
+            position={shrine.position!}
+            rank={shrine.rank}
+            name={shrine.name}
           />
         ))}
       </Suspense>

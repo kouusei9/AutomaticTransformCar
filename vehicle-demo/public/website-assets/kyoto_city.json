@@ -1,6 +1,5 @@
 {
   "buildings": [
-    
     {
       "id": "B01",
       "name": "京都大學時計台",
@@ -55,6 +54,105 @@
       },
       "height": 55,
       "description": "伊勢丹百貨京都店"
+    },
+    {
+      "id": "B07",
+      "name": "京都市役所",
+      "type": "government",
+      "coordinates": {
+        "lat": 35.012222,
+        "lng": 135.768333
+      },
+      "height": 45,
+      "description": "京都市政府本庁舎"
+    },
+    {
+      "id": "B08",
+      "name": "京都コンサートホール",
+      "type": "concert_hall",
+      "coordinates": {
+        "lat": 35.048333,
+        "lng": 135.760556
+      },
+      "height": 38,
+      "description": "京都音楽堂、クラシック音楽の殿堂"
+    },
+    {
+      "id": "B09",
+      "name": "京都駅ビル",
+      "type": "station_complex",
+      "coordinates": {
+        "lat": 34.985849,
+        "lng": 135.758767
+      },
+      "height": 60,
+      "description": "京都駅複合ビル、原広司設計の現代建築"
+    },
+    {
+      "id": "B10",
+      "name": "京都府立図書館",
+      "type": "library",
+      "coordinates": {
+        "lat": 35.015278,
+        "lng": 135.782222
+      },
+      "height": 28,
+      "description": "京都府立圖書館、岡崎公園内"
+    },
+    {
+      "id": "B11",
+      "name": "ロームシアター京都",
+      "type": "theater",
+      "coordinates": {
+        "lat": 35.014722,
+        "lng": 135.781667
+      },
+      "height": 32,
+      "description": "京都會館改修後的現代劇場"
+    },
+    {
+      "id": "B12",
+      "name": "京都国立博物館",
+      "type": "museum",
+      "coordinates": {
+        "lat": 34.987778,
+        "lng": 135.773333
+      },
+      "height": 35,
+      "description": "日本国立博物館之一、収蔵文化財寶庫"
+    },
+    {
+      "id": "B13",
+      "name": "京都市美術館",
+      "type": "art_museum",
+      "coordinates": {
+        "lat": 35.013889,
+        "lng": 135.782500
+      },
+      "height": 30,
+      "description": "京都市立美術館（京セラ美術館）"
+    },
+    {
+      "id": "B14",
+      "name": "京都ブライトンホテル",
+      "type": "hotel",
+      "coordinates": {
+        "lat": 35.020833,
+        "lng": 135.764444
+      },
+      "height": 52,
+      "description": "高級ホテル、御所近くに位置"
+    },
+    {
+      "id": "B15",
+      "name": "京都リサーチパーク",
+      "type": "research_complex",
+      "coordinates": {
+        "lat": 34.993333,
+        "lng": 135.748889
+      },
+      "height": 48,
+      "description": "日本最大級の民間研究開発施設"
     }
   ]
 }
