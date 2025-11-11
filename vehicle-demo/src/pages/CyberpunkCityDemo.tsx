@@ -243,7 +243,8 @@ export default function CyberpunkCityDemo() {
         gl={{ 
           antialias: true, 
           alpha: false,
-          powerPreference: 'high-performance'
+          powerPreference: 'high-performance',
+          logarithmicDepthBuffer: true, // 改善深度精度
         }}
         style={{
           position: 'absolute',

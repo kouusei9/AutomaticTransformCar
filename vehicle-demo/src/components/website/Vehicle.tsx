@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react'
+import React, { useRef, useMemo, useEffect, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame, useLoader } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
@@ -18,6 +18,9 @@ const FLAME_SPEED = 4.0 // 炎パーティクル速度
 // true = 固定モード（車両が経路に垂直、路線の傾斜に追従、カメラ回転に影響されない）
 // false = 追従モード（Billboard効果、常にカメラに向く）
 const SIDE_VIEW_FIXED_MODE = false
+
+// デバッグモード：遮蔽検出を可視化
+const DEBUG_OCCLUSION = false
 
 // ==================== インターフェース ====================
 
@@ -53,16 +56,20 @@ export const Vehicle: React.FC<VehicleProps> = ({
   isCycle = false
 }) => {
   const meshRef = useRef<THREE.Mesh>(null)
+  const xrayMeshRef = useRef<THREE.Mesh>(null) // 透視用メッシュ
   const textRef = useRef<any>(null) // Text组件引用
   const progressRef = useRef(startPosition)
   const directionRef = useRef<1 | -1>(1) // 1: 前进, -1: 后退
   const currentTextureRef = useRef<THREE.Texture | null>(null)
   const flipScaleRef = useRef(1)
   const currentAspectRef = useRef(1) // 現在のテクスチャのアスペクト比
+  const [currentScale, setCurrentScale] = useState<[number, number, number]>([-VEHICLE_SCALE, VEHICLE_SCALE, 1]) // 現在のスケール
   const windParticlesRef = useRef<THREE.Points>(null)
   const flameParticlesRef = useRef<THREE.Points>(null) // 炎パーティクル参照
   const isFlyingRef = useRef(false) // 現在の飛行状態を記録
   const hasCompletedRef = useRef(false) // 是否已经触发过完成回调
+  const raycasterRef = useRef(new THREE.Raycaster()) // 遮蔽検出用
+  const [isOccluded, setIsOccluded] = useState(false) // 現在遮蔽されているか（state に変更）
 
   // 風パーティクルシステムを作成
   const windParticles = useMemo(() => {
@@ -167,14 +174,35 @@ export const Vehicle: React.FC<VehicleProps> = ({
     return geo
   }, [])
 
-  // マテリアルを作成（発光効果を除去）
+  // マテリアルを作成（正常材質）
   const material = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       map: textures.front,
       transparent: true,
       alphaTest: 0.1,
       side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: true,
+      opacity: 1.0, // 完全不透明
     })
+  }, [textures.front])
+
+  // 透視用の青色発光マテリアル（遮蔽時用）
+  const xrayMaterial = useMemo(() => {
+    const mat = new THREE.MeshBasicMaterial({
+      map: textures.front,
+      transparent: true,
+      opacity: 0.8,
+      color: new THREE.Color(0x00ffff), // 青色
+      side: THREE.DoubleSide,
+      depthTest: false, // 深度テストを無効化して常に最前面に表示
+      depthWrite: false,
+      blending: THREE.AdditiveBlending, // 発光効果
+      toneMapped: false, // トーンマッピングを無効化して明るさを保つ
+    })
+    // レンダリング順序を強制
+    mat.needsUpdate = true
+    return mat
   }, [textures.front])
 
   // 現在のテクスチャを初期化
@@ -271,6 +299,70 @@ export const Vehicle: React.FC<VehicleProps> = ({
 
     // 車両位置を設定
     mesh.position.copy(position)
+    
+    // 透視メッシュの位置も同期（わずかにカメラ方向にオフセット）
+    if (xrayMeshRef.current) {
+      xrayMeshRef.current.position.copy(position)
+      // カメラの方向に 0.01 単位オフセット（z-fighting を防ぐ）
+      const toCamera = new THREE.Vector3().subVectors(camera.position, position).normalize()
+      xrayMeshRef.current.position.addScaledVector(toCamera, 0.01)
+    }
+
+    // 遮蔽検出：カメラから車両への raycasting
+    const raycaster = raycasterRef.current
+    const direction = new THREE.Vector3().subVectors(position, camera.position).normalize()
+    const distance = position.distanceTo(camera.position)
+    
+    // Raycaster の設定（LineSegments2 のために camera を設定）
+    raycaster.camera = camera as THREE.Camera
+    raycaster.set(camera.position, direction)
+    raycaster.near = camera.near || 0.1
+    raycaster.far = Math.max(distance - 0.5, 0.1) // 車両の少し手前まで（最小値を保証）
+    
+    // シーンの他のオブジェクトとの交差をチェック
+    const intersects = raycaster.intersectObjects(state.scene.children, true)
+    
+    // 車両自身と粒子を除外してチェック
+    let isOccluded = false
+    for (const intersect of intersects) {
+      const obj = intersect.object
+      
+      // 除外条件：
+      // - 車両メッシュ自身
+      // - 透視メッシュ
+      // - 粒子システム
+      // - Text（車両名）
+      // - Line系（ルート線）
+      // - Helper系オブジェクト
+      if (obj !== mesh && 
+          obj !== xrayMeshRef.current &&
+          obj !== windParticlesRef.current &&
+          obj !== flameParticlesRef.current &&
+          obj.type !== 'Points' &&
+          obj.type !== 'Line' &&
+          obj.type !== 'LineLoop' &&
+          obj.type !== 'LineSegments' &&
+          !obj.type.includes('Helper') &&
+          !obj.name.includes('Text')) {
+        isOccluded = true
+        break
+      }
+    }
+    
+    // 遮蔽状態を更新（状態が変わった時のみ）
+    setIsOccluded(prevOccluded => {
+      if (prevOccluded !== isOccluded) {
+        // デバッグ情報
+        if (DEBUG_OCCLUSION) {
+          console.log(`Vehicle ${name}: isOccluded=${isOccluded}, intersects=${intersects.length}`)
+        }
+        return isOccluded
+      }
+      return prevOccluded
+    })
+    
+    // 正常メッシュは常に可視
+    mesh.visible = true
 
     // 車両のカメラに対する方向を計算し、適切なテクスチャを選択
     const toCameraDir = new THREE.Vector3()
@@ -380,20 +472,33 @@ export const Vehicle: React.FC<VehicleProps> = ({
       }
     }
 
-    // テクスチャを更新（変更された場合）
+      // テクスチャを更新（変更された場合）
     if (currentTextureRef.current !== selectedTexture) {
       currentTextureRef.current = selectedTexture
       material.map = selectedTexture
       material.needsUpdate = true
-    }
-
-    // アスペクト比とミラーリング状態を更新
+      // 透視材質のテクスチャも更新
+      xrayMaterial.map = selectedTexture
+      xrayMaterial.needsUpdate = true
+    }    // アスペクト比とミラーリング状態を更新
     if (flipScaleRef.current !== flipScale || currentAspectRef.current !== aspectRatio) {
       flipScaleRef.current = flipScale
       currentAspectRef.current = aspectRatio
       // アスペクト比を使用してX軸スケールを調整
-      mesh.scale.x = -VEHICLE_SCALE * flipScale * aspectRatio
-      mesh.scale.y = VEHICLE_SCALE
+      const scaleX = -VEHICLE_SCALE * flipScale * aspectRatio
+      const scaleY = VEHICLE_SCALE
+      
+      mesh.scale.x = scaleX
+      mesh.scale.y = scaleY
+      
+      // スケールを state に保存（透視メッシュ用）
+      setCurrentScale([scaleX, scaleY, 1])
+      
+      // 透視メッシュのスケールも同期（存在する場合）
+      if (xrayMeshRef.current) {
+        xrayMeshRef.current.scale.x = scaleX
+        xrayMeshRef.current.scale.y = scaleY
+      }
     }
 
     // 車両の向きを処理
@@ -429,6 +534,11 @@ export const Vehicle: React.FC<VehicleProps> = ({
     } else {
       // 追従モードまたは前後ビュー：Billboard効果、常にカメラに向く
       mesh.lookAt(camera.position)
+    }
+    
+    // 透視メッシュの回転も同期
+    if (xrayMeshRef.current) {
+      xrayMeshRef.current.rotation.copy(mesh.rotation)
     }
 
     // 風パーティクルを更新（地上時のみ）
@@ -544,7 +654,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
 
   return (
     <group>
-      {/* 車両メッシュ */}
+      {/* 車両メッシュ（正常表示） */}
       <mesh
         ref={meshRef}
         scale={[-VEHICLE_SCALE, VEHICLE_SCALE, 1]}
@@ -553,10 +663,23 @@ export const Vehicle: React.FC<VehicleProps> = ({
         onPointerOut={() => document.body.style.cursor = 'default'}
         castShadow
         receiveShadow
+        renderOrder={0} // 通常のレンダリング順
       >
         <primitive object={geometry} />
         <primitive object={material} attach="material" />
       </mesh>
+
+      {/* 透視用メッシュ（遮蔽時のみレンダリング） */}
+      {isOccluded && (
+        <mesh
+          ref={xrayMeshRef}
+          scale={currentScale} // 正常メッシュと同じスケールを使用
+          renderOrder={10000} // 非常に高い値で最後にレンダリング（最前面）
+        >
+          <primitive object={geometry} />
+          <primitive object={xrayMaterial} attach="material" />
+        </mesh>
+      )}
 
       {/* 車両名表示 */}
       {name && (
@@ -569,6 +692,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
           anchorY="middle"
           outlineWidth={0.15}
           outlineColor="#000000"
+          renderOrder={10001} // 名前は常に最前面
         >
           {name}
         </Text>
