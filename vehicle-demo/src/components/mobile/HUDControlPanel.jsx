@@ -3,11 +3,11 @@ import { Play, Square, Navigation2, Cloud, Sun, CloudRain, Moon, Sunset, Sunrise
 import useVehicleStore from '../../store/useVehicleStore';
 
 const HUDControlPanel = () => {
-  const { 
-    vehicle, 
-    route, 
-    requestRoute, 
-    setVehicleMoving, 
+  const {
+    vehicle,
+    route,
+    requestRoute,
+    setVehicleMoving,
     serverStatus,
     weather,
     timeOfDay,
@@ -15,29 +15,29 @@ const HUDControlPanel = () => {
     setTimeOfDay,
     updateRouteProgress  // 用于同步进度到store
   } = useVehicleStore();
-  
+
   const [startPoint, setStartPoint] = useState({ x: 0, z: 0 });
   const [endPoint, setEndPoint] = useState({ x: 10, z: 10 });
   const [currentTime, setCurrentTime] = useState(new Date());
-  
+
   // 保存路径规划时的坐标快照
   const [routeSnapshot, setRouteSnapshot] = useState({ start: null, end: null });
-  
+
   // 行程状态
   const [tripStatus, setTripStatus] = useState('idle'); // 'idle' | 'loading' | 'active' | 'completed' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   // 基于真实物理的数据状态
   const [liveData, setLiveData] = useState({
     // 距离数据
     totalRouteDistance: 0,      // 总路程 (m) - 路径规划时确定,不变
     traveledDistance: 0,        // 已行驶距离 (m) - 持续增加
     remainingDistance: 0,       // 剩余距离 (m) - 持续减少
-    
+
     // 速度数据
     currentSpeed: 0,            // 当前速度 (km/h)
     averageSpeed: 60,           // 平均速度 (km/h)
-    
+
     // 其他数据
     temperature: 20,
     estimatedTime: 0,           // 预计到达时间 (秒)
@@ -57,17 +57,17 @@ const HUDControlPanel = () => {
       // 使用快照坐标计算距离
       const start = [routeSnapshot.start.x, 0, routeSnapshot.start.z];
       const dest = [routeSnapshot.end.x, 0, routeSnapshot.end.z];
-      
+
       const dx = dest[0] - start[0];
       const dz = dest[2] - start[2];
       const totalDistance = Math.sqrt(dx * dx + dz * dz); // 勾股定理
-      
+
       console.log('📍 路径规划完成:', {
         起点: start,
         终点: dest,
         总距离: totalDistance.toFixed(2) + 'm'
       });
-      
+
       setLiveData(prev => ({
         ...prev,
         totalRouteDistance: totalDistance,
@@ -81,9 +81,9 @@ const HUDControlPanel = () => {
   // 行驶时实时更新数据
   useEffect(() => {
     if (!vehicle.isMoving) return;
-    
+
     const UPDATE_INTERVAL = 100; // 100ms 更新一次
-    
+
     const dataTimer = setInterval(() => {
       setLiveData(prev => {
         // 如果已经到达,停止更新
@@ -91,37 +91,37 @@ const HUDControlPanel = () => {
           setVehicleMoving(false);
           return prev;
         }
-        
+
         // 计算本次移动的距离
         const speedInMPS = (prev.averageSpeed * 1000) / 3600; // km/h → m/s
         const distancePerUpdate = speedInMPS * (UPDATE_INTERVAL / 1000); // m
-        
+
         // 更新距离数据
         const newTraveled = Math.min(
           prev.traveledDistance + distancePerUpdate,
           prev.totalRouteDistance
         );
         const newRemaining = Math.max(0, prev.totalRouteDistance - newTraveled);
-        
+
         // 更新速度
         const speedVariation = (Math.random() - 0.5) * 10;
         const newSpeed = Math.max(50, Math.min(70, prev.averageSpeed + speedVariation));
-        
+
         // 计算预计到达时间
-        const newETA = newRemaining > 0 
+        const newETA = newRemaining > 0
           ? Math.ceil(newRemaining / speedInMPS)
           : 0;
-        
+
         // 同步到全局 store (如果方法存在)
         if (updateRouteProgress) {
           updateRouteProgress(newRemaining, newTraveled);
         }
-        
+
         // 检查是否到达终点
         if (newRemaining <= 0) {
           setTripStatus('completed');
         }
-        
+
         return {
           ...prev,
           traveledDistance: newTraveled,
@@ -139,30 +139,30 @@ const HUDControlPanel = () => {
   const handleRequestRoute = async () => {
     const start = [startPoint.x, 0.5, startPoint.z];
     const destination = [endPoint.x, 0.5, endPoint.z];
-    
+
     // 保存当前坐标快照
     setRouteSnapshot({
       start: { x: startPoint.x, z: startPoint.z },
       end: { x: endPoint.x, z: endPoint.z }
     });
-    
+
     // 设置加载状态 - ルート計算中画面
     setTripStatus('loading');
     setErrorMessage('');
-    
+
     try {
       const response = await requestRoute(start, destination);
-      
+
       // ルート確定 - 路线确定
       if (response && response.edges) {
         if (typeof setRouteData === 'function') {
           setRouteData(response.nodes || [], response.edges);
         }
       }
-      
+
       // 成功后重置为 idle,等待用户点击 START
       setTripStatus('idle');
-      
+
     } catch (error) {
       // エラー発生 - 错误画面
       console.error('Route request failed:', error);
@@ -212,7 +212,7 @@ const HUDControlPanel = () => {
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-[800px]">
       {/* 加载状态 - ルート計算中画面 */}
       {tripStatus === 'loading' && (
-        <div 
+        <div
           className="mb-4 rounded-xl overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, rgba(0, 150, 255, 0.2) 0%, rgba(0, 100, 200, 0.3) 100%)',
@@ -234,7 +234,7 @@ const HUDControlPanel = () => {
 
       {/* 错误状态 - エラー画面 */}
       {tripStatus === 'error' && (
-        <div 
+        <div
           className="mb-4 rounded-xl overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(200, 50, 50, 0.3) 100%)',
@@ -263,10 +263,10 @@ const HUDControlPanel = () => {
           </div>
         </div>
       )}
-      
+
       {/* 行程完成提示 - 到着画面 */}
       {tripStatus === 'completed' && (
-        <div 
+        <div
           className="mb-4 rounded-xl overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 200, 100, 0.3) 100%)',
@@ -305,14 +305,14 @@ const HUDControlPanel = () => {
                 color: '#0a0f1e',
               }}
             >
-              新しい行程を開始
+              リセット
             </button>
           </div>
         </div>
       )}
-      
+
       {/* 主HUD面板 */}
-      <div 
+      <div
         className="relative rounded-2xl overflow-hidden"
         style={{
           background: 'linear-gradient(135deg, rgba(0, 40, 80, 0.85) 0%, rgba(0, 20, 40, 0.95) 100%)',
@@ -341,7 +341,7 @@ const HUDControlPanel = () => {
                 <span className="capitalize">{weather}</span>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${getStatusColor(serverStatus.aiServer)} animate-pulse`}></div>
               <span className="text-xs">AI {serverStatus.aiServer}</span>
@@ -358,7 +358,7 @@ const HUDControlPanel = () => {
                   <span className="text-lg ml-1">km</span>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="text-cyan-400 text-xs">残距離</div>
                 <div className="text-white text-xl font-mono">
@@ -377,7 +377,7 @@ const HUDControlPanel = () => {
             {/* 中间：3D地图和控制 */}
             <div className="flex flex-col items-center justify-center">
               {/* 简化的3D地图视图 */}
-              <div 
+              <div
                 className="w-48 h-32 rounded-lg mb-3 relative overflow-hidden"
                 style={{
                   background: 'linear-gradient(180deg, rgba(0, 100, 150, 0.3) 0%, rgba(0, 50, 100, 0.5) 100%)',
@@ -403,27 +403,27 @@ const HUDControlPanel = () => {
                       const mapWidth = 192;
                       const mapHeight = 128;
                       const padding = 20;
-                      
+
                       // 计算坐标范围
                       const minX = Math.min(routeSnapshot.start.x, routeSnapshot.end.x);
                       const maxX = Math.max(routeSnapshot.start.x, routeSnapshot.end.x);
                       const minZ = Math.min(routeSnapshot.start.z, routeSnapshot.end.z);
                       const maxZ = Math.max(routeSnapshot.start.z, routeSnapshot.end.z);
-                      
+
                       const rangeX = maxX - minX || 1;
                       const rangeZ = maxZ - minZ || 1;
-                      
+
                       // 转换为屏幕坐标
                       const startX = padding + (routeSnapshot.start.x - minX) / rangeX * (mapWidth - 2 * padding);
                       const startY = mapHeight - padding - (routeSnapshot.start.z - minZ) / rangeZ * (mapHeight - 2 * padding);
                       const endX = padding + (routeSnapshot.end.x - minX) / rangeX * (mapWidth - 2 * padding);
                       const endY = mapHeight - padding - (routeSnapshot.end.z - minZ) / rangeZ * (mapHeight - 2 * padding);
-                      
+
                       // 计算车辆当前位置
                       const progress = liveData.traveledDistance / liveData.totalRouteDistance;
                       const vehicleX = startX + progress * (endX - startX);
                       const vehicleY = startY + progress * (endY - startY);
-                      
+
                       return (
                         <>
                           {/* 路径线 */}
@@ -436,15 +436,15 @@ const HUDControlPanel = () => {
                             strokeWidth="3"
                             strokeLinecap="round"
                           />
-                          
+
                           {/* 起点 */}
                           <circle cx={startX} cy={startY} r="6" fill="#22c55e" />
                           <circle cx={startX} cy={startY} r="3" fill="#ffffff" />
-                          
+
                           {/* 终点 */}
                           <circle cx={endX} cy={endY} r="6" fill="#ef4444" />
                           <circle cx={endX} cy={endY} r="3" fill="#ffffff" />
-                          
+
                           {/* 车辆位置 (沿路径移动) */}
                           {vehicle.isMoving && (
                             <g>
