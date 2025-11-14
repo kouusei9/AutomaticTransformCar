@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Square, Navigation2, Cloud, Sun, CloudRain, Moon, Sunset, Sunrise } from 'lucide-react';
+import { Play, Square, Cloud, Sun, CloudRain, Moon, Sunset, Sunrise } from 'lucide-react';
 import useVehicleStore from '../../store/useVehicleStore';
 
 const HUDControlPanel = () => {
@@ -26,6 +26,7 @@ const HUDControlPanel = () => {
   // 行程状态
   const [tripStatus, setTripStatus] = useState('idle'); // 'idle' | 'loading' | 'active' | 'completed' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
+  const [isHidden, setIsHidden] = useState(false); // 控制 HUD 显示/隐藏
   
   // 基于真实物理的数据状态
   const [liveData, setLiveData] = useState({
@@ -47,7 +48,7 @@ const HUDControlPanel = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 500);
     return () => clearInterval(timer);
   }, []);
 
@@ -120,6 +121,7 @@ const HUDControlPanel = () => {
         // 检查是否到达终点
         if (newRemaining <= 0) {
           setTripStatus('completed');
+          setIsHidden(false);  // 到达时显示 HUD 面板
         }
         
         return {
@@ -151,14 +153,7 @@ const HUDControlPanel = () => {
     setErrorMessage('');
     
     try {
-      const response = await requestRoute(start, destination);
-      
-      // ルート確定 - 路线确定
-      if (response && response.edges) {
-        if (typeof setRouteData === 'function') {
-          setRouteData(response.nodes || [], response.edges);
-        }
-      }
+      await requestRoute(start, destination);
       
       // 成功后重置为 idle,等待用户点击 START
       setTripStatus('idle');
@@ -175,12 +170,14 @@ const HUDControlPanel = () => {
     if (route.path.length > 0) {
       setVehicleMoving(true);
       setTripStatus('active');  // 设置为进行中
+      setIsHidden(true);  // 隐藏 HUD 面板
     }
   };
 
   const handleStopMoving = () => {
     setVehicleMoving(false);
     setTripStatus('idle');  // 重置状态
+    setIsHidden(false);  // 显示 HUD 面板
   };
 
   const getStatusColor = (status) => {
@@ -207,6 +204,11 @@ const HUDControlPanel = () => {
 
   const WeatherIcon = weatherIcons[weather];
   const TimeIcon = timeIcons[timeOfDay];
+
+  // 如果隐藏且未到达目的地，只返回 null
+  if (isHidden && tripStatus !== 'completed') {
+    return null;
+  }
 
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-[800px]">
@@ -289,6 +291,7 @@ const HUDControlPanel = () => {
             <button
               onClick={() => {
                 setTripStatus('idle');
+                setIsHidden(false);  // 显示 HUD 面板
                 setLiveData({
                   totalRouteDistance: 0,
                   traveledDistance: 0,

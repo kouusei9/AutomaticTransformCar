@@ -299,7 +299,7 @@ export default function CyberpunkCityDemo() {
         />
         
         <SkyEnvironment />
-        <DistantCityscape />
+        {/* <DistantCityscape /> */}
         <CityGround 
           onRouteDataLoaded={setRouteData} 
           highlightedRoute={selectedVehicleId !== null ? VEHICLE_ROUTES[selectedVehicleId] : null}

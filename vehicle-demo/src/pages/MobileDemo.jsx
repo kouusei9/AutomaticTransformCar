@@ -8,12 +8,20 @@ const Dashboard = () => {
   const { ui } = useVehicleStore();
 
   return (
-    <div className="relative w-full h-[calc(100vh-5rem)] bg-black overflow-hidden">
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: '#000',
+      overflow: 'hidden'
+    }}>
       {/* 增强版第一人称驾驶场景 */}
       <EnhancedFirstPersonScene />
 
       {/* HUD 中控台控制面板 */}
-      <HUDControlPanel />
+      {/* <HUDControlPanel /> */}
 
       {/* 右上角小地图（可拖动） */}
       <MiniMap />
@@ -24,8 +32,8 @@ const Dashboard = () => {
           <div className="bg-gray-900 rounded-xl p-8 max-w-4xl max-h-[90vh] overflow-y-auto border-2 border-cyan-500">
             <h2 className="text-3xl font-bold mb-6 text-cyan-400">システムシーケンス図</h2>
             <div className="mb-6 bg-gray-800 p-4 rounded-lg">
-              <img 
-                src="/mnt/user-data/uploads/1761526990579_image.png" 
+              <img
+                src="/mnt/user-data/uploads/1761526990579_image.png"
                 alt="Sequence Diagram"
                 className="w-full rounded"
               />

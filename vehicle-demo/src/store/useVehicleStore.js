@@ -15,8 +15,10 @@ const useVehicleStore = create((set, get) => ({
     destination: null,
     path: [],
     distance: 0,
-    remainingDistance: 0,  // 剩余距离
+    remainingDistance: 0,
+    traveledDistance: 0,  // 已行驶距离
     eta: 0,
+    currentIndex: 0,
   },
 
   // 环境状态
@@ -58,8 +60,6 @@ const useVehicleStore = create((set, get) => ({
     set({ timeOfDay }),
 
   requestRoute: async (start, destination) => {
-    const state = get();
-
     // 模拟时序图流程
     set({ serverStatus: { webServer: 'processing', aiServer: 'idle', website: 'idle' } });
     await new Promise(r => setTimeout(r, 500));
@@ -95,7 +95,8 @@ const useVehicleStore = create((set, get) => ({
         distance: distance.toFixed(2),
         eta: (distance * 2).toFixed(0),
         totalDistance: distance.toFixed(2), // 总距离
-        remainingDistance: distance.toFixed(2), // 剩余距离
+        remainingDistance: distance, // 剩余距离（数值类型）
+        traveledDistance: 0, // 已行驶距离
         currentIndex: 0, // 当前路径点索引
       },
       serverStatus: { webServer: 'completed', aiServer: 'completed', website: 'completed' },
@@ -109,38 +110,42 @@ const useVehicleStore = create((set, get) => ({
 
   // 更新车辆位置并计算剩余距离
   updateVehicleProgress: () => {
-    const state = get();
-    if (!state.vehicle.isMoving || state.route.path.length === 0) return;
+    const { vehicle, route } = get();
+    if (!vehicle.isMoving || route.path.length === 0) return;
 
-    const currentIndex = state.route.currentIndex || 0;
-    if (currentIndex >= state.route.path.length - 1) {
+    const currentIndex = route.currentIndex || 0;
+    if (currentIndex >= route.path.length - 1) {
       // 到达终点
       set({
-        vehicle: { ...state.vehicle, isMoving: false },
-        route: { ...state.route, remainingDistance: '0.00', currentIndex: state.route.path.length - 1 },
+        vehicle: { ...vehicle, isMoving: false },
+        route: { ...route, remainingDistance: 0, traveledDistance: parseFloat(route.distance), currentIndex: route.path.length - 1 },
       });
       return;
     }
 
     // 计算剩余距离
     let remaining = 0;
-    for (let i = currentIndex; i < state.route.path.length - 1; i++) {
-      const p1 = state.route.path[i];
-      const p2 = state.route.path[i + 1];
+    for (let i = currentIndex; i < route.path.length - 1; i++) {
+      const p1 = route.path[i];
+      const p2 = route.path[i + 1];
       remaining += Math.sqrt(
         Math.pow(p2[0] - p1[0], 2) +
         Math.pow(p2[2] - p1[2], 2)
       );
     }
 
+    // 计算已行驶距离
+    const traveled = parseFloat(route.distance) - remaining;
+
     // 更新剩余距离和ETA
     const newEta = Math.max(1, Math.floor(remaining * 2));
 
     set({
       route: {
-        ...state.route,
-        remainingDistance: remaining.toFixed(2),
-        eta: newEta.toString(),
+        ...route,
+        remainingDistance: remaining,
+        traveledDistance: traveled,
+        eta: newEta,
         currentIndex: currentIndex + 1,
       },
     });
@@ -161,11 +166,12 @@ const useVehicleStore = create((set, get) => ({
       ui: { ...state.ui, isPlaying },
     })),
 
-  // 更新路线进度
+  // 更新路线进度（从 HUDControlPanel 调用）
   updateRouteProgress: (remainingDistance, traveledDistance) => set((state) => ({
     route: {
       ...state.route,
       remainingDistance: remainingDistance,
+      traveledDistance: traveledDistance,
     },
   })),
 }));

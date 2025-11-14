@@ -11,7 +11,6 @@ const MiniMap = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
-  const [hasArrived, setHasArrived] = useState(false);
   const [liveStats, setLiveStats] = useState({
     speed: 0,
     distance: 0,
@@ -24,7 +23,6 @@ const MiniMap = () => {
   useEffect(() => {
     if (vehicle.isMoving && route.path.length > 0) {
       setIsVisible(true);
-      setHasArrived(false);
     }
   }, [vehicle.isMoving, route.path.length]);
   
@@ -34,7 +32,6 @@ const MiniMap = () => {
       // 延迟1秒后隐藏,让用户看到到达动画
       setTimeout(() => {
         setIsVisible(false);
-        setHasArrived(true);
       }, 1000);
     }
   }, [route.remainingDistance, isVisible]);
@@ -53,8 +50,8 @@ const MiniMap = () => {
     
     if (route.distance && parseFloat(route.distance) > 0) {
       const totalDist = parseFloat(route.distance);
-      const remaining = parseFloat(route.remainingDistance) || 0;
-      progress = Math.max(0, Math.min(1, 1 - remaining / totalDist));
+      const traveled = route.traveledDistance || 0;
+      progress = Math.max(0, Math.min(1, traveled / totalDist));
     }
 
     // 线性插值: 起点 + 进度 × (终点 - 起点)
@@ -105,7 +102,7 @@ const MiniMap = () => {
         eta: parseInt(route.eta) || 0,
       }));
     }
-  }, [route.path.length]);
+  }, [route.path.length, route.distance, route.eta]);
 
   // 拖动处理
   const handleMouseDown = (e) => {
@@ -265,8 +262,8 @@ const MiniMap = () => {
                     let currentProgress = 0;
                     if (route.distance && parseFloat(route.distance) > 0) {
                       const totalDist = parseFloat(route.distance);
-                      const remaining = parseFloat(route.remainingDistance) || 0;
-                      currentProgress = Math.max(0, Math.min(1, 1 - remaining / totalDist));
+                      const traveled = route.traveledDistance || 0;
+                      currentProgress = Math.max(0, Math.min(1, traveled / totalDist));
                     }
                     
                     const progress = (index / 5 + currentProgress * 0.3) % 1;
@@ -459,8 +456,8 @@ const MiniMap = () => {
                   let currentProgress = 0;
                   if (route.distance && parseFloat(route.distance) > 0) {
                     const totalDist = parseFloat(route.distance);
-                    const remaining = parseFloat(route.remainingDistance) || 0;
-                    currentProgress = Math.max(0, Math.min(1, 1 - remaining / totalDist));
+                    const traveled = route.traveledDistance || 0;
+                    currentProgress = Math.max(0, Math.min(1, traveled / totalDist));
                   }
                   return Math.round(currentProgress * 100);
                 })()}%

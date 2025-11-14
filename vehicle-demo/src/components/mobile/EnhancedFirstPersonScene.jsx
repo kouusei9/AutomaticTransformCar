@@ -11,9 +11,9 @@ const EnhancedFirstPersonScene = () => {
   useEffect(() => {
     const loadImages = async () => {
       const imageUrls = {
-        car02: '/assets/car02.png',
         car03: '/assets/car03.png',
         sunshine: '/assets/sunshine.png',
+        viewSide1: '/assets/view_side1.png',
       };
 
       const loadedImages = {};
@@ -195,6 +195,11 @@ const EnhancedFirstPersonScene = () => {
         roadOffsetRef.current = (roadOffsetRef.current + 8) % 100;
       }
 
+      // 绘制路两边的透视图片（view_side1.png）
+      if (images.viewSide1) {
+        drawSideViews(ctx, width, height, roadOffsetRef.current);
+      }
+
       const vanishPointX = width / 2;
       const vanishPointY = height * 0.55;
 
@@ -235,11 +240,11 @@ const EnhancedFirstPersonScene = () => {
       }
 
       // 绘制车内仪表盘框架（使用图片，调整大小）
-      if (images.car02 && images.car03) {
+      if (images.car03) {
         // 绘制车内框架（car02 或 car03）
         const dashboardImg = images.car03;
-        const dashHeight = 200; // 缩小仪表盘高度
-        ctx.drawImage(dashboardImg, 0, height - dashHeight, width, dashHeight);
+        const dashHeight = 100; // 缩小仪表盘高度
+        ctx.drawImage(dashboardImg, 0, dashHeight, width, height);
       } else {
         // 备用：绘制简单的仪表盘底座
         const dashboardHeight = height * 0.28;
@@ -251,11 +256,11 @@ const EnhancedFirstPersonScene = () => {
         ctx.fillRect(0, height - dashboardHeight, width, dashboardHeight);
 
         // 仪表盘细节
-        drawDashboardDetails(ctx, width, height, colors);
+        drawDashboardDetails(ctx, width, height);
       }
 
       // 绘制车窗框架
-      drawWindowFrame(ctx, width, height);
+      // drawWindowFrame(ctx, width, height);
 
       // 天气粒子效果
       if (weather === 'rain') {
@@ -266,6 +271,98 @@ const EnhancedFirstPersonScene = () => {
     };
 
     // 辅助绘制函数
+    function drawSideViews(ctx, width, height, offset) {
+      const img = images.viewSide1;
+      const roadStartY = 100;  // 地平线位置
+      const roadEndY = height * 0.55;  // 屏幕底部
+      
+      // 图片高度和循环滚动逻辑
+      const imgHeight = img.height;
+      
+      // 计算透视变换后的宽度（近大远小）
+      const nearWidth = width * 0.45;  // 底部（近处）宽度
+      
+      // 循环偏移量 - 向后移动（从下往上滚动）
+      // offset 增加时，图片向上（向后）移动
+      const scrollSpeed = 3;  // 滚动速度系数
+      const scrollOffset = (offset * scrollSpeed) % imgHeight;
+      
+      // 左侧位置
+      const leftNearX = width * 0.05;  // 底部左边缘
+      const leftFarX = width * 0.35;   // 顶部左边缘
+      
+      // 右侧位置
+      const rightNearX = width * 0.95;  // 底部右边缘
+      const rightFarX = width * 0.65;   // 顶部右边缘
+      
+      // 绘制左侧透视图片（循环2次确保无缝）
+      for (let loop = 0; loop < 3; loop++) {
+        const yOffset = -scrollOffset + loop * imgHeight;
+        
+        // ctx.save();
+        // ctx.beginPath();
+        // // 左侧梯形裁剪区域（从地平线到屏幕底部）
+        // ctx.moveTo(leftFarX, roadStartY);
+        // ctx.lineTo(leftNearX, roadEndY);
+        // ctx.lineTo(0, roadEndY);
+        // ctx.lineTo(0, roadStartY);
+        // ctx.closePath();
+        // ctx.clip();
+        
+        // 绘制图片，使用 transform 实现透视缩放
+        const perspectiveHeight = roadEndY - roadStartY;
+        const scaleY = perspectiveHeight / imgHeight;
+        
+        // 图片从屏幕底部向上（向后）移动
+        const drawY = roadEndY - imgHeight * scaleY + yOffset * scaleY;
+        
+        ctx.drawImage(
+          img,
+          0,  // 左侧靠左
+          drawY,
+          nearWidth,
+          imgHeight * scaleY
+        );
+        ctx.restore();
+      }
+      
+      // 绘制右侧透视图片（水平翻转，循环3次）
+      for (let loop = 0; loop < 3; loop++) {
+        const yOffset = -scrollOffset + loop * imgHeight;
+        
+        // ctx.save();
+        // ctx.beginPath();
+        // // 右侧梯形裁剪区域
+        // ctx.moveTo(rightFarX, roadStartY);
+        // ctx.lineTo(rightNearX, roadEndY);
+        // ctx.lineTo(width, roadEndY);
+        // ctx.lineTo(width, roadStartY);
+        // ctx.closePath();
+        // ctx.clip();
+        
+        const perspectiveHeight = roadEndY - roadStartY;
+        const scaleY = perspectiveHeight / imgHeight;
+        
+        // 图片从屏幕底部向上（向后）移动
+        const drawY = roadEndY - imgHeight * scaleY + yOffset * scaleY;
+        
+        // 绘制在右侧，使用水平翻转
+        ctx.save();
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+        
+        ctx.drawImage(
+          img,
+          0,  // 翻转后的左侧
+          drawY,
+          nearWidth,
+          imgHeight * scaleY
+        );
+        ctx.restore();
+        ctx.restore();
+      }
+    }
+
     function drawNeonRoadLine(ctx, x1, y1, x2, y2, glowColor, offset) {
       const segments = 20;
       const dashLength = 40;
@@ -285,7 +382,7 @@ const EnhancedFirstPersonScene = () => {
         const ex = x1 + (x2 - x1) * t2;
         const ey = y1 + (y2 - y1) * t2;
 
-        const dist = Math.sqrt((ex - sx) ** 2 + (ey - sy) ** 2);
+        // const dist = Math.sqrt((ex - sx) ** 2 + (ey - sy) ** 2);
         const phase = (offset + i * 20) % (dashLength + gapLength);
 
         if (phase < dashLength) {
@@ -350,7 +447,7 @@ const EnhancedFirstPersonScene = () => {
       }
     }
 
-    function drawDashboardDetails(ctx, width, height, colors) {
+    function drawDashboardDetails(ctx, width, height) {
       // 方向盘底部轮廓
       const steeringY = height - 80;
       ctx.strokeStyle = 'rgba(0, 212, 255, 0.6)';
