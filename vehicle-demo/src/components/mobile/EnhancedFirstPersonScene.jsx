@@ -219,9 +219,6 @@ const EnhancedFirstPersonScene = () => {
       // 绘制车窗框架
       // drawWindowFrame(ctx, width, height);
 
-      // 绘制车内环境
-      drawModernDashboard(ctx, width, height);
-
       // 绘制车窗框架
       drawSoftWindowFrame(ctx, width, height);
 
@@ -249,14 +246,6 @@ const EnhancedFirstPersonScene = () => {
       // offset 增加时，图片向上（向后）移动
       const scrollSpeed = 3;  // 滚动速度系数
       const scrollOffset = (offset * scrollSpeed) % imgHeight;
-      
-      // 左侧位置
-      const leftNearX = width * 0.05;  // 底部左边缘
-      const leftFarX = width * 0.35;   // 顶部左边缘
-      
-      // 右侧位置
-      const rightNearX = width * 0.95;  // 底部右边缘
-      const rightFarX = width * 0.65;   // 顶部右边缘
       
       // 绘制左侧透视图片（循环2次确保无缝）
       for (let loop = 0; loop < 3; loop++) {
@@ -326,10 +315,6 @@ const EnhancedFirstPersonScene = () => {
       }
     }
 
-    function drawNeonRoadLine(ctx, x1, y1, x2, y2, glowColor, offset) {
-      const segments = 20;
-      const dashLength = 40;
-      const gapLength = 30;
     // 绘制山脉层
     function drawMountainLayer(ctx, mountains, width, height, color, heightRatio, scale) {
       const horizonY = height * 0.5;
