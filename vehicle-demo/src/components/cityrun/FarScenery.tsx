@@ -13,11 +13,11 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
   // 加载远景纹理（天空/太阳）
   const farTexture = useLoader(THREE.TextureLoader, '/assets/sunshine.png');
 
-  // 配置纹理
+  // 配置纹理 - 按图片原始比例显示
   useMemo(() => {
-    farTexture.wrapS = THREE.RepeatWrapping;
+    farTexture.wrapS = THREE.ClampToEdgeWrapping;
     farTexture.wrapT = THREE.ClampToEdgeWrapping;
-    farTexture.repeat.set(1, 1); // 横向重复2次
+    farTexture.repeat.set(1, 1);
   }, [farTexture]);
 
   const offsetRef = useRef(0);
@@ -31,7 +31,13 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
   });
 
   // 远景几何体和材质 - 作为背景天空
-  const geometry = useMemo(() => new THREE.PlaneGeometry(400, 200), []);
+  // 根据纹理的宽高比计算几何体尺寸
+  const geometry = useMemo(() => {
+    const imageAspect = farTexture.image ? farTexture.image.width / farTexture.image.height : 2;
+    const height = 400;
+    const width = height * imageAspect;
+    return new THREE.PlaneGeometry(width, height);
+  }, [farTexture]);
   const material = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -48,7 +54,7 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
       ref={meshRef} 
       geometry={geometry} 
       material={material} 
-      position={[0, 30, -90]} 
+      position={[0, 5, -90]} 
       rotation={[0, 0, 0]}
     />
   );

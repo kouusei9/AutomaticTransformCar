@@ -5,9 +5,16 @@ import * as THREE from 'three';
 interface MiddleSceneryProps {
   isMoving: boolean;
   speed?: number;
+  currentMode?: number;
 }
 
-export default function MiddleScenery({ isMoving, speed = 50 }: MiddleSceneryProps) {
+export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }: MiddleSceneryProps) {
+  // fly 模式下不显示中景
+  const isFlyMode = currentMode === 4;
+  
+  if (isFlyMode) {
+    return null;
+  }
   const meshRef = useRef<THREE.Mesh>(null);
 
   // 加载中景纹理
@@ -43,12 +50,15 @@ export default function MiddleScenery({ isMoving, speed = 50 }: MiddleSceneryPro
     [middleTexture]
   );
 
+  // drone 模式下位置下移
+  const yPosition = currentMode === 3 ? -5 : 5;
+
   return (
     <mesh 
       ref={meshRef} 
       geometry={geometry} 
       material={material} 
-      position={[0, 5, -50]} 
+      position={[0, yPosition, -80]} 
       rotation={[0, 0, 0]}
     />
   );

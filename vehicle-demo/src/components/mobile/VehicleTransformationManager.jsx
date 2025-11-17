@@ -27,12 +27,12 @@ const VEHICLE_MODES = {
     icon: '🏎️',
     speed: 120, // km/h
   },
-  SHORT_FLIGHT: {
+  DRONE: {
     id: 3,
     piece: '桂馬',
-    name: '短距離飛行モード',
-    type: 'SHORT_FLIGHT',
-    function: '段差や障害物越え',
+    name: 'ドローンモード',
+    type: 'DRONE',
+    function: '短距離飛行・段差や障害物越え',
     color: '#00CED1',
     icon: '🚁',
   },
@@ -159,8 +159,9 @@ const VehicleTransformationManager = () => {
       case 'sky':
       case 'air':
         return VEHICLE_MODES.LONG_FLIGHT;
+      case 'drone':
       case 'short_flight':
-        return VEHICLE_MODES.SHORT_FLIGHT;
+        return VEHICLE_MODES.DRONE;
       default:
         return VEHICLE_MODES.NORMAL;
     }
