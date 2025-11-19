@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -46,6 +46,10 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
     const RANDOM_OFFSET = 4; // 随机偏移范围
     const BUILDING_PROBABILITY = 0.6; // 建筑物出现的概率（0-1），0.6表示60%概率是建筑，40%概率是树
 
+    // 淡入效果状态
+    const [fadeOpacity, setFadeOpacity] = useState(0);
+    const fadeTimeRef = useRef(0);
+
     // 加载所有纹理
     const sakura01Texture = useLoader(THREE.TextureLoader, '/assets/sakura01.png');
     const sakura02Texture = useLoader(THREE.TextureLoader, '/assets/sakura02.png');
@@ -61,6 +65,30 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
     const building09Texture = useLoader(THREE.TextureLoader, '/assets/building09.png');
     const building10Texture = useLoader(THREE.TextureLoader, '/assets/building10.png');
     const asphaltTexture = useLoader(THREE.TextureLoader, '/assets/asphalt_texture.jpg');
+
+    // 等待所有纹理加载完成后开始淡入
+    useEffect(() => {
+        // 检查所有纹理是否加载完成
+        const allTexturesLoaded = [
+            sakura01Texture,
+            sakura02Texture,
+            sakura03Texture,
+            building03Texture,
+            building04Texture,
+            building05Texture,
+            building06Texture,
+            building07Texture,
+            building08Texture,
+            building09Texture,
+            building10Texture,
+            asphaltTexture
+        ].every(texture => texture.image);
+
+        if (allTexturesLoaded) {
+            // 启动淡入动画
+            fadeTimeRef.current = 0;
+        }
+    }, [sakura01Texture, sakura02Texture, sakura03Texture, building03Texture, building04Texture, building05Texture, building06Texture, building07Texture, building08Texture, building09Texture, building10Texture, asphaltTexture]);
 
     const group1Ref = useRef<THREE.Group>(null);
     const group2Ref = useRef<THREE.Group>(null);
@@ -194,6 +222,13 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
     const loopDistance = ITEM_COUNT * SPACING;
 
     useFrame((_state, delta) => {
+        // 淡入动画（1秒内从0到1）
+        if (fadeOpacity < 1) {
+            fadeTimeRef.current += delta;
+            const newOpacity = Math.min(1, fadeTimeRef.current / 1.0); // 1秒淡入
+            setFadeOpacity(newOpacity);
+        }
+
         if (!isMoving) return;
 
         // 更新地面纹理偏移
@@ -268,7 +303,7 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
                                 <spriteMaterial
                                     map={texture}
                                     transparent
-                                    opacity={0.95}
+                                    opacity={0.95 * fadeOpacity}
                                     depthTest={true}
                                     depthWrite={true}
                                 />
@@ -285,7 +320,7 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
                                     <meshBasicMaterial 
                                         map={shadowTexture}
                                         transparent
-                                        opacity={Math.min(0.8, 0.4 + height * 0.03)}
+                                        opacity={Math.min(0.8, 0.4 + height * 0.03) * fadeOpacity}
                                         depthWrite={false}
                                     />
                                 </mesh>
@@ -320,7 +355,7 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
                                 <spriteMaterial
                                     map={texture}
                                     transparent
-                                    opacity={0.95}
+                                    opacity={0.95 * fadeOpacity}
                                     depthTest={true}
                                     depthWrite={true}
                                 />
@@ -337,7 +372,7 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
                                     <meshBasicMaterial 
                                         map={shadowTexture}
                                         transparent
-                                        opacity={Math.min(0.8, 0.4 + height * 0.03)}
+                                        opacity={Math.min(0.8, 0.4 + height * 0.03) * fadeOpacity}
                                         depthWrite={false}
                                     />
                                 </mesh>

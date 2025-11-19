@@ -3,7 +3,6 @@ import './App.css'
 // import NavigationPage from './pages/NavigationPage.jsx'
 // import MonitorPage from './pages/MonitorPage.jsx'
 import CyberpunkCityDemo from './pages/CyberpunkCityDemo.tsx'
-import MobileDemo from './pages/MobileDemo.jsx'
 import CityRunDemo from './pages/CityRunDemo.tsx'
 
 function App() {
@@ -31,16 +30,6 @@ function App() {
               }`}
             >
               京都市街地ナビゲーション
-            </button>
-            <button
-              onClick={() => setCurrentPage('mobile')}
-              className={`px-6 py-2 rounded-lg font-semibold transition-all ${
-                currentPage === 'mobile'
-                  ? 'bg-cyan-500 text-gray-900 shadow-lg shadow-cyan-500/50'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              モバイルデモ
             </button>
             <button
               onClick={() => setCurrentPage('cityrun')}

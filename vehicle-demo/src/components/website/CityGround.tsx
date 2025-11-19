@@ -151,7 +151,7 @@ const Shrine3DModel: React.FC<{
  * マップテクスチャ付き地面平面
  */
 const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
-  const textureResult = useTexture('/website-assets/routes_map.png')
+  const textureResult = useTexture('/website-assets/routes_map04.png')
   const mapTexture = Array.isArray(textureResult) ? textureResult[0] : textureResult
   
   useEffect(() => {

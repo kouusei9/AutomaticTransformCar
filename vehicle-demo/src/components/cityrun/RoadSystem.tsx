@@ -42,7 +42,7 @@ export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: Roa
     greenbeltTexture.repeat.set(60, 1); // 沿道路方向重复60次，高度方向1次
     greenbeltTexture.needsUpdate = true;
   }, [roadTexture, roadHighwayTexture, roadDroneTexture, roadFlyTexture, greenbeltTexture]);
-  
+
   // 创建翻转的绿化带纹理用于右侧
   const greenbeltTextureFlipped = useMemo(() => {
     const flipped = greenbeltTexture.clone();
@@ -62,7 +62,7 @@ export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: Roa
     roadHighwayTexture.offset.y = offsetRef.current;
     roadDroneTexture.offset.y = offsetRef.current;
     roadFlyTexture.offset.y = offsetRef.current;
-    
+
     // 更新绿化带偏移（同步移动）
     greenbeltTexture.offset.x = offsetRef.current;
     greenbeltTextureFlipped.offset.x = offsetRef.current;
@@ -73,16 +73,16 @@ export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: Roa
   const roadWidth = isFlyMode ? 100 : 12;
   const roadLength = 300;
   const greenbeltHeight = 1; // 绿化带高度
-  
+
   // 根据当前模式选择道路纹理和材质属性
-  const currentRoadTexture = currentMode === 2 
+  const currentRoadTexture = currentMode === 2
     ? roadHighwayTexture   // 香車 - 高速公路
-    : currentMode === 3 
-    ? roadDroneTexture     // 桂馬 - 低空飞行
-    : currentMode === 4 
-    ? roadFlyTexture       // 飛車 - 高空飞行
-    : roadTexture;         // 金将 - 普通道路
-  
+    : currentMode === 3
+      ? roadDroneTexture     // 桂馬 - 低空飞行
+      : currentMode === 4
+        ? roadFlyTexture       // 飛車 - 高空飞行
+        : roadTexture;         // 金将 - 普通道路
+
   // drone 模式下使用赛博风格（半透明蓝色）
   const isDroneMode = currentMode === 3;
   const roadOpacity = isDroneMode ? 0.6 : 1.0;
@@ -91,23 +91,26 @@ export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: Roa
   return (
     <group ref={roadGroupRef} position={[0, -4, 0]}>
       {/* 主道路 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, -roadLength / 2]}>
-        <planeGeometry args={[roadWidth, roadLength]} />
-        <meshBasicMaterial 
-          map={currentRoadTexture} 
-          transparent={isDroneMode}
-          opacity={roadOpacity}
-          color={roadColor}
-        />
-      </mesh>
+      {!isDroneMode && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, -roadLength / 2]}>
+          <planeGeometry args={[roadWidth, roadLength]} />
+          <meshBasicMaterial
+            map={currentRoadTexture}
+            transparent={isDroneMode}
+            opacity={roadOpacity}
+            color={roadColor}
+          />
+        </mesh>
+      )}
+
 
       {/* 左侧绿化带（垂直站立）- drone模式下隐藏 */}
       {!isDroneMode && !isFlyMode && (
         <mesh rotation={[0, Math.PI / 2, 0]} position={[-(roadWidth / 2 + 0.1), greenbeltHeight / 2, -roadLength / 2]}>
           <planeGeometry args={[roadLength, greenbeltHeight]} />
-          <meshBasicMaterial 
-            map={greenbeltTexture} 
-            transparent={true} 
+          <meshBasicMaterial
+            map={greenbeltTexture}
+            transparent={true}
             side={THREE.DoubleSide}
             alphaTest={0.5}
           />
@@ -118,9 +121,9 @@ export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: Roa
       {!isDroneMode && !isFlyMode && (
         <mesh rotation={[0, -Math.PI / 2, 0]} position={[roadWidth / 2 + 0.1, greenbeltHeight / 2, -roadLength / 2]}>
           <planeGeometry args={[roadLength, greenbeltHeight]} />
-          <meshBasicMaterial 
-            map={greenbeltTextureFlipped} 
-            transparent={true} 
+          <meshBasicMaterial
+            map={greenbeltTextureFlipped}
+            transparent={true}
             side={THREE.DoubleSide}
             alphaTest={0.5}
           />
