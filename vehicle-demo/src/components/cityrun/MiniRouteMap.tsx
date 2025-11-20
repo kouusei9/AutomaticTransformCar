@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { RouteResponse } from '../../types/routeAPI';
+import { VehicleMode } from '../../pages/CityRunDemo'; // 引入 Enum
 
 interface MiniRouteMapProps {
   routeData: RouteResponse | null;
@@ -7,280 +8,244 @@ interface MiniRouteMapProps {
   currentSegmentIndex: number;
 }
 
-export default function MiniRouteMap({ 
-  routeData, 
-  progressPercent,
-  currentSegmentIndex 
-}: MiniRouteMapProps) {
-  // 计算地图边界和缩放
-  const mapData = useMemo(() => {
-    if (!routeData || !routeData.nodes || routeData.nodes.length === 0) {
-      return null;
-    }
+interface SvgPoint {
+  x: number;
+  y: number;
+}
 
-    // 找到所有节点的经纬度范围
-    const lats = routeData.nodes.map(node => node.coordinates.lat);
-    const lngs = routeData.nodes.map(node => node.coordinates.lng);
-    
+interface SvgSegment {
+  from: SvgPoint;
+  to: SvgPoint;
+  mode: VehicleMode;
+  seq: number;
+  isPassed: boolean;
+  isCurrent: boolean;
+  angle: number; // 新增：路段角度
+}
+
+export default function MiniRouteMap({
+  routeData,
+  progressPercent,
+  currentSegmentIndex
+}: MiniRouteMapProps) {
+
+  // 1. 计算地图数据结构 (只在路线数据改变时计算)
+  const mapData = useMemo(() => {
+    if (!routeData?.nodes?.length) return null;
+
+    // --- 坐标归一化逻辑 ---
+    const lats = routeData.nodes.map(n => n.coordinates.lat);
+    const lngs = routeData.nodes.map(n => n.coordinates.lng);
+
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-    
-    // 添加边距
-    const latPadding = (maxLat - minLat) * 0.1 || 0.01;
-    const lngPadding = (maxLng - minLng) * 0.1 || 0.01;
-    
+
+    // 增加 15% 的内边距，防止边缘被切断
+    const latPadding = (maxLat - minLat) * 0.15 || 0.01;
+    const lngPadding = (maxLng - minLng) * 0.15 || 0.01;
+
     const bounds = {
       minLat: minLat - latPadding,
       maxLat: maxLat + latPadding,
       minLng: minLng - lngPadding,
       maxLng: maxLng + lngPadding,
     };
-    
-    // 将经纬度转换为SVG坐标 (0-100)
-    const latToY = (lat: number) => {
-      return 100 - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * 100;
-    };
-    
-    const lngToX = (lng: number) => {
-      return ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * 100;
-    };
-    
-    // 转换所有节点坐标
+
+    // 坐标转换函数
+    const latToY = (lat: number) => 100 - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * 100;
+    const lngToX = (lng: number) => ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * 100;
+
+    // --- 生成节点 ---
     const svgNodes = routeData.nodes.map(node => ({
       id: node.id,
       x: lngToX(node.coordinates.lng),
       y: latToY(node.coordinates.lat),
-      type: node.node_type,
     }));
-    
-    // 生成路径线段
-    const pathSegments = routeData.edges.map((edge, index) => {
-      const fromNode = routeData.nodes.find(n => n.id === edge.from);
-      const toNode = routeData.nodes.find(n => n.id === edge.to);
-      
+
+    // --- 生成路段 ---
+    const pathSegments: SvgSegment[] = routeData.edges.map((edge, index) => {
+      const fromNode = svgNodes.find(n => n.id === edge.from);
+      const toNode = svgNodes.find(n => n.id === edge.to);
+
       if (!fromNode || !toNode) return null;
-      
+
+      // 计算角度 (Math.atan2 返回弧度，转换为角度)
+      // 注意：SVG Y轴向下，所以计算 dy 时要注意方向
+      const dx = toNode.x - fromNode.x;
+      const dy = toNode.y - fromNode.y;
+      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
       return {
-        from: {
-          x: lngToX(fromNode.coordinates.lng),
-          y: latToY(fromNode.coordinates.lat),
-        },
-        to: {
-          x: lngToX(toNode.coordinates.lng),
-          y: latToY(toNode.coordinates.lat),
-        },
-        mode: edge.mode,
+        from: { x: fromNode.x, y: fromNode.y },
+        to: { x: toNode.x, y: toNode.y },
+        mode: edge.mode as VehicleMode,
         seq: edge.seq,
         isPassed: index < currentSegmentIndex,
         isCurrent: index === currentSegmentIndex,
+        angle: angle
       };
-    }).filter(Boolean);
-    
+    }).filter((s): s is SvgSegment => s !== null);
+
+    // 预计算总时间，用于进度条逻辑
+    const totalCost = routeData.edges.reduce((sum, e) => sum + e.cost, 0);
+
+    // 预计算每个路段的累积进度区间 [startPercent, endPercent]
+    let accumulatedCost = 0;
+    const segmentProgressRanges = routeData.edges.map(edge => {
+      const start = (accumulatedCost / totalCost) * 100;
+      accumulatedCost += edge.cost;
+      const end = (accumulatedCost / totalCost) * 100;
+      return { start, end };
+    });
+
     return {
-      bounds,
       svgNodes,
       pathSegments,
+      segmentProgressRanges,
       latToY,
-      lngToX,
+      lngToX
     };
-  }, [routeData, currentSegmentIndex]);
+  }, [routeData, currentSegmentIndex]); // 依赖项包含 currentSegmentIndex 是为了更新 isPassed 状态
 
-  // 计算当前车辆在路线上的位置
-  const currentPosition = useMemo(() => {
-    if (!mapData || !routeData || !routeData.edges || routeData.edges.length === 0) {
-      return null;
+  // 2. 计算车辆实时位置 (高频更新)
+  const currentVehicleState = useMemo(() => {
+    if (!mapData || !mapData.pathSegments[currentSegmentIndex]) return null;
+    if (progressPercent <= 0) return mapData.pathSegments[0].from; // 起点
+
+    const segment = mapData.pathSegments[currentSegmentIndex];
+    const range = mapData.segmentProgressRanges[currentSegmentIndex];
+
+    // 计算该路段内的局部进度 (0.0 - 1.0)
+    let localProgress = 0;
+    if (range.end > range.start) {
+      localProgress = (progressPercent - range.start) / (range.end - range.start);
+      // 限制在 0-1 之间，防止浮点数误差导致的越界
+      localProgress = Math.max(0, Math.min(1, localProgress));
     }
-    
-    // 如果还没开始，返回null
-    if (progressPercent <= 0) {
-      return null;
-    }
-    
-    // 验证 currentSegmentIndex 有效性
-    if (currentSegmentIndex >= routeData.edges.length) {
-      return null;
-    }
-    
-    const currentEdge = routeData.edges[currentSegmentIndex];
-    const fromNode = routeData.nodes.find(n => n.id === currentEdge.from);
-    const toNode = routeData.nodes.find(n => n.id === currentEdge.to);
-    
-    if (!fromNode || !toNode) return null;
-    
-    // 计算总时间和每段的时间比例
-    const totalTime = routeData.edges.reduce((sum, edge) => sum + (edge.cost / 1000 / 60), 0);
-    
-    // 计算当前段之前所有段的累计时间
-    const timeBeforeCurrentSegment = routeData.edges
-      .slice(0, currentSegmentIndex)
-      .reduce((sum, edge) => sum + (edge.cost / 1000 / 60), 0);
-    
-    // 当前段的时间长度
-    const currentSegmentTime = currentEdge.cost / 1000 / 60;
-    
-    // 计算当前段开始和结束时的总进度百分比
-    const segmentStartPercent = (timeBeforeCurrentSegment / totalTime) * 100;
-    const segmentEndPercent = ((timeBeforeCurrentSegment + currentSegmentTime) / totalTime) * 100;
-    
-    // 计算当前在本段内的进度 (0-1)
-    let segmentProgress = 0;
-    if (segmentEndPercent > segmentStartPercent) {
-      segmentProgress = (progressPercent - segmentStartPercent) / (segmentEndPercent - segmentStartPercent);
-      segmentProgress = Math.max(0, Math.min(1, segmentProgress));
-    }
-    
-    // 在起点和终点之间插值
-    const fromX = mapData.lngToX(fromNode.coordinates.lng);
-    const fromY = mapData.latToY(fromNode.coordinates.lat);
-    const toX = mapData.lngToX(toNode.coordinates.lng);
-    const toY = mapData.latToY(toNode.coordinates.lat);
-    
+
+    // 线性插值计算坐标
+    const currentX = segment.from.x + (segment.to.x - segment.from.x) * localProgress;
+    const currentY = segment.from.y + (segment.to.y - segment.from.y) * localProgress;
+
     return {
-      x: fromX + (toX - fromX) * segmentProgress,
-      y: fromY + (toY - fromY) * segmentProgress,
+      x: currentX,
+      y: currentY,
+      angle: segment.angle // 直接使用预计算的角度
     };
-  }, [mapData, routeData, progressPercent, currentSegmentIndex]);
+  }, [mapData, progressPercent, currentSegmentIndex]);
 
-  if (!mapData || !routeData) {
-    return null;
-  }
+  if (!mapData) return null;
 
-  // 根据模式选择颜色
-  const getModeColor = (mode: number) => {
+  // 颜色映射
+  const getModeColor = (mode: VehicleMode) => {
     switch (mode) {
-      case 1: return '#06b6d4'; // 青色 - 通常
-      case 2: return '#f59e0b'; // 橙色 - 高速
-      case 3: return '#8b5cf6'; // 紫色 - 无人机
-      case 4: return '#ec4899'; // 粉色 - 飞行
-      default: return '#06b6d4';
+      case VehicleMode.NORMAL: return '#06b6d4';  // Cyan
+      case VehicleMode.HIGHWAY: return '#f59e0b'; // Amber
+      case VehicleMode.DRONE: return '#8b5cf6';   // Violet
+      case VehicleMode.FLIGHT: return '#ec4899';  // Pink
+      default: return '#9ca3af';
     }
   };
 
   return (
-    <div className="relative w-full h-32 bg-black/60 rounded-lg border border-cyan-500/30 overflow-hidden">
-      {/* 小地图标题 */}
-      <div className="absolute top-1 left-2 text-[10px] text-cyan-400 font-bold z-10">
-        ルートマップ
+    <div className="relative w-full h-32 bg-black/80 rounded-lg border border-cyan-500/30 overflow-hidden backdrop-blur-sm">
+      {/* Title */}
+      <div className="absolute top-1 left-2 text-[10px] text-cyan-400 font-mono font-bold z-10 tracking-wider opacity-80">
+        NAV SYSTEM ///
       </div>
-      
-      {/* SVG 地图 */}
+
+      {/* SVG Map */}
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet"
         className="w-full h-full"
-        style={{ transform: 'scale(0.9)' }}
+        style={{ padding: '10%' }} // 内边距，防止圆点切边
       >
-        {/* 绘制路径线段 */}
-        {mapData.pathSegments.map((segment: any, index: number) => (
+        {/* 1. 绘制所有路径线段 */}
+        {mapData.pathSegments.map((segment, index) => (
           <line
-            key={index}
+            key={`seg-${index}`}
             x1={segment.from.x}
             y1={segment.from.y}
             x2={segment.to.x}
             y2={segment.to.y}
-            stroke={segment.isPassed ? getModeColor(segment.mode) : '#4b5563'}
-            strokeWidth={segment.isCurrent ? '1.5' : '1'}
-            strokeOpacity={segment.isPassed ? 0.8 : 0.3}
-            strokeDasharray={segment.isCurrent ? '2,1' : 'none'}
-            className={segment.isCurrent ? 'animate-pulse' : ''}
+            stroke={segment.isPassed || segment.isCurrent ? getModeColor(segment.mode) : '#374151'} // 未经过显示深灰色
+            strokeWidth={segment.isCurrent ? 2 : 1.2}
+            strokeOpacity={segment.isPassed ? 0.8 : 0.4}
+            strokeLinecap="round"
+            // 当前路段如果是飞行模式，用虚线表示
+            strokeDasharray={segment.mode === VehicleMode.FLIGHT ? '2,1' : 'none'}
           />
         ))}
-        
-        {/* 绘制节点 */}
-        {mapData.svgNodes.map((node: any, index: number) => {
+
+        {/* 2. 绘制节点 (只绘制起点、终点和转折点) */}
+        {mapData.svgNodes.map((node, index) => {
           const isStart = index === 0;
           const isEnd = index === mapData.svgNodes.length - 1;
-          
+          // 中间节点稍微小一点
+          const r = isStart || isEnd ? 3 : 1.5;
+          const fill = isStart ? '#10b981' : isEnd ? '#ef4444' : '#0e7490';
+
           return (
-            <g key={node.id}>
-              {/* 节点圆圈 */}
+            <g key={`node-${index}`}>
               <circle
                 cx={node.x}
                 cy={node.y}
-                r={isStart || isEnd ? 2.5 : 1.5}
-                fill={isStart ? '#10b981' : isEnd ? '#ef4444' : '#06b6d4'}
-                stroke="#ffffff"
+                r={r}
+                fill={fill}
+                stroke={isStart || isEnd ? '#fff' : 'none'}
                 strokeWidth="0.5"
-                opacity={0.9}
               />
-              
-              {/* 起点和终点标记 */}
-              {isStart && (
-                <text
-                  x={node.x}
-                  y={node.y - 4}
-                  fontSize="4"
-                  fill="#10b981"
-                  textAnchor="middle"
-                  fontWeight="bold"
-                >
-                  S
-                </text>
-              )}
-              {isEnd && (
-                <text
-                  x={node.x}
-                  y={node.y - 4}
-                  fontSize="4"
-                  fill="#ef4444"
-                  textAnchor="middle"
-                  fontWeight="bold"
-                >
-                  E
-                </text>
-              )}
             </g>
           );
         })}
-        
-        {/* 当前车辆位置 */}
-        {currentPosition && (
-          <g>
-            {/* 外圈脉冲效果 */}
+
+        {/* 3. 车辆光标 (带旋转和脉冲) */}
+        {currentVehicleState && (
+          <g
+            transform={`translate(${currentVehicleState.x}, ${currentVehicleState.y}) rotate(${currentVehicleState.angle})`}
+          >
+            {/* 脉冲波纹 (不随箭头旋转，保持正圆) */}
+            {/* 注意：因为外层 g 旋转了，为了保持波纹不旋转（如果是圆形没关系），如果波纹有方向则需要反向旋转 */}
             <circle
-              cx={currentPosition.x}
-              cy={currentPosition.y}
-              r="4"
+              r="5"
               fill="none"
               stroke="#fbbf24"
               strokeWidth="0.5"
-              opacity="0.6"
+              opacity="0.5"
               className="animate-ping"
             />
-            {/* 车辆图标 */}
-            <circle
-              cx={currentPosition.x}
-              cy={currentPosition.y}
-              r="2"
+
+            {/* 实体箭头 (三角形) */}
+            {/* points: 顶端向右(0,0)，这样 rotate 0度时是指向右侧的(X轴正向)。
+                SVG计算的角度也是基于X轴正向。
+                但是画三角形的时候，为了配合 atan2 的默认方向(X+)，三角形尖端应该朝右 */}
+            <path
+              d="M 3 0 L -2 -2 L -2 2 Z"
               fill="#fbbf24"
-              stroke="#ffffff"
-              strokeWidth="0.8"
-            />
-            {/* 方向箭头 */}
-            <polygon
-              points={`${currentPosition.x},${currentPosition.y - 3} ${currentPosition.x - 1.5},${currentPosition.y} ${currentPosition.x + 1.5},${currentPosition.y}`}
-              fill="#fbbf24"
-              opacity="0.8"
+              stroke="white"
+              strokeWidth="0.5"
             />
           </g>
         )}
       </svg>
-      
-      {/* 图例 */}
-      <div className="absolute bottom-1 right-2 flex gap-2 text-[8px]">
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span className="text-gray-400">出発</span>
+
+      {/* 底部状态栏 */}
+      <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 to-transparent p-1 px-2 flex justify-between items-end">
+        <div className="text-[8px] text-gray-400 font-mono">
+          SCALE: AUTO
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-red-500"></div>
-          <span className="text-gray-400">目的地</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-          <span className="text-gray-400">現在地</span>
+        <div className="flex gap-2 text-[8px]">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+            <span className="text-gray-400 scale-75 origin-left">S</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+            <span className="text-gray-400 scale-75 origin-left">E</span>
+          </div>
         </div>
       </div>
     </div>

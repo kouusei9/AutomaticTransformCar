@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import ThreeScene from '../components/cityrun/ThreeScene.tsx';
 import FirstPersonView from '../components/cityrun/FirstPersonView.tsx';
 import ThirdPersonView from '../components/cityrun/ThirdPersonView.tsx';
@@ -7,74 +7,239 @@ import SideScenery from '../components/cityrun/SideScenery.tsx';
 import MiddleScenery from '../components/cityrun/MiddleScenery.tsx';
 import FarScenery from '../components/cityrun/FarScenery.tsx';
 import HUDPanel from '../components/cityrun/HUDPanel.tsx';
-// import WeatherTimeSystem from '../components/cityrun/WeatherTimeSystem.tsx';
 import OncomingVehicles from '../components/cityrun/OncomingVehicles.tsx';
 import type { RouteResponse } from '../types/routeAPI';
 import { websocketService } from '../services/websocketService';
+import './CityRunDemo.css';
+
+// ===== 1. 使用 Enum 替代魔法数字 =====
+export enum VehicleMode {
+  NORMAL = 1,   // 金将 - 通常モード
+  HIGHWAY = 2,  // 香車 - 高速モード
+  DRONE = 3,    // 桂馬 - ドローンモード
+  FLIGHT = 4    // 飛車 - 飛行モード
+}
+
+// ===== 常量定義 =====
+const TIME_SCALE_FACTOR = 3;
+const MS_TO_MINUTES = 1000 * 60;
+const TRANSITION_DURATION = 1000;
+const TRANSITION_DELAY = 100;
+
+// 速度配置表
+const SPEED_MULTIPLIERS: Record<VehicleMode, number> = {
+  [VehicleMode.NORMAL]: 1.0,
+  [VehicleMode.HIGHWAY]: 2.5,
+  [VehicleMode.DRONE]: 2.0,
+  [VehicleMode.FLIGHT]: 7.5
+};
+
+// 视频路径配置
+const TRANSFORM_VIDEOS: Record<string, string> = {
+  TO_HIGHWAY: '/assets/car_highway.mp4',
+  TO_DRONE: '/assets/car_drone.mp4',
+  TO_FLIGHT: '/assets/car_fly.mp4',
+  FROM_FLIGHT: '/assets/fly_car.mp4',
+};
+
+// ===== Context =====
+interface SimulationContextType {
+  isMoving: boolean;
+  currentSpeed: number;
+  currentMode: VehicleMode;
+  isActivelyMoving: boolean;
+}
+
+const SimulationContext = createContext<SimulationContextType | null>(null);
+
+export const useSimulation = () => {
+  const context = useContext(SimulationContext);
+  if (!context) {
+    throw new Error('useSimulation must be used within SimulationProvider');
+  }
+  return context;
+};
 
 export default function CityRunDemo() {
+  // ===== State定義 =====
   const [isMoving, setIsMoving] = useState(false);
   const [isFirstPerson, setIsFirstPerson] = useState(true);
   const [showTransformVideo, setShowTransformVideo] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isEnteringFirstPerson, setIsEnteringFirstPerson] = useState(true); // 是否正在进入第一视角
+  const [isEnteringFirstPerson, setIsEnteringFirstPerson] = useState(true);
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [currentTransformVideo, setCurrentTransformVideo] = useState<string>('');
   const [hasPlayedInitialTransform, setHasPlayedInitialTransform] = useState(false);
-  const [currentMode, setCurrentMode] = useState<number>(1); // 当前车辆模式
-  const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number>(0); // 当前路线段索引
-  const [progressPercent, setProgressPercent] = useState<number>(0); // 总进度百分比
-  const [remainingTime, setRemainingTime] = useState<number>(0); // 剩余时间（秒）
-  const [elapsedTime, setElapsedTime] = useState<number>(0); // 已行驶时间（秒）- 在 useEffect 中使用
-  const [isPausedForVideo, setIsPausedForVideo] = useState(false); // 是否因播放视频而暂停
-  const exitAnimationModeRef = useRef<number>(1); // 保存退出动画开始时的 mode，防止动画期间被重置
+  const [currentMode, setCurrentMode] = useState<VehicleMode>(VehicleMode.NORMAL);
+  const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number>(0);
+  const [progressPercent, setProgressPercent] = useState<number>(0);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [isPausedForVideo, setIsPausedForVideo] = useState(false);
 
-  // 根据路线总时间自动停止（1分钟路程 = 3秒实际行驶）
+  const exitAnimationModeRef = useRef<VehicleMode>(VehicleMode.NORMAL);
+  const timersRef = useRef<number[]>([]);
+  const lastTimeRef = useRef<number>(Date.now());
+  const animationFrameRef = useRef<number>();
+
+  // ===== Timer清理 =====
   useEffect(() => {
-    if (!isMoving || !routeData || !routeData.edges) {
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // ===== ヘルパー関数 =====
+  const addTimer = useCallback((timerId: number) => {
+    timersRef.current.push(timerId);
+  }, []);
+
+  const getTransformVideo = useCallback((fromMode: VehicleMode, toMode: VehicleMode): string | null => {
+    if (toMode === VehicleMode.NORMAL) {
+      if (fromMode === VehicleMode.FLIGHT) {
+        return TRANSFORM_VIDEOS.FROM_FLIGHT;
+      }
+      return null;
+    }
+
+    switch (toMode) {
+      case VehicleMode.HIGHWAY:
+        return TRANSFORM_VIDEOS.TO_HIGHWAY;
+      case VehicleMode.DRONE:
+        return TRANSFORM_VIDEOS.TO_DRONE;
+      case VehicleMode.FLIGHT:
+        return TRANSFORM_VIDEOS.TO_FLIGHT;
+      default:
+        return null;
+    }
+  }, []);
+
+  const getSpeedMultiplier = useCallback((mode: VehicleMode): number => {
+    return SPEED_MULTIPLIERS[mode] ?? 1.0;
+  }, []);
+
+  // ===== イベントハンドラー =====
+  const handleStartStop = useCallback((moving: boolean) => {
+    setIsMoving(moving);
+    if (moving) {
+      lastTimeRef.current = Date.now();
+    }
+  }, []);
+
+  const handleAutoStop = useCallback(() => {
+    setIsMoving(false);
+    setIsEnteringFirstPerson(true);
+    setIsTransitioning(true);
+
+    const timer1 = window.setTimeout(() => {
+      setIsFirstPerson(true);
+      const timer2 = window.setTimeout(() => setIsTransitioning(false), TRANSITION_DURATION);
+      addTimer(timer2);
+    }, TRANSITION_DELAY);
+    addTimer(timer1);
+  }, [addTimer]);
+
+  const handleViewToggle = useCallback(() => {
+    if (isFirstPerson) {
+      setIsTransitioning(true);
+      setIsEnteringFirstPerson(false);
+      setIsFirstPerson(false);
+
+      const timer = window.setTimeout(() => {
+        setIsTransitioning(false);
+      }, TRANSITION_DURATION);
+      addTimer(timer);
+    } else {
+      exitAnimationModeRef.current = currentMode;
+      setIsTransitioning(true);
+      setIsEnteringFirstPerson(true);
+
+      const timer1 = window.setTimeout(() => {
+        setIsFirstPerson(true);
+      }, TRANSITION_DELAY);
+      addTimer(timer1);
+
+      const timer2 = window.setTimeout(() => {
+        setIsTransitioning(false);
+      }, TRANSITION_DURATION);
+      addTimer(timer2);
+    }
+  }, [isFirstPerson, currentMode, addTimer]);
+
+  const handleTransform = useCallback(() => {
+    setShowTransformVideo(true);
+  }, []);
+
+  const handleVideoEnded = useCallback(() => {
+    console.log('✅ 変換動画終了、走行再開');
+    setShowTransformVideo(false);
+    setIsPausedForVideo(false);
+    lastTimeRef.current = Date.now();
+  }, []);
+
+  const handleRouteDataChange = useCallback((newRouteData: RouteResponse | null) => {
+    setRouteData(newRouteData);
+    setHasPlayedInitialTransform(false);
+    setElapsedTime(0);
+    setProgressPercent(0);
+    setCurrentSegmentIndex(0);
+    console.log('📍 ルートデータ更新:', newRouteData);
+  }, []);
+
+  // ===== requestAnimationFrame 进度更新 =====
+  useEffect(() => {
+    if (!isMoving || !routeData?.edges?.length) {
       setElapsedTime(0);
       setProgressPercent(0);
       setRemainingTime(0);
       setCurrentSegmentIndex(0);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       return;
     }
 
-    // 计算总时间（分钟）
     const totalTimeMinutes = routeData.edges.reduce((sum, edge) => {
-      return sum + (edge.cost / 1000 / 60); // cost是毫秒，转换为分钟
+      return sum + edge.cost / MS_TO_MINUTES;
     }, 0);
 
-    // 1分钟路程 = 3秒实际行驶
-    const actualDurationSeconds = totalTimeMinutes * 3;
+    const actualDurationSeconds = totalTimeMinutes * TIME_SCALE_FACTOR;
 
     console.log(`📊 ルート総時間: ${totalTimeMinutes.toFixed(1)}分 → 実際走行時間: ${actualDurationSeconds.toFixed(1)}秒`);
 
-    // 更新进度和剩余时间的定时器
-    const progressInterval = setInterval(() => {
-      // 如果正在播放视频，暂停计时
+    lastTimeRef.current = Date.now();
+
+    const updateProgress = () => {
       if (isPausedForVideo) {
+        lastTimeRef.current = Date.now();
+        animationFrameRef.current = requestAnimationFrame(updateProgress);
         return;
       }
 
+      const now = Date.now();
+      const delta = (now - lastTimeRef.current) / 1000;
+      lastTimeRef.current = now;
+
       setElapsedTime(prev => {
-        const newElapsed = prev + 0.1; // 每100ms更新一次
+        const newElapsed = prev + delta;
         const progress = (newElapsed / actualDurationSeconds) * 100;
         const remaining = actualDurationSeconds - newElapsed;
 
         setProgressPercent(Math.min(100, progress));
         setRemainingTime(Math.max(0, remaining));
 
-        // 如果时间到达或超过总时长，立即停止
         if (newElapsed >= actualDurationSeconds) {
-          console.log('🏁 目的地到達！自動停止（タイマー）');
+          console.log('🏁 目的地到達！自動停止');
           handleAutoStop();
-          return actualDurationSeconds; // 确保不超过总时长
+          return actualDurationSeconds;
         }
 
-        // 根据已行驶时间计算当前所在的路段
         const segmentDurations = routeData.edges.map(edge => {
-          const timeMinutes = edge.cost / 1000 / 60;
-          return timeMinutes * 3; // 1分钟 = 3秒
+          const timeMinutes = edge.cost / MS_TO_MINUTES;
+          return timeMinutes * TIME_SCALE_FACTOR;
         });
 
         let cumulativeTime = 0;
@@ -87,23 +252,20 @@ export default function CityRunDemo() {
           }
           cumulativeTime += segmentDurations[i];
 
-          // 如果超过所有段，停在最后一段
           if (i === segmentDurations.length - 1) {
             newSegmentIndex = i;
           }
         }
 
-        // 只在段索引变化时更新
         setCurrentSegmentIndex(prevIndex => {
           if (prevIndex !== newSegmentIndex) {
             console.log(`📍 セグメント更新: ${prevIndex} → ${newSegmentIndex}`);
 
-            // 检查是否需要播放变换视频
             const newEdge = routeData.edges[newSegmentIndex];
             const prevEdge = prevIndex >= 0 ? routeData.edges[prevIndex] : null;
 
             if (newSegmentIndex > 0 && prevEdge && newEdge.mode !== prevEdge.mode) {
-              const video = getTransformVideo(currentMode, newEdge.mode);
+              const video = getTransformVideo(currentMode, newEdge.mode as VehicleMode);
               if (video) {
                 console.log(`🎬 モード変更: ${prevEdge.mode} → ${newEdge.mode}, 動画: ${video}`);
                 setCurrentTransformVideo(video);
@@ -112,61 +274,34 @@ export default function CityRunDemo() {
               }
             }
 
-            setCurrentMode(newEdge.mode);
+            setCurrentMode(newEdge.mode as VehicleMode);
           }
           return newSegmentIndex;
         });
 
         return newElapsed;
       });
-    }, 100);
 
-    // 自动停止定时器
-    const timer = window.setTimeout(() => {
-      console.log('🏁 目的地到達！自動停止');
-      handleAutoStop();
-    }, actualDurationSeconds * 1000);
+      animationFrameRef.current = requestAnimationFrame(updateProgress);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(updateProgress);
 
     return () => {
-      clearTimeout(timer);
-      clearInterval(progressInterval);
-    };
-  }, [isMoving, routeData, isPausedForVideo]);
-
-  // 根据模式获取变换视频
-  const getTransformVideo = (fromMode: Number, toMode: number): string | null => {
-    if (toMode === 1) {
-      switch (fromMode) {
-        case 2: // 高速モード (香車)
-        // return '/assets/car_to_normal.mp4';
-        case 3: // 短距離飛行モード (桂馬)
-        // return '/assets/drone_to_normal.mp4';
-        case 4: // 長距離飛行モード (飛車)
-          return '/assets/fly_car.mp4';
-        default:
-          return null; // 通常モード (金将) は変換なし
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
-    }
-    switch (toMode) {
-      case 2: // 高速モード (香車)
-        return '/assets/car_highway.mp4';
-      case 3: // 短距離飛行モード (桂馬)
-        return '/assets/car_drone.mp4';
-      case 4: // 長距離飛行モード (飛車)
-        return '/assets/car_fly.mp4';
-      default:
-        return null; // 通常モード (金将) は変換なし
-    }
-  };
+    };
+  }, [isMoving, routeData, isPausedForVideo, currentMode, getTransformVideo, handleAutoStop]);
 
-  // 开始行驶时，设置初始模式（移除独立的定时器逻辑）
+  // ===== 初期モード設定 =====
   useEffect(() => {
-    if (isMoving && routeData && routeData.edges && routeData.edges.length > 0 && !hasPlayedInitialTransform) {
-      const firstMode = routeData.edges[0].mode;
+    if (isMoving && routeData?.edges?.length && !hasPlayedInitialTransform) {
+      const firstMode = routeData.edges[0].mode as VehicleMode;
       setCurrentMode(firstMode);
       setCurrentSegmentIndex(0);
 
-      if (firstMode !== 1) {
+      if (firstMode !== VehicleMode.NORMAL) {
         const video = getTransformVideo(currentMode, firstMode);
         if (video) {
           console.log(`🎬 初期モード: ${firstMode}, 動画: ${video}`);
@@ -182,7 +317,7 @@ export default function CityRunDemo() {
 
     if (!isMoving) {
       setHasPlayedInitialTransform(false);
-      setCurrentMode(1);
+      setCurrentMode(VehicleMode.NORMAL);
       setIsPausedForVideo(false);
       setCurrentSegmentIndex(0);
     }
@@ -316,169 +451,103 @@ export default function CityRunDemo() {
     }
   };
 
+  // ===== 計算値 =====
   const currentSpeed = getSpeedMultiplier(currentMode);
+  const isActivelyMoving = isMoving && !isPausedForVideo;
+
+  const simulationContextValue: SimulationContextType = {
+    isMoving,
+    currentSpeed,
+    currentMode,
+    isActivelyMoving
+  };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      background: '#000',
-      overflow: 'hidden',
-      margin: 0,
-      padding: 0
-    }}>
-      {/* HUD 控制面板 */}
-      <HUDPanel
-        onStartStop={handleStartStop}
-        onViewToggle={handleViewToggle}
-        onTransform={handleTransform}
-        onRouteDataChange={handleRouteDataChange}
-        isMoving={isMoving}
-        currentMode={currentMode}
-        currentSegmentIndex={currentSegmentIndex}
-        progressPercent={progressPercent}
-        remainingTime={remainingTime}
-      />
+    <SimulationContext.Provider value={simulationContextValue}>
+      <div style={{
+        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+        background: '#000', overflow: 'hidden', margin: 0, padding: 0
+      }}>
 
-      {/* 变形视频 */}
-      {showTransformVideo && currentTransformVideo && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          zIndex: 100,
-          background: '#000',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <video
-            key={currentTransformVideo} // 强制重新加载视频
-            src={currentTransformVideo}
-            autoPlay
-            onEnded={handleVideoEnded}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-        </div>
-      )}
+        {/* 1. HUD 面板 (HTML) - 在 Canvas 之上 */}
+        <HUDPanel
+          onStartStop={handleStartStop}
+          onViewToggle={handleViewToggle}
+          onTransform={handleTransform}
+          onRouteDataChange={handleRouteDataChange}
+          isMoving={isMoving}
+          currentMode={currentMode}
+          currentSegmentIndex={currentSegmentIndex}
+          progressPercent={progressPercent}
+          remainingTime={remainingTime}
+        />
 
-      {/* 视角切换过渡动画 - 进出车效果 */}
-      {isTransitioning && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 99,
-            pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-        </div>
-      )}
-
-      <style>{`
-        @keyframes zoomOutToCar {
-          0% { 
-            transform: scale(1);
-            opacity: 1;
-          }
-          100% { 
-            transform: scale(0.1) translateY(80vh);
-            opacity: 0;
-          }
-        }
-        
-        @keyframes zoomInFromCar {
-          0% { 
-            transform: scale(0.1) translateY(80vh);
-            opacity: 0;
-          }
-          100% { 
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        
-        @keyframes fadeOutOverlay {
-          0% { opacity: 0; }
-          50% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-        
-        @keyframes fadeInOverlay {
-          0% { opacity: 0; }
-          50% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-      `}</style>
-
-      {/* Three.js 场景 */}
-      <ThreeScene>
-        {/* 天气和时间系统 */}
-        {/* <WeatherTimeSystem isMoving={isMoving} /> */}
-
-        {/* 远景（天空/太阳） - 最远，移动最慢 */}
-        <FarScenery isMoving={isMoving} speed={0} />
-
-        {/* 中景 - 中等距离，中等速度 - fly模式下隐藏 */}
-        <MiddleScenery isMoving={isMoving} speed={0} currentMode={currentMode} />
-
-        {/* 近景（路边建筑） - 最近，移动最快 - fly模式下隐藏 */}
-        {currentMode !== 4 && (
-          <SideScenery isMoving={isMoving && !isPausedForVideo} speed={50 * currentSpeed} currentMode={currentMode} />
+        {/* 2. 视频层 (HTML) - 在 Canvas 之上 */}
+        {showTransformVideo && currentTransformVideo && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            zIndex: 100, background: '#000', display: 'flex',
+            alignItems: 'center', justifyContent: 'center'
+          }}>
+            <video
+              key={currentTransformVideo}
+              src={currentTransformVideo}
+              autoPlay
+              onEnded={handleVideoEnded}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
         )}
 
-        {/* 道路系统 */}
-        <RoadSystem isMoving={isMoving && !isPausedForVideo} speed={currentSpeed} currentMode={currentMode} />
+        {/* 3. 过渡遮罩层 (HTML) - 在 Canvas 之上 */}
+        {/* 只要 isTransitioning 为 true，就显示这个黑色淡入淡出层 */}
+        {isTransitioning && (
+          <div className="transition-overlay" />
+        )}
 
-        {/* 对向车辆系统 */}
-        <OncomingVehicles isMoving={isMoving && !isPausedForVideo} speed={50 * currentSpeed} currentMode={currentMode} />
+        {/* 4. 3D 场景 (Canvas) */}
+        <ThreeScene>
+          <FarScenery isMoving={isMoving} speed={0} />
+          <MiddleScenery isMoving={isMoving} speed={0} currentMode={currentMode} />
 
-        {/* 根据视角切换渲染不同的视图 */}
-        {isFirstPerson ? (
-          <>
-            <FirstPersonView isTransitioning={isTransitioning} isEntering={isEnteringFirstPerson} />
-            {/* 在切换到第一人称时，保留第三人称视图播放退出动画 */}
-            {isTransitioning && isEnteringFirstPerson && (
-              <ThirdPersonView
-                isMoving={isMoving}
-                currentMode={exitAnimationModeRef.current}
-                isTransitioning={true}
-                isEntering={false}
-              />
-            )}
-          </>
-        ) : (
-          <>
+          {currentMode !== VehicleMode.FLIGHT && (
+            <SideScenery
+              isMoving={isActivelyMoving}
+              speed={50 * currentSpeed}
+              currentMode={currentMode}
+            />
+          )}
+
+          <RoadSystem
+            isMoving={isActivelyMoving}
+            speed={currentSpeed}
+            currentMode={currentMode}
+          />
+
+          <OncomingVehicles
+            isMoving={isActivelyMoving}
+            speed={50 * currentSpeed}
+            currentMode={currentMode}
+          />
+
+          {/* 直接根据状态渲染 3D 组件 */}
+
+          {isFirstPerson ? (
+            <FirstPersonView
+              isTransitioning={isTransitioning}
+              isEntering={isEnteringFirstPerson}
+            />
+          ) : (
             <ThirdPersonView
               isMoving={isMoving}
               currentMode={currentMode}
               isTransitioning={isTransitioning}
-              isEntering={!isEnteringFirstPerson} // 第三视角的进入方向与第一视角相反
+              isEntering={!isEnteringFirstPerson}
             />
-            {/* 在切换到第三人称时，保留第一人称视图播放退出动画 */}
-            {isTransitioning && !isEnteringFirstPerson && (
-              <FirstPersonView isTransitioning={true} isEntering={false} />
-            )}
-          </>
-        )}
-      </ThreeScene>
+          )}
 
-
-    </div>
+        </ThreeScene>
+      </div>
+    </SimulationContext.Provider>
   );
 }
