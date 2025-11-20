@@ -80,7 +80,7 @@ export default function CityRunDemo() {
   const exitAnimationModeRef = useRef<VehicleMode>(VehicleMode.NORMAL);
   const timersRef = useRef<number[]>([]);
   const lastTimeRef = useRef<number>(Date.now());
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   // ===== Timer清理 =====
   useEffect(() => {
@@ -126,8 +126,41 @@ export default function CityRunDemo() {
     setIsMoving(moving);
     if (moving) {
       lastTimeRef.current = Date.now();
+      
+      // 通过 WebSocket 发送路线数据到 CyberpunkCityDemo
+      if (routeData) {
+        const startNode = routeData.nodes[0];
+        const destNode = routeData.nodes[routeData.nodes.length - 1];
+        
+        // 从 kyoto_routes.json 加载节点名称
+        fetch('/website-assets/kyoto_routes.json')
+          .then(res => res.json())
+          .then(data => {
+            const startKyotoNode = data.nodes.find((n: any) => n.id === startNode.id);
+            const destKyotoNode = data.nodes.find((n: any) => n.id === destNode.id);
+            
+            const startName = startKyotoNode?.name || startNode.id;
+            const destName = destKyotoNode?.name || destNode.id;
+            
+            websocketService.sendNewRoute(
+              startName,
+              destName,
+              routeData
+            );
+            
+            console.log('📡 发送路线到 CyberpunkCityDemo:', { start: startName, destination: destName });
+          })
+          .catch(err => {
+            console.error('❌ 加载节点名称失败:', err);
+            websocketService.sendNewRoute(
+              startNode.id,
+              destNode.id,
+              routeData
+            );
+          });
+      }
     }
-  }, []);
+  }, [routeData]);
 
   const handleAutoStop = useCallback(() => {
     setIsMoving(false);
@@ -333,123 +366,6 @@ export default function CityRunDemo() {
       websocketService.disconnect();
     };
   }, []);
-
-  const handleRouteDataChange = (newRouteData: RouteResponse | null) => {
-    setRouteData(newRouteData);
-    setHasPlayedInitialTransform(false);
-    setElapsedTime(0);
-    setProgressPercent(0);
-    setCurrentSegmentIndex(0);
-    console.log('📍 ルートデータ更新:', newRouteData);
-  };
-
-  const handleStartStop = (moving: boolean) => {
-    setIsMoving(moving);
-    
-    // 点击 START 时通过 WebSocket 发送路线数据
-    if (moving && routeData) {
-      const startNode = routeData.nodes[0];
-      const destNode = routeData.nodes[routeData.nodes.length - 1];
-      
-      // 从 kyoto_routes.json 加载节点名称
-      fetch('/website-assets/kyoto_routes.json')
-        .then(res => res.json())
-        .then(data => {
-          const startKyotoNode = data.nodes.find((n: any) => n.id === startNode.id);
-          const destKyotoNode = data.nodes.find((n: any) => n.id === destNode.id);
-          
-          const startName = startKyotoNode?.name || startNode.id;
-          const destName = destKyotoNode?.name || destNode.id;
-          
-          websocketService.sendNewRoute(
-            startName,
-            destName,
-            routeData
-          );
-          
-          console.log('📡 发送路线到 CyberpunkCityDemo:', { start: startName, destination: destName });
-        })
-        .catch(err => {
-          console.error('❌ 加载节点名称失败:', err);
-          // 使用 ID 作为后备
-          websocketService.sendNewRoute(
-            startNode.id,
-            destNode.id,
-            routeData
-          );
-        });
-    }
-  };
-
-  const handleViewToggle = () => {
-    if (isFirstPerson) {
-      // 第一视角 → 第三视角
-      setIsTransitioning(true);
-      setIsEnteringFirstPerson(false);
-      setIsFirstPerson(false); // 立即切换到第三视角
-
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 1000);
-    } else {
-      // 第三视角 → 第一视角
-      exitAnimationModeRef.current = currentMode; // 保存当前 mode，用于退出动画
-      setIsTransitioning(true);
-      setIsEnteringFirstPerson(true);
-
-      // 延迟切换视角，让退出动画先播放
-      setTimeout(() => {
-        setIsFirstPerson(true);
-      }, 100);
-
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 1000);
-    }
-  };
-
-  const handleAutoStop = () => {
-    // 自动停止时，调用handleStartStop来触发HUDPanel的状态更新
-    handleStartStop(false);
-
-    // 设置为进入第一视角
-    setIsEnteringFirstPerson(true);
-
-    // 添加过渡动画 - 第三人称到第一人称
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setIsFirstPerson(true);
-      setTimeout(() => setIsTransitioning(false), 1000);
-    }, 100);
-  };
-
-  const handleTransform = () => {
-    // 显示变形视频
-    setShowTransformVideo(true);
-  };
-
-  const handleVideoEnded = () => {
-    // 视频播放完成后隐藏视频并恢复行驶
-    console.log('✅ 変換動画終了、走行再開');
-    setShowTransformVideo(false);
-    setIsPausedForVideo(false); // 恢复行驶计时
-  };
-
-  // 根据当前模式计算速度倍率
-  const getSpeedMultiplier = (mode: number): number => {
-    switch (mode) {
-      case 1: // 金将 - 通常モード (40 km/h)
-        return 1.0;
-      case 2: // 香車 - 高速モード (100 km/h)
-        return 2.5;
-      case 3: // 桂馬 - ドローンモード (80 km/h)
-        return 2.0;
-      case 4: // 飛車 - 飛行モード (300 km/h)
-        return 7.5;
-      default:
-        return 1.0;
-    }
-  };
 
   // ===== 計算値 =====
   const currentSpeed = getSpeedMultiplier(currentMode);

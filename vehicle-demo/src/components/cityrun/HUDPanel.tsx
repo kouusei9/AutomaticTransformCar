@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { RouteResponse } from '../../types/routeAPI';
-import { getRoute } from '../../api/mockRouteAPI';
 import { getAllModesRoute } from '../../api/completeRouteExample';
 import MiniRouteMap from './MiniRouteMap';
 import { generateRoute, getAvailableLocations, type KyotoNode } from '../../utils/kyotoRouteUtils';
@@ -11,34 +10,6 @@ import {
   formatTime,
   getModeById
 } from '../../types/routeAPI';
-
-// ===== 1. 常量配置 (优化样式管理) =====
-const PANEL_STYLES = {
-  MOVING: {
-    width: '320px',
-    transform: 'rotateX(0deg) scale(1)',
-    padding: 'p-3',
-    shadow: '0 0 20px rgba(6, 182, 212, 0.2)',
-    titleSize: 'text-sm tracking-widest',
-    // 动态定位：行驶时在左上角
-    position: { top: 24, left: 24, right: 'auto', bottom: 'auto' }
-  },
-  STOPPED: {
-    width: '600px',
-    transform: 'rotateX(10deg) scale(1)',
-    padding: 'p-6',
-    shadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(6, 182, 212, 0.1)',
-    titleSize: 'text-xl tracking-widest',
-    // 动态定位：停止时配合 flex 居中，设为 0
-    position: { top: 0, left: 0, right: 0, bottom: 0 }
-  }
-} as const;
-
-// ===== 2. 辅助函数 (移出组件，提升性能) =====
-const findLocationId = (locationName: string): string => {
-  const location = LOCATIONS.find(loc => loc.name === locationName);
-  return location?.id || 'B';
-};
 
 interface HUDPanelProps {
   // 核心状态 (受控)
@@ -63,7 +34,6 @@ export default function HUDPanel({
   isMoving, // ✅ 直接使用 props，单一数据源
   onStartStop,
   onViewToggle,
-  onTransform,
   onStartLocationSet,
   onDestinationSet,
   onRouteDataChange,
@@ -80,11 +50,6 @@ export default function HUDPanel({
   const [startLocationId, setStartLocationId] = useState('A1'); // 京都駅のID
   const [destinationId, setDestinationId] = useState('D2'); // 清水寺のID
   const [availableLocations, setAvailableLocations] = useState<KyotoNode[]>([]);
-
-  // ===== 3. 路由获取逻辑 (带防抖) =====
-  useEffect(() => {
-    // 如果正在移动，或者ID不全，则不请求
-    if (isMoving || !startLocationId || !destinationId) return;
 
   // 加载可用地点列表
   useEffect(() => {
@@ -103,7 +68,7 @@ export default function HUDPanel({
       const route = await generateRoute(startLocationId, destinationId);
       if (route) {
         setRouteData(route);
-        onRouteDataChange?.(route); // 将路线数据传递给父组件
+        onRouteDataChange?.(route);
         console.log('🚗 ルートデータ取得成功:', route);
       } else {
         console.error('❌ 无法生成路线');
@@ -117,13 +82,17 @@ export default function HUDPanel({
     }
   };
 
-    // 防抖：500ms 后再执行 API 请求，避免快速切换时频繁请求
-    const timerId = setTimeout(fetchData, 500);
+  // 出発地・目的地が変更されたらルートを再取得
+  useEffect(() => {
+    if (startLocationId && destinationId && !isMoving) {
+      fetchRouteData();
+    }
+  }, [startLocationId, destinationId]);
 
-  // ロケーション名からIDを検索 (使用 Kyoto 数据)
+  // ロケーション名からIDを検索
   const findLocationId = (locationName: string): string => {
     const location = availableLocations.find(loc => loc.name === locationName);
-    return location?.id || 'A1'; // デフォルトは京都駅
+    return location?.id || 'A1';
   };
 
   // 加载演示路线
@@ -152,15 +121,27 @@ export default function HUDPanel({
     }
   };
 
-  // ===== 5. 性能优化：缓存 Option 列表 =====
-  const locationOptions = useMemo(() => (
-    LOCATIONS.map(loc => (
-      <option key={loc.id} value={loc.name}>{loc.name}</option>
-    ))
-  ), []);
+  // 获取位置选项列表
+  const locationOptions = availableLocations.map(loc => (
+    <option key={loc.id} value={loc.name}>{loc.name}</option>
+  ));
 
-  // 获取当前样式配置
-  const styleConfig = isMoving ? PANEL_STYLES.MOVING : PANEL_STYLES.STOPPED;
+  // 样式配置
+  const styleConfig = isMoving ? {
+    width: '320px',
+    transform: 'rotateX(0deg) scale(1)',
+    padding: 'p-3',
+    shadow: '0 0 20px rgba(6, 182, 212, 0.2)',
+    titleSize: 'text-sm tracking-widest',
+    position: { top: 24, left: 24 }
+  } : {
+    width: '600px',
+    transform: 'rotateX(10deg) scale(1)',
+    padding: 'p-6',
+    shadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(6, 182, 212, 0.1)',
+    titleSize: 'text-xl tracking-widest',
+    position: { top: 0, left: 0 }
+  };
 
   return (
     <div

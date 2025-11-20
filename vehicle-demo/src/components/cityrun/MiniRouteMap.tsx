@@ -11,6 +11,7 @@ interface MiniRouteMapProps {
 interface SvgPoint {
   x: number;
   y: number;
+  angle?: number; // 旋转角度（可选）
 }
 
 interface SvgSegment {
