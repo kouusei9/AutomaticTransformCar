@@ -22,6 +22,40 @@ node: v20.19.0
 npm: 10.8.2
 version
 
+## 运行项目
+
+### 1. 安装依赖
+```bash
+npm install
+```
+
+### 2. 启动 WebSocket 服务器（用于 CityRun ↔ CyberpunkCityDemo 通信）
+在一个终端窗口运行：
+```bash
+npm run ws
+```
+服务器将在 `ws://localhost:8080` 启动
+
+### 3. 启动开发服务器
+在另一个终端窗口运行：
+```bash
+npm run dev
+```
+
+### 4. 测试 WebSocket 通信流程
+1. 打开浏览器访问 `http://localhost:5173`
+2. 在 CityRun 页面选择起始点和目的地
+3. 点击 START 按钮
+4. 切换到 CyberpunkCityDemo 页面，会看到新车辆自动添加到场景中
+
+## WebSocket 功能说明
+
+- **CityRunDemo**: 点击 START 时通过 WebSocket 发送路线数据
+- **CyberpunkCityDemo**: 实时接收路线数据并自动添加新车辆
+- **消息类型**: 
+  - `NEW_ROUTE`: 新路线消息（包含起点、终点、完整路线数据）
+  - `VEHICLE_STATUS`: 车辆状态消息（预留）
+
 environment run
 ```
 npm install

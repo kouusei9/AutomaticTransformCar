@@ -19,7 +19,7 @@ export const PathLine: React.FC<PathLineProps> = ({
   path,
   color = '#00ffff',
   animated = true,
-  lineWidth = 2,
+  lineWidth = 4,
   dimmed = false
 }) => {
   const lineRef = useRef<any>(null)
@@ -35,10 +35,13 @@ export const PathLine: React.FC<PathLineProps> = ({
     if (lineRef.current && animated) {
       const material = lineRef.current.material as THREE.LineBasicMaterial
       if (material) {
-        // パルス効果
-        const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.3 + 0.7
+        // パルス効果 - 增强发光效果
+        const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.4 + 0.8
         // 如果dimmed，降低透明度
         material.opacity = dimmed ? pulse * 0.15 : pulse
+        // 增加发光强度
+        material.color.setStyle(color)
+        material.color.multiplyScalar(dimmed ? 1.2 : 2.5) // 提高亮度使其发光
       }
     }
   })
@@ -55,6 +58,7 @@ export const PathLine: React.FC<PathLineProps> = ({
         color={color}
         transparent
         opacity={0.8}
+        toneMapped={false}
       />
     </Line>
   )

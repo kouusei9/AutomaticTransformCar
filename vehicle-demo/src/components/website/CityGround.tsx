@@ -151,7 +151,7 @@ const Shrine3DModel: React.FC<{
  * マップテクスチャ付き地面平面
  */
 const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
-  const textureResult = useTexture('/website-assets/routes_map04.png')
+  const textureResult = useTexture('/website-assets/routes_map.png')
   const mapTexture = Array.isArray(textureResult) ? textureResult[0] : textureResult
   
   useEffect(() => {
@@ -176,6 +176,7 @@ const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
         <meshStandardMaterial
           map={mapTexture}
           color={0xffffff}
+          opacity={0.8}
           metalness={0.0}
           roughness={1.0}
           side={THREE.DoubleSide}
@@ -481,7 +482,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
             path={item.path}
             color="#00ffff"
             animated
-            lineWidth={2}
+            lineWidth={6}
             dimmed={highlightedRoute !== null && !isHighlighted}
           />
         )
@@ -502,7 +503,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
             path={item.path}
             color="#ffaa00"
             animated
-            lineWidth={3.0}
+            lineWidth={6}
             dimmed={highlightedRoute !== null && !isHighlighted}
           />
         )
@@ -523,7 +524,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
             path={item.path}
             color="#ff00ff"
             animated
-            lineWidth={2}
+            lineWidth={6}
             dimmed={highlightedRoute !== null && !isHighlighted}
           />
         )

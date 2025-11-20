@@ -10,6 +10,7 @@ import HUDPanel from '../components/cityrun/HUDPanel.tsx';
 // import WeatherTimeSystem from '../components/cityrun/WeatherTimeSystem.tsx';
 import OncomingVehicles from '../components/cityrun/OncomingVehicles.tsx';
 import type { RouteResponse } from '../types/routeAPI';
+import { websocketService } from '../services/websocketService';
 
 export default function CityRunDemo() {
   const [isMoving, setIsMoving] = useState(false);
@@ -24,7 +25,7 @@ export default function CityRunDemo() {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number>(0); // 当前路线段索引
   const [progressPercent, setProgressPercent] = useState<number>(0); // 总进度百分比
   const [remainingTime, setRemainingTime] = useState<number>(0); // 剩余时间（秒）
-  const [elapsedTime, setElapsedTime] = useState<number>(0); // 已行驶时间（秒）
+  const [elapsedTime, setElapsedTime] = useState<number>(0); // 已行驶时间（秒）- 在 useEffect 中使用
   const [isPausedForVideo, setIsPausedForVideo] = useState(false); // 是否因播放视频而暂停
   const exitAnimationModeRef = useRef<number>(1); // 保存退出动画开始时的 mode，防止动画期间被重置
 
@@ -187,6 +188,17 @@ export default function CityRunDemo() {
     }
   }, [isMoving, routeData, hasPlayedInitialTransform]);
 
+  // WebSocket 连接初始化
+  useEffect(() => {
+    websocketService.connect().catch(err => {
+      console.warn('⚠️ WebSocket 连接失败，将在后台重试:', err.message);
+    });
+
+    return () => {
+      websocketService.disconnect();
+    };
+  }, []);
+
   const handleRouteDataChange = (newRouteData: RouteResponse | null) => {
     setRouteData(newRouteData);
     setHasPlayedInitialTransform(false);
@@ -198,6 +210,40 @@ export default function CityRunDemo() {
 
   const handleStartStop = (moving: boolean) => {
     setIsMoving(moving);
+    
+    // 点击 START 时通过 WebSocket 发送路线数据
+    if (moving && routeData) {
+      const startNode = routeData.nodes[0];
+      const destNode = routeData.nodes[routeData.nodes.length - 1];
+      
+      // 从 kyoto_routes.json 加载节点名称
+      fetch('/website-assets/kyoto_routes.json')
+        .then(res => res.json())
+        .then(data => {
+          const startKyotoNode = data.nodes.find((n: any) => n.id === startNode.id);
+          const destKyotoNode = data.nodes.find((n: any) => n.id === destNode.id);
+          
+          const startName = startKyotoNode?.name || startNode.id;
+          const destName = destKyotoNode?.name || destNode.id;
+          
+          websocketService.sendNewRoute(
+            startName,
+            destName,
+            routeData
+          );
+          
+          console.log('📡 发送路线到 CyberpunkCityDemo:', { start: startName, destination: destName });
+        })
+        .catch(err => {
+          console.error('❌ 加载节点名称失败:', err);
+          // 使用 ID 作为后备
+          websocketService.sendNewRoute(
+            startNode.id,
+            destNode.id,
+            routeData
+          );
+        });
+    }
   };
 
   const handleViewToggle = () => {

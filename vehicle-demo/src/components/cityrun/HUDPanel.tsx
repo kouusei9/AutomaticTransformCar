@@ -3,15 +3,14 @@ import { getRoute } from '../../api/mockRouteAPI';
 import { getAllModesRoute, getSimpleThreeModeRoute } from '../../api/completeRouteExample';
 import type { RouteResponse } from '../../types/routeAPI';
 import MiniRouteMap from './MiniRouteMap';
+import { generateRoute, getAvailableLocations, type KyotoNode } from '../../utils/kyotoRouteUtils';
 import { 
   calculateTotalDistance, 
   calculateTotalTime, 
   formatDistance, 
   formatTime,
-  getModeById,
-  LOCATIONS
+  getModeById
 } from '../../types/routeAPI';
-import { getAll } from 'three/examples/jsm/libs/tween.module.js';
 
 interface HUDPanelProps {
   onStartStop: (isMoving: boolean) => void;
@@ -45,8 +44,9 @@ export default function HUDPanel({
   const [destination, setDestination] = useState('清水寺');
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
-  const [startLocationId, setStartLocationId] = useState('B'); // 京都駅のID
-  const [destinationId, setDestinationId] = useState('C'); // 清水寺のID
+  const [startLocationId, setStartLocationId] = useState('A1'); // 京都駅のID
+  const [destinationId, setDestinationId] = useState('D2'); // 清水寺のID
+  const [availableLocations, setAvailableLocations] = useState<KyotoNode[]>([]);
 
   // 同步外部isMoving状态
   useEffect(() => {
@@ -55,14 +55,29 @@ export default function HUDPanel({
     }
   }, [externalIsMoving]);
 
+  // 加载可用地点列表
+  useEffect(() => {
+    getAvailableLocations().then(locations => {
+      setAvailableLocations(locations);
+      console.log('📍 加载了', locations.length, '个地点');
+    }).catch(error => {
+      console.error('❌ 加载地点列表失败:', error);
+    });
+  }, []);
+
   // ルートデータを取得
   const fetchRouteData = async () => {
     setIsLoadingRoute(true);
     try {
-      const route = await getRoute(startLocationId, destinationId);
-      setRouteData(route);
-      onRouteDataChange?.(route); // 将路线数据传递给父组件
-      console.log('🚗 ルートデータ取得成功:', route);
+      const route = await generateRoute(startLocationId, destinationId);
+      if (route) {
+        setRouteData(route);
+        onRouteDataChange?.(route); // 将路线数据传递给父组件
+        console.log('🚗 ルートデータ取得成功:', route);
+      } else {
+        console.error('❌ 无法生成路线');
+        onRouteDataChange?.(null);
+      }
     } catch (error) {
       console.error('❌ ルートデータ取得エラー:', error);
       onRouteDataChange?.(null);
@@ -78,10 +93,10 @@ export default function HUDPanel({
     }
   }, [startLocationId, destinationId]);
 
-  // ロケーション名からIDを検索
+  // ロケーション名からIDを検索 (使用 Kyoto 数据)
   const findLocationId = (locationName: string): string => {
-    const location = LOCATIONS.find(loc => loc.name === locationName);
-    return location?.id || 'B'; // デフォルトは京都駅
+    const location = availableLocations.find(loc => loc.name === locationName);
+    return location?.id || 'A1'; // デフォルトは京都駅
   };
 
   // 加载测试路线（3种模式）
@@ -237,7 +252,7 @@ export default function HUDPanel({
                   }}
                   className="w-full px-3 py-1.5 bg-gray-800/60 border border-cyan-500/30 rounded-lg text-cyan-400 text-sm focus:outline-none focus:border-cyan-500/60 transition-colors cursor-pointer"
                 >
-                  {LOCATIONS.map(loc => (
+                  {availableLocations.map(loc => (
                     <option key={loc.id} value={loc.name} className="bg-gray-900">
                       {loc.name}
                     </option>
@@ -256,7 +271,7 @@ export default function HUDPanel({
                   }}
                   className="w-full px-3 py-1.5 bg-gray-800/60 border border-cyan-500/30 rounded-lg text-green-400 text-sm focus:outline-none focus:border-green-500/60 transition-colors cursor-pointer"
                 >
-                  {LOCATIONS.map(loc => (
+                  {availableLocations.map(loc => (
                     <option key={loc.id} value={loc.name} className="bg-gray-900">
                       {loc.name}
                     </option>

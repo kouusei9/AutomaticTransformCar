@@ -6,12 +6,12 @@ import * as THREE from 'three'
 import CityGround from '../components/website/CityGround'
 import SkyEnvironment from '../components/website/SkyEnvironment'
 import Vehicle from '../components/website/Vehicle'
-import DistantCityscape from '../components/website/DistantCityscape'
 import { createRoutePathFromNodeIds } from '../utils/routePathGenerator'
+import { websocketService } from '../services/websocketService'
+import type { RouteResponse } from '../types/routeAPI'
 
-// 車両ルート設定（後でAPIから取得可能）
-// 主要な経由点のみ指定すれば、システムが自動的にエッジに基づいて最短経路を探索
-const VEHICLE_ROUTES = [
+// 初始车辆路线配置
+const INITIAL_VEHICLE_ROUTES = [
   {
     id: 1,
     name: 'テストルート1 (Airplane)',
@@ -37,6 +37,16 @@ const VEHICLE_ROUTES = [
     isCycle: true  // C1→C2→C3→C2→C1 循环
   }
 ]
+
+// 车辆路线类型定义
+interface VehicleRoute {
+  id: number
+  name: string
+  nodeIds: string[]
+  color: string
+  speed: number
+  isCycle: boolean
+}
 
 // カメラ追従更新コンポーネント
 function CameraFollower({ 
@@ -82,10 +92,61 @@ export default function CyberpunkCityDemo() {
   const [routePaths, setRoutePaths] = useState<THREE.CurvePath<THREE.Vector3>[]>([])
   const [routeData, setRouteData] = useState<any>(null)
   const [activeVehicles, setActiveVehicles] = useState<Set<number>>(new Set([0, 1, 2]))  // 活跃的车辆索引
+  const [vehicleRoutes, setVehicleRoutes] = useState<VehicleRoute[]>(INITIAL_VEHICLE_ROUTES) // 可动态添加车辆
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!)
   const controlsRef = useRef<any>(null!)
   const defaultCameraPos = new THREE.Vector3(100, 80, 100)
   const defaultTarget = new THREE.Vector3(0, 0, 0)
+  const nextVehicleIdRef = useRef(4) // 用于生成新车辆的唯一 ID
+
+  // 从 RouteResponse 数据提取节点 ID 列表
+  const extractNodeIdsFromRoute = (routeResponse: RouteResponse): string[] => {
+    if (!routeResponse.nodes || routeResponse.nodes.length === 0) {
+      return []
+    }
+    // nodes 数组已经包含了路线的所有节点，按顺序返回其 ID
+    return routeResponse.nodes.map(node => node.id)
+  }
+
+  // 添加新车辆到场景
+  const addNewVehicle = (start: string, destination: string, routeResponse: RouteResponse) => {
+    const nodeIds = extractNodeIdsFromRoute(routeResponse)
+    
+    if (nodeIds.length === 0) {
+      console.warn('⚠️ 无效的路线数据，无法添加车辆')
+      return
+    }
+
+    console.log('🔍 当前车辆数量:', vehicleRoutes.length)
+    console.log('🔍 提取的节点 IDs:', nodeIds)
+
+    const newVehicleId = nextVehicleIdRef.current
+    const vehicleIndex = vehicleRoutes.length // 使用当前数组长度作为索引
+    
+    const newRoute: VehicleRoute = {
+      id: newVehicleId,
+      name: `${start} → ${destination}`,
+      nodeIds,
+      color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // 随机颜色
+      speed: 0.012,
+      isCycle: false // CityRun 的路线是单程
+    }
+
+    setVehicleRoutes(prev => {
+      const updated = [...prev, newRoute]
+      console.log('✅ 更新后的车辆路线:', updated)
+      return updated
+    })
+    
+    setActiveVehicles(prev => {
+      const newSet = new Set([...prev, vehicleIndex])
+      console.log('✅ 更新后的活跃车辆索引:', Array.from(newSet))
+      return newSet
+    })
+    
+    nextVehicleIdRef.current += 1
+    console.log(`✅ 添加新车辆: ${newRoute.name}, ID: ${newVehicleId}, Index: ${vehicleIndex}`)
+  }
 
   // ルートデータを読み込み
   useEffect(() => {
@@ -97,14 +158,42 @@ export default function CyberpunkCityDemo() {
       .catch(err => console.error('ルートデータの読み込みに失敗:', err))
   }, [])
 
+  // WebSocket 连接初始化并监听新路线消息
+  useEffect(() => {
+    websocketService.connect().catch(err => {
+      console.warn('⚠️ WebSocket 连接失败，将在后台重试:', err.message)
+    })
+
+    // 监听来自 CityRun 的新路线消息
+    const cleanup = websocketService.on('NEW_ROUTE', (message) => {
+      console.log('📨 收到新路线:', message)
+      console.log('📊 路线数据类型:', typeof message.routeData)
+      console.log('📊 路线数据内容:', JSON.stringify(message.routeData, null, 2))
+      
+      try {
+        addNewVehicle(message.start, message.destination, message.routeData)
+      } catch (error) {
+        console.error('❌ 添加车辆失败:', error)
+      }
+    })
+
+    return () => {
+      cleanup()
+      websocketService.disconnect()
+    }
+  }, [vehicleRoutes]) // 依赖 vehicleRoutes 以在添加车辆时访问最新状态
+
   // 設定に基づいて複数の経路を生成
   useEffect(() => {
     if (routeData) {
+      console.log('🛣️ 开始生成路径，车辆数量:', vehicleRoutes.length)
       const paths: THREE.CurvePath<THREE.Vector3>[] = []
       
-      VEHICLE_ROUTES.forEach(route => {
+      vehicleRoutes.forEach((route: VehicleRoute, index: number) => {
         // 直接使用原始节点序列，不添加返程节点
         const nodeIds = route.nodeIds.slice()
+        
+        console.log(`🚗 生成车辆 ${index} (${route.name}) 的路径，节点:`, nodeIds)
         
         const path = createRoutePathFromNodeIds(
           routeData.nodes,
@@ -114,12 +203,16 @@ export default function CyberpunkCityDemo() {
         
         if (path) {
           paths.push(path)
+          console.log(`✅ 车辆 ${index} 路径生成成功`)
+        } else {
+          console.warn(`❌ 车辆 ${index} 路径生成失败`)
         }
       })
       
+      console.log(`✅ 总共生成 ${paths.length} 条路径`)
       setRoutePaths(paths)
     }
-  }, [routeData])
+  }, [routeData, vehicleRoutes])
 
   // ノードIDからノード名を取得する関数
   const getNodeName = (nodeId: string): string => {
@@ -193,7 +286,7 @@ export default function CyberpunkCityDemo() {
 
   // 车辆到达终点的回调
   const handleVehicleComplete = (vehicleId: number) => {
-    const route = VEHICLE_ROUTES[vehicleId]
+    const route = vehicleRoutes[vehicleId]
     
     // 如果不是循环路线，删除车辆
     if (!route.isCycle) {
@@ -302,7 +395,7 @@ export default function CyberpunkCityDemo() {
         {/* <DistantCityscape /> */}
         <CityGround 
           onRouteDataLoaded={setRouteData} 
-          highlightedRoute={selectedVehicleId !== null ? VEHICLE_ROUTES[selectedVehicleId] : null}
+          highlightedRoute={selectedVehicleId !== null ? vehicleRoutes[selectedVehicleId] : null}
         />
         
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
@@ -311,46 +404,26 @@ export default function CyberpunkCityDemo() {
         </mesh>
         
         {/* 各車両が異なる経路を走行 */}
-        {routePaths.length >= 3 && (
-          <>
-            {activeVehicles.has(0) && (
-              <Vehicle 
-                path={routePaths[0]}
-                speed={VEHICLE_ROUTES[0].speed} 
-                startPosition={0} 
-                onClick={handleVehicleClick(0)}
-                onPositionUpdate={handlePositionUpdate(0)}
-                onComplete={() => handleVehicleComplete(0)}
-                name={VEHICLE_ROUTES[0].name}
-                isCycle={VEHICLE_ROUTES[0].isCycle}
-              />
-            )}
-            {activeVehicles.has(1) && (
-              <Vehicle 
-                path={routePaths[1]}
-                speed={VEHICLE_ROUTES[1].speed} 
-                startPosition={0}
-                onClick={handleVehicleClick(1)}
-                onPositionUpdate={handlePositionUpdate(1)}
-                onComplete={() => handleVehicleComplete(1)}
-                name={VEHICLE_ROUTES[1].name}
-                isCycle={VEHICLE_ROUTES[1].isCycle}
-              />
-            )}
-            {activeVehicles.has(2) && (
-              <Vehicle 
-                path={routePaths[2]}
-                speed={VEHICLE_ROUTES[2].speed} 
-                startPosition={0}
-                onClick={handleVehicleClick(2)}
-                onPositionUpdate={handlePositionUpdate(2)}
-                onComplete={() => handleVehicleComplete(2)}
-                name={VEHICLE_ROUTES[2].name}
-                isCycle={VEHICLE_ROUTES[2].isCycle}
-              />
-            )}
-          </>
-        )}
+        {vehicleRoutes.map((route, index) => {
+          const path = routePaths[index];
+          if (!path || !activeVehicles.has(index)) {
+            return null;
+          }
+          
+          return (
+            <Vehicle 
+              key={route.id}
+              path={path}
+              speed={route.speed} 
+              startPosition={0} 
+              onClick={handleVehicleClick(index)}
+              onPositionUpdate={handlePositionUpdate(index)}
+              onComplete={() => handleVehicleComplete(index)}
+              name={route.name}
+              isCycle={route.isCycle}
+            />
+          );
+        })}
         
         <gridHelper args={[200, 20, '#444', '#222']} position={[0, 0.1, 0]} />
         <fog attach="fog" args={['#000', 100, 400]} />
@@ -382,12 +455,12 @@ export default function CyberpunkCityDemo() {
             </h2>
             <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
               <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>
-                {VEHICLE_ROUTES[selectedVehicleId].name}
+                {vehicleRoutes[selectedVehicleId].name}
               </div>
-              <div>📍 ルート: {getRouteNames(VEHICLE_ROUTES[selectedVehicleId].nodeIds)}</div>
-              <div>⚡ 速度: {VEHICLE_ROUTES[selectedVehicleId].speed}</div>
-              <div>🔄 モード: {VEHICLE_ROUTES[selectedVehicleId].isCycle ? '循環' : '片道'}</div>
-              <div>🎨 カラー: <span style={{ color: VEHICLE_ROUTES[selectedVehicleId].color }}>■</span> {VEHICLE_ROUTES[selectedVehicleId].color}</div>
+              <div>📍 ルート: {getRouteNames(vehicleRoutes[selectedVehicleId].nodeIds)}</div>
+              <div>⚡ 速度: {vehicleRoutes[selectedVehicleId].speed}</div>
+              <div>🔄 モード: {vehicleRoutes[selectedVehicleId].isCycle ? '循環' : '片道'}</div>
+              <div>🎨 カラー: <span style={{ color: vehicleRoutes[selectedVehicleId].color }}>■</span> {vehicleRoutes[selectedVehicleId].color}</div>
               <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
                 再クリックで追跡解除
               </div>
@@ -400,9 +473,16 @@ export default function CyberpunkCityDemo() {
               🚀 京都市街地ナビゲーション
             </h2>
             <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
-              {activeVehicles.has(0) && <div>🚗 車両1: {VEHICLE_ROUTES[0].name}</div>}
-              {activeVehicles.has(1) && <div>🚙 車両2: {VEHICLE_ROUTES[1].name}</div>}
-              {activeVehicles.has(2) && <div>🚕 車両3: {VEHICLE_ROUTES[2].name}</div>}
+              {activeVehicles.has(0) && <div>🚗 車両1: {vehicleRoutes[0]?.name}</div>}
+              {activeVehicles.has(1) && <div>🚙 車両2: {vehicleRoutes[1]?.name}</div>}
+              {activeVehicles.has(2) && <div>🚕 車両3: {vehicleRoutes[2]?.name}</div>}
+              {activeVehicles.size > 3 && (
+                <>
+                  {Array.from(activeVehicles).slice(3).map(idx => (
+                    <div key={idx}>🚖 車両{idx + 1}: {vehicleRoutes[idx]?.name}</div>
+                  ))}
+                </>
+              )}
               <div>• {routePaths.length > 0 ? `✓ ${routePaths.length}ルート読み込み完了` : '⏳ ルート読み込み中...'}</div>
               <div>• アクティブ車両: {activeVehicles.size}台</div>
               <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>

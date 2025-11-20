@@ -6,7 +6,7 @@ import CyberpunkCityDemo from './pages/CyberpunkCityDemo.tsx'
 import CityRunDemo from './pages/CityRunDemo.tsx'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('cityrun') // 'cyberpunk', 'mobile', or 'cityrun'
+  const [currentPage, setCurrentPage] = useState('cyberpunk') // 'cyberpunk', 'mobile', or 'cityrun'
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
