@@ -81,7 +81,7 @@ function generateRouteData(
   // エッジを生成
   for (let i = 0; i < segmentCount; i++) {
     const segmentDistance = totalDistance / segmentCount;
-    const roadType = determineRoadType(segmentDistance, i, segmentCount);
+    const roadType = ['road', 'highway', 'sky', 'drone'][Math.floor(Math.random() * 4)] as RoadType;
     const mode = determineModeByRoadType(roadType);
     const speedLimit = getSpeedLimit(roadType);
     const cost = calculateCost(segmentDistance, speedLimit);
@@ -178,18 +178,18 @@ function determineRoadType(
   index: number,
   total: number
 ): RoadType {
-  // 長距離（100km以上）の場合、中間セグメントは空路
-  if (segmentDistance > 50000 && index > 0 && index < total - 1) {
+  // 長距離（10km以上）の場合、中間セグメントは空路
+  if (segmentDistance > 10000 && index > 0 && index < total - 1) {
     return 'sky';
   }
 
-  // 中距離（30km以上）の場合、高速道路
-  if (segmentDistance > 30000) {
+  // 中距離（4km以上）の場合、高速道路
+  if (segmentDistance > 4000) {
     return 'highway';
   }
 
-  // 短距離（30km未満）は一般道路
-  if (segmentDistance > 10000) {
+  // 短距離（2km以上）の場合、ドローンモード
+  if (segmentDistance > 2000) {
     return 'drone';
   }
 
