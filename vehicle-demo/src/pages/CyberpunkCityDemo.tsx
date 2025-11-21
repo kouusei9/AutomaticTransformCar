@@ -11,9 +11,10 @@ import { websocketService } from '../services/websocketService'
 import type { RouteResponse } from '../types/routeAPI'
 
 // 初始车辆路线配置
-const INITIAL_VEHICLE_ROUTES = [
+const INITIAL_VEHICLE_ROUTES: VehicleRoute[] = [
   {
-    id: 1,
+    id: 'initial-route-1',
+    routeId: 'initial-route-1',
     name: 'テストルート1 (Airplane)',
     nodeIds: ['D1', 'H1', 'OUT_H1'],  // Airplane テスト：伏見稲荷 → 宇治空港 → 地図外
     color: '#00ff00',
@@ -21,7 +22,8 @@ const INITIAL_VEHICLE_ROUTES = [
     isCycle: true  // 到达终点后删除车辆
   },
   {
-    id: 2,
+    id: 'initial-route-2',
+    routeId: 'initial-route-2',
     name: 'テストルート2 (Drone)',
     nodeIds: ['A2', 'A1', 'A3', 'A4'],  // Drone テスト：東寺 → 二条城
     color: '#00ffff',
@@ -29,7 +31,8 @@ const INITIAL_VEHICLE_ROUTES = [
     isCycle: true  // A1→A2→A3→A4→A3→A2→A1 循环
   },
   {
-    id: 3,
+    id: 'initial-route-3',
+    routeId: 'initial-route-3',
     name: 'テストルート3 (Road)',
     nodeIds: ['C1', 'C2', 'C3'],  // Road テスト：東福寺 → 三十三間堂 → 祇園
     color: '#ff00ff',
@@ -40,7 +43,8 @@ const INITIAL_VEHICLE_ROUTES = [
 
 // 车辆路线类型定义
 interface VehicleRoute {
-  id: number
+  id: string  // 使用 RouteResponse.id 作为唯一标识
+  routeId: string  // 保留路线 ID（与 id 相同）
   name: string
   nodeIds: string[]
   color: string
@@ -49,13 +53,13 @@ interface VehicleRoute {
 }
 
 // カメラ追従更新コンポーネント
-function CameraFollower({ 
-  followMode, 
-  vehiclePosition, 
+function CameraFollower({
+  followMode,
+  vehiclePosition,
   vehicleForward,
-  cameraRef, 
-  controlsRef 
-}: { 
+  cameraRef,
+  controlsRef
+}: {
   followMode: boolean
   vehiclePosition: THREE.Vector3 | null
   vehicleForward: THREE.Vector3 | null
@@ -67,17 +71,17 @@ function CameraFollower({
       const offset = vehicleForward.clone().multiplyScalar(-12)
       offset.y += 6
       const targetCameraPos = vehiclePosition.clone().add(offset)
-      
+
       cameraRef.current.position.lerp(targetCameraPos, 0.08)
-      
+
       const lookTarget = vehiclePosition.clone().add(vehicleForward.clone().multiplyScalar(15))
-      
+
       if (controlsRef.current.target) {
         controlsRef.current.target.lerp(lookTarget, 0.08)
       }
     }
   })
-  
+
   return null
 }
 
@@ -88,16 +92,18 @@ export default function CyberpunkCityDemo() {
   const [followMode, setFollowMode] = useState(false)
   const [vehiclePosition, setVehiclePosition] = useState<THREE.Vector3 | null>(null)
   const [vehicleForward, setVehicleForward] = useState<THREE.Vector3 | null>(null)
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
-  const [routePaths, setRoutePaths] = useState<THREE.CurvePath<THREE.Vector3>[]>([])
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
+  const [routePaths, setRoutePaths] = useState<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 使用 Map 存储路径，key 为 vehicle.id
   const [routeData, setRouteData] = useState<any>(null)
-  const [activeVehicles, setActiveVehicles] = useState<Set<number>>(new Set([0, 1, 2]))  // 活跃的车辆索引
+  const [activeVehicles, setActiveVehicles] = useState<Set<string>>(new Set(['initial-route-1', 'initial-route-2', 'initial-route-3']))  // 活跃的车辆 ID（来自 RouteResponse.id）
   const [vehicleRoutes, setVehicleRoutes] = useState<VehicleRoute[]>(INITIAL_VEHICLE_ROUTES) // 可动态添加车辆
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!)
   const controlsRef = useRef<any>(null!)
   const defaultCameraPos = new THREE.Vector3(100, 80, 100)
   const defaultTarget = new THREE.Vector3(0, 0, 0)
-  const nextVehicleIdRef = useRef(4) // 用于生成新车辆的唯一 ID
+  
+  // 使用 ref 追踪已添加的路线 ID，避免闭包问题
+  const addedRouteIdsRef = useRef<Set<string>>(new Set(['initial-route-1', 'initial-route-2', 'initial-route-3']))
 
   // 从 RouteResponse 数据提取节点 ID 列表
   const extractNodeIdsFromRoute = (routeResponse: RouteResponse): string[] => {
@@ -108,44 +114,56 @@ export default function CyberpunkCityDemo() {
     return routeResponse.nodes.map(node => node.id)
   }
 
-  // 添加新车辆到场景
+  // 添加新车辆到场景（使用 ref 追踪已添加的 ID）
   const addNewVehicle = (start: string, destination: string, routeResponse: RouteResponse) => {
     const nodeIds = extractNodeIdsFromRoute(routeResponse)
-    
+
     if (nodeIds.length === 0) {
       console.warn('⚠️ 无效的路线数据，无法添加车辆')
       return
     }
 
-    console.log('🔍 当前车辆数量:', vehicleRoutes.length)
-    console.log('🔍 提取的节点 IDs:', nodeIds)
+    // 使用 RouteResponse.id 作为唯一标识
+    const routeId = routeResponse.id
 
-    const newVehicleId = nextVehicleIdRef.current
-    const vehicleIndex = vehicleRoutes.length // 使用当前数组长度作为索引
+    console.log('🔍 准备添加车辆，路线 ID:', routeId)
     
+    // 使用 ref 检查是否已添加（避免闭包问题）
+    if (addedRouteIdsRef.current.has(routeId)) {
+      console.warn(`⚠️ 车辆已存在（ref 检查），跳过添加: ID=${routeId}, 路线: ${start} → ${destination}`)
+      return // 提前返回，不执行任何 setState
+    }
+
+    // 标记为已添加
+    addedRouteIdsRef.current.add(routeId)
+    console.log('✅ 添加到 ref 追踪列表:', Array.from(addedRouteIdsRef.current))
+
     const newRoute: VehicleRoute = {
-      id: newVehicleId,
+      id: routeId,
+      routeId: routeId,
       name: `${start} → ${destination}`,
       nodeIds,
-      color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // 随机颜色
+      color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // 随机颜色
       speed: 0.012,
       isCycle: false // CityRun 的路线是单程
     }
 
+    // 添加到状态
     setVehicleRoutes(prev => {
+      console.log('🔍 当前车辆数量:', prev.length)
+      console.log('🔍 提取的节点 IDs:', nodeIds)
       const updated = [...prev, newRoute]
       console.log('✅ 更新后的车辆路线:', updated)
       return updated
     })
-    
+
     setActiveVehicles(prev => {
-      const newSet = new Set([...prev, vehicleIndex])
-      console.log('✅ 更新后的活跃车辆索引:', Array.from(newSet))
+      const newSet = new Set([...prev, routeId])
+      console.log('✅ 更新后的活跃车辆 IDs:', Array.from(newSet))
       return newSet
     })
-    
-    nextVehicleIdRef.current += 1
-    console.log(`✅ 添加新车辆: ${newRoute.name}, ID: ${newVehicleId}, Index: ${vehicleIndex}`)
+
+    console.log(`✅ 添加新车辆: ${newRoute.name}, Route ID: ${routeId}`)
   }
 
   // ルートデータを読み込み
@@ -169,7 +187,7 @@ export default function CyberpunkCityDemo() {
       console.log('📨 收到新路线:', message)
       console.log('📊 路线数据类型:', typeof message.routeData)
       console.log('📊 路线数据内容:', JSON.stringify(message.routeData, null, 2))
-      
+
       try {
         addNewVehicle(message.start, message.destination, message.routeData)
       } catch (error) {
@@ -181,37 +199,40 @@ export default function CyberpunkCityDemo() {
       cleanup()
       websocketService.disconnect()
     }
-  }, [vehicleRoutes]) // 依赖 vehicleRoutes 以在添加车辆时访问最新状态
+    // empty dependency array to set up WebSocket only once
+  }, []) // 依赖 vehicleRoutes 以在添加车辆时访问最新状态
 
   // 設定に基づいて複数の経路を生成
   useEffect(() => {
-    if (routeData) {
-      console.log('🛣️ 开始生成路径，车辆数量:', vehicleRoutes.length)
-      const paths: THREE.CurvePath<THREE.Vector3>[] = []
-      
-      vehicleRoutes.forEach((route: VehicleRoute, index: number) => {
-        // 直接使用原始节点序列，不添加返程节点
-        const nodeIds = route.nodeIds.slice()
-        
-        console.log(`🚗 生成车辆 ${index} (${route.name}) 的路径，节点:`, nodeIds)
-        
-        const path = createRoutePathFromNodeIds(
-          routeData.nodes,
-          routeData.edges,
-          nodeIds
-        )
-        
-        if (path) {
-          paths.push(path)
-          console.log(`✅ 车辆 ${index} 路径生成成功`)
-        } else {
-          console.warn(`❌ 车辆 ${index} 路径生成失败`)
-        }
-      })
-      
-      console.log(`✅ 总共生成 ${paths.length} 条路径`)
-      setRoutePaths(paths)
-    }
+    if (!routeData) return
+    if (routePaths.size === vehicleRoutes.length) return  // 没有新车辆
+    
+    console.log('🛣️ 开始生成路径，车辆数量:', vehicleRoutes.length)
+    const newPaths = new Map(routePaths) // 复制现有路径
+
+    vehicleRoutes.forEach((route: VehicleRoute) => {
+      // 如果该车辆的路径已存在，跳过
+      if (newPaths.has(route.id)) return
+
+      const nodeIds = route.nodeIds.slice()
+      console.log(`🚗 生成车辆 ID ${route.id} (${route.name}) 的路径，节点:`, nodeIds)
+
+      const path = createRoutePathFromNodeIds(
+        routeData.nodes,
+        routeData.edges,
+        nodeIds
+      )
+
+      if (path) {
+        newPaths.set(route.id, path)
+        console.log(`✅ 车辆 ID ${route.id} 路径生成成功`)
+      } else {
+        console.warn(`❌ 车辆 ID ${route.id} 路径生成失败`)
+      }
+    })
+
+    console.log(`✅ 总共生成 ${newPaths.size} 条路径`)
+    setRoutePaths(newPaths)
   }, [routeData, vehicleRoutes])
 
   // ノードIDからノード名を取得する関数
@@ -226,20 +247,20 @@ export default function CyberpunkCityDemo() {
     return nodeIds.map(id => getNodeName(id)).join(' → ')
   }
 
-  const handleVehicleClick = (vehicleId: number) => (position: THREE.Vector3, forward: THREE.Vector3) => {
+  const handleVehicleClick = (vehicleId: string) => (position: THREE.Vector3, forward: THREE.Vector3) => {
     if (!cameraRef.current || !controlsRef.current) return
-    
+
     if (!followMode || selectedVehicleId !== vehicleId) {
       setFollowMode(true)
       setSelectedVehicleId(vehicleId)
       setVehiclePosition(position)
       setVehicleForward(forward)
-      
+
       const offset = forward.clone().multiplyScalar(-12)
       offset.y += 6
       const followPos = position.clone().add(offset)
       const lookAtPoint = position.clone().add(forward.clone().multiplyScalar(15))
-      
+
       gsap.to(cameraRef.current.position, {
         x: followPos.x,
         y: followPos.y,
@@ -259,7 +280,7 @@ export default function CyberpunkCityDemo() {
       setSelectedVehicleId(null)
       setVehiclePosition(null)
       setVehicleForward(null)
-      
+
       gsap.to(cameraRef.current.position, {
         x: defaultCameraPos.x,
         y: defaultCameraPos.y,
@@ -276,8 +297,8 @@ export default function CyberpunkCityDemo() {
       })
     }
   }
-  
-  const handlePositionUpdate = (vehicleId: number) => (position: THREE.Vector3, forward: THREE.Vector3) => {
+
+  const handlePositionUpdate = (vehicleId: string) => (position: THREE.Vector3, forward: THREE.Vector3) => {
     if (followMode && selectedVehicleId === vehicleId) {
       setVehiclePosition(position)
       setVehicleForward(forward)
@@ -285,9 +306,10 @@ export default function CyberpunkCityDemo() {
   }
 
   // 车辆到达终点的回调
-  const handleVehicleComplete = (vehicleId: number) => {
-    const route = vehicleRoutes[vehicleId]
-    
+  const handleVehicleComplete = (vehicleId: string) => {
+    const route = vehicleRoutes.find(r => r.id === vehicleId)
+    if (!route) return
+
     // 如果不是循环路线，删除车辆
     if (!route.isCycle) {
       setActiveVehicles(prev => {
@@ -295,12 +317,12 @@ export default function CyberpunkCityDemo() {
         newSet.delete(vehicleId)
         return newSet
       })
-      
+
       // 如果正在跟随该车辆，取消跟随
       if (selectedVehicleId === vehicleId) {
         setFollowMode(false)
         setSelectedVehicleId(null)
-        
+
         if (cameraRef.current && controlsRef.current) {
           gsap.to(cameraRef.current.position, {
             x: defaultCameraPos.x,
@@ -322,7 +344,7 @@ export default function CyberpunkCityDemo() {
   }
 
   return (
-    <div style={{ 
+    <div style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -333,8 +355,8 @@ export default function CyberpunkCityDemo() {
     }}>
       <Canvas
         shadows
-        gl={{ 
-          antialias: true, 
+        gl={{
+          antialias: true,
           alpha: false,
           powerPreference: 'high-performance',
           logarithmicDepthBuffer: true, // 改善深度精度
@@ -355,7 +377,7 @@ export default function CyberpunkCityDemo() {
           near={0.1}
           far={1000}
         />
-        
+
         <OrbitControls
           ref={controlsRef}
           enablePan={!followMode}
@@ -367,7 +389,7 @@ export default function CyberpunkCityDemo() {
           maxPolarAngle={Math.PI / 2.5}
           target={[0, 0, 0]}
         />
-        
+
         <CameraFollower
           followMode={followMode}
           vehiclePosition={vehiclePosition}
@@ -375,7 +397,7 @@ export default function CyberpunkCityDemo() {
           cameraRef={cameraRef}
           controlsRef={controlsRef}
         />
-        
+
         <ambientLight intensity={0.4} />
         <directionalLight
           position={[50, 100, 50]}
@@ -390,45 +412,45 @@ export default function CyberpunkCityDemo() {
           shadow-camera-bottom={-100}
           shadow-bias={-0.0001}
         />
-        
+
         <SkyEnvironment />
         {/* <DistantCityscape /> */}
-        <CityGround 
-          onRouteDataLoaded={setRouteData} 
-          highlightedRoute={selectedVehicleId !== null ? vehicleRoutes[selectedVehicleId] : null}
+        <CityGround
+          onRouteDataLoaded={setRouteData}
+          highlightedRoute={selectedVehicleId !== null ? vehicleRoutes.find(r => r.id === selectedVehicleId) || null : null}
         />
-        
+
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
           <planeGeometry args={[200, 200]} />
           <shadowMaterial opacity={0.3} transparent />
         </mesh>
-        
+
         {/* 各車両が異なる経路を走行 */}
-        {vehicleRoutes.map((route, index) => {
-          const path = routePaths[index];
-          if (!path || !activeVehicles.has(index)) {
+        {vehicleRoutes.map((route) => {
+          const path = routePaths.get(route.id);
+          if (!path || !activeVehicles.has(route.id)) {
             return null;
           }
-          
+
           return (
-            <Vehicle 
+            <Vehicle
               key={route.id}
               path={path}
-              speed={route.speed} 
-              startPosition={0} 
-              onClick={handleVehicleClick(index)}
-              onPositionUpdate={handlePositionUpdate(index)}
-              onComplete={() => handleVehicleComplete(index)}
+              speed={route.speed}
+              startPosition={0}
+              onClick={handleVehicleClick(route.id)}
+              onPositionUpdate={handlePositionUpdate(route.id)}
+              onComplete={() => handleVehicleComplete(route.id)}
               name={route.name}
               isCycle={route.isCycle}
             />
           );
         })}
-        
+
         <gridHelper args={[200, 20, '#444', '#222']} position={[0, 0.1, 0]} />
         <fog attach="fog" args={['#000', 100, 400]} />
       </Canvas>
-      
+
       {/* UIオーバーレイ */}
       <div
         style={{
@@ -447,25 +469,30 @@ export default function CyberpunkCityDemo() {
           textAlign: 'left'
         }}
       >
-        {selectedVehicleId !== null ? (
+        {selectedVehicleId !== null && vehicleRoutes.find(r => r.id === selectedVehicleId) ? (
           // 選択された車両の詳細情報
-          <>
-            <h2 style={{ margin: '0 0 10px 0', color: '#ff00ff', textAlign: 'left' }}>
-              🎯 車両追跡中
-            </h2>
-            <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>
-                {vehicleRoutes[selectedVehicleId].name}
-              </div>
-              <div>📍 ルート: {getRouteNames(vehicleRoutes[selectedVehicleId].nodeIds)}</div>
-              <div>⚡ 速度: {vehicleRoutes[selectedVehicleId].speed}</div>
-              <div>🔄 モード: {vehicleRoutes[selectedVehicleId].isCycle ? '循環' : '片道'}</div>
-              <div>🎨 カラー: <span style={{ color: vehicleRoutes[selectedVehicleId].color }}>■</span> {vehicleRoutes[selectedVehicleId].color}</div>
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
-                再クリックで追跡解除
-              </div>
-            </div>
-          </>
+          (() => {
+            const selectedRoute = vehicleRoutes.find(r => r.id === selectedVehicleId)!;
+            return (
+              <>
+                <h2 style={{ margin: '0 0 10px 0', color: '#ff00ff', textAlign: 'left' }}>
+                  🎯 車両追跡中
+                </h2>
+                <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>
+                    {selectedRoute.name}
+                  </div>
+                  <div>📍 ルート: {getRouteNames(selectedRoute.nodeIds)}</div>
+                  <div>⚡ 速度: {selectedRoute.speed}</div>
+                  <div>🔄 モード: {selectedRoute.isCycle ? '循環' : '片道'}</div>
+                  <div>🎨 カラー: <span style={{ color: selectedRoute.color }}>■</span> {selectedRoute.color}</div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
+                    再クリックで追跡解除
+                  </div>
+                </div>
+              </>
+            );
+          })()
         ) : (
           // 全体情報
           <>
@@ -473,17 +500,10 @@ export default function CyberpunkCityDemo() {
               🚀 京都市街地ナビゲーション
             </h2>
             <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
-              {activeVehicles.has(0) && <div>🚗 車両1: {vehicleRoutes[0]?.name}</div>}
-              {activeVehicles.has(1) && <div>🚙 車両2: {vehicleRoutes[1]?.name}</div>}
-              {activeVehicles.has(2) && <div>🚕 車両3: {vehicleRoutes[2]?.name}</div>}
-              {activeVehicles.size > 3 && (
-                <>
-                  {Array.from(activeVehicles).slice(3).map(idx => (
-                    <div key={idx}>🚖 車両{idx + 1}: {vehicleRoutes[idx]?.name}</div>
-                  ))}
-                </>
-              )}
-              <div>• {routePaths.length > 0 ? `✓ ${routePaths.length}ルート読み込み完了` : '⏳ ルート読み込み中...'}</div>
+              {vehicleRoutes.filter(r => activeVehicles.has(r.id)).map((route, idx) => (
+                <div key={route.id}>🚗 車両{idx + 1}: {route.name}</div>
+              ))}
+              <div>• {routePaths.size > 0 ? `✓ ${routePaths.size}ルート読み込み完了` : '⏳ ルート読み込み中...'}</div>
               <div>• アクティブ車両: {activeVehicles.size}台</div>
               <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
                 クリックで車両を追跡 | マウスで視点操作
