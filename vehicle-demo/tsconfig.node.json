@@ -5,7 +5,11 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
-    "strict": true
+    "strict": true,
+    "allowJs": true,
+    "noEmit": true // 不输出任何编译结果（不生成 .js）
   },
-  "include": ["vite.config.js"]
+  "include": [
+    "vite.config.js"
+  ]
 }

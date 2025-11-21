@@ -185,11 +185,11 @@ export default function HUDPanel({
             /* ===== 驾驶模式显示内容 ===== */
             <div className="space-y-2">
               <div className="flex items-center justify-between border-b border-gray-800 pb-1">
-                <span className="text-gray-500 text-[10px] font-mono uppercase">Origin</span>
+                <span className="text-gray-500 text-[10px] font-mono uppercase">出発地</span>
                 <span className="text-cyan-400 text-xs font-bold truncate max-w-[150px]">{startLocation}</span>
               </div>
               <div className="flex items-center justify-between border-b border-gray-800 pb-1">
-                <span className="text-gray-500 text-[10px] font-mono uppercase">Dest</span>
+                <span className="text-gray-500 text-[10px] font-mono uppercase">目的地</span>
                 <span className="text-green-400 text-xs font-bold truncate max-w-[150px]">{destination}</span>
               </div>
 
@@ -197,7 +197,7 @@ export default function HUDPanel({
                 <>
                   {/* 当前模式 */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-gray-500 text-[10px] font-mono uppercase">Mode</span>
+                    <span className="text-gray-500 text-[10px] font-mono uppercase">モード</span>
                     <span className="text-yellow-400 text-xs font-bold flex items-center gap-1">
                       <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
                       {/* 使用 getModeById 处理显示逻辑，无需导入 Enum */}
@@ -208,13 +208,13 @@ export default function HUDPanel({
                   {/* 数据统计 */}
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <div className="bg-gray-800/50 p-1.5 rounded text-center">
-                      <div className="text-[8px] text-gray-500 uppercase">Segment</div>
+                      <div className="text-[8px] text-gray-500 uppercase">経路区間</div>
                       <div className="text-blue-400 text-sm font-mono font-bold leading-none">
                         {currentSegmentIndex + 1}<span className="text-[10px] text-gray-600">/{routeData.edges.length}</span>
                       </div>
                     </div>
                     <div className="bg-gray-800/50 p-1.5 rounded text-center">
-                      <div className="text-[8px] text-gray-500 uppercase">ETA</div>
+                      <div className="text-[8px] text-gray-500 uppercase">到着予想時刻</div>
                       <div className="text-purple-400 text-sm font-mono font-bold leading-none">
                         {Math.max(0, Math.floor(remainingTime))}<span className="text-[10px]">s</span>
                       </div>
@@ -226,7 +226,7 @@ export default function HUDPanel({
               {/* 进度条 */}
               <div className="mt-2">
                 <div className="flex justify-between text-[8px] text-gray-500 mb-0.5">
-                  <span>PROGRESS</span>
+                  <span>進捗</span>
                   <span>{progressPercent.toFixed(0)}%</span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
@@ -260,7 +260,7 @@ export default function HUDPanel({
               <div className="grid grid-cols-1 gap-4">
                 {/* 出发地 */}
                 <div className="group">
-                  <label className="block text-cyan-500 text-[14px] font-mono mb-1 tracking-wider">START POINT</label>
+                  <label className="block text-cyan-500 text-[14px] font-mono mb-1 tracking-wider">出発地</label>
                   <select
                     value={startLocation}
                     onChange={(e) => {
@@ -277,7 +277,7 @@ export default function HUDPanel({
 
                 {/* 目的地 */}
                 <div className="group">
-                  <label className="block text-green-500 text-[14px] font-mono mb-1 tracking-wider text">DESTINATION</label>
+                  <label className="block text-green-500 text-[14px] font-mono mb-1 tracking-wider text">目的地</label>
                   <select
                     value={destination}
                     onChange={(e) => {
@@ -297,21 +297,21 @@ export default function HUDPanel({
               {routeData && !isLoadingRoute && (
                 <div className="mt-4 p-3 bg-gray-800/40 rounded border border-cyan-500/10">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[14px] text-gray-400 font-mono">ESTIMATED DISTANCE</span>
+                    <span className="text-[14px] text-gray-400 font-mono">推定距離</span>
                     <span className="text-sm text-cyan-300 font-mono font-bold">
                       {formatDistance(calculateTotalDistance(routeData.edges))}
                     </span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[14px] text-gray-400 font-mono">ESTIMATED TIME</span>
+                    <span className="text-[14px] text-gray-400 font-mono">推定時間</span>
                     <span className="text-sm text-purple-300 font-mono font-bold">
                       {formatTime(calculateTotalTime(routeData.edges))}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[14px] text-gray-400 font-mono">ROUTE SEGMENTS</span>
+                    <span className="text-[14px] text-gray-400 font-mono">経路区間</span>
                     <span className="text-sm text-blue-300 font-mono font-bold">
-                      {routeData.edges.length} <span className="text-[12px] font-normal text-gray-500">SEGS</span>
+                      {routeData.edges.length} <span className="text-[12px] font-normal text-gray-500">区間</span>
                     </span>
                   </div>
                 </div>
@@ -338,11 +338,11 @@ export default function HUDPanel({
             {isMoving ? (
               <>
                 <span className="w-2 h-2 bg-red-500 rounded-sm animate-ping"></span>
-                ABORT MISSION
+                中止
               </>
             ) : (
               <>
-                INITIATE LAUNCH
+                開始
                 <span className="text-xs">///</span>
               </>
             )}
@@ -354,7 +354,7 @@ export default function HUDPanel({
               onClick={loadTestRoute}
               className="w-full py-2 rounded font-mono text-xs bg-purple-900/40 hover:bg-purple-900/60 text-purple-200 border border-purple-500/30 transition-all duration-300"
             >
-              [ LOAD DEMO SIMULATION ]
+              [ 走行シミュレーション ]
             </button>
           )}
         </div>
