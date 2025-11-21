@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import './App.css'
-// import NavigationPage from './pages/NavigationPage.jsx'
-// import MonitorPage from './pages/MonitorPage.jsx'
 import CyberpunkCityDemo from './pages/CyberpunkCityDemo.tsx'
 import CityRunDemo from './pages/CityRunDemo.tsx'
 
