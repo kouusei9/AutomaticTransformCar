@@ -5,51 +5,72 @@ import gsap from 'gsap'
 import * as THREE from 'three'
 import CityGround from '../components/website/CityGround'
 import SkyEnvironment from '../components/website/SkyEnvironment'
+import DistantCityscape from '../components/website/DistantCityscape'
 import Vehicle from '../components/website/Vehicle'
 import { createRoutePathFromNodeIds } from '../utils/routePathGenerator'
 import { websocketService } from '../services/websocketService'
 import type { RouteResponse } from '../types/routeAPI'
+import { calculateTotalTime } from '../types/routeAPI'
 
-// 初始车辆路线配置
+// 初始车辆路线配置（使用 RouteResponse 格式）
 const INITIAL_VEHICLE_ROUTES: VehicleRoute[] = [
   {
     id: 'initial-route-1',
-    routeId: 'initial-route-1',
+    timestamp: Date.now(),
+    nodes: [
+      { id: 'D1', coordinates: { lat: 34.9671, lng: 135.7726 }, node_type: 'station' },
+      { id: 'H1', coordinates: { lat: 34.9500, lng: 135.7900 }, node_type: 'airport' },
+      { id: 'OUT_H1', coordinates: { lat: 34.9300, lng: 135.8200 }, node_type: 'airport' }
+    ],
+    edges: [
+      { seq: 1, from: 'D1', to: 'H1', speed_limit: 100, type: 'road', mode: 1, length: 3000, cost: 120000 },
+      { seq: 2, from: 'H1', to: 'OUT_H1', speed_limit: 300, type: 'sky', mode: 4, length: 5000, cost: 60000 }
+    ],
     name: 'テストルート1 (Airplane)',
-    nodeIds: ['D1', 'H1', 'OUT_H1'],  // Airplane テスト：伏見稲荷 → 宇治空港 → 地図外
     color: '#00ff00',
-    speed: 0.010,
-    isCycle: true  // 到达终点后删除车辆
+    isCycle: true
   },
   {
     id: 'initial-route-2',
-    routeId: 'initial-route-2',
+    timestamp: Date.now(),
+    nodes: [
+      { id: 'A2', coordinates: { lat: 34.9805, lng: 135.7476 }, node_type: 'station' },
+      { id: 'A1', coordinates: { lat: 35.0141, lng: 135.7684 }, node_type: 'station' },
+      { id: 'A3', coordinates: { lat: 35.0394, lng: 135.7292 }, node_type: 'station' },
+      { id: 'A4', coordinates: { lat: 35.0279, lng: 135.7789 }, node_type: 'station' }
+    ],
+    edges: [
+      { seq: 1, from: 'A2', to: 'A1', speed_limit: 60, type: 'drone', mode: 3, length: 4000, cost: 1120000 },
+      { seq: 2, from: 'A1', to: 'A3', speed_limit: 60, type: 'drone', mode: 3, length: 5000, cost: 1150000 },
+      { seq: 3, from: 'A3', to: 'A4', speed_limit: 60, type: 'drone', mode: 3, length: 4500, cost: 194500 }
+    ],
     name: 'テストルート2 (Drone)',
-    nodeIds: ['A2', 'A1', 'A3', 'A4'],  // Drone テスト：東寺 → 二条城
     color: '#00ffff',
-    speed: 0.012,
-    isCycle: true  // A1→A2→A3→A4→A3→A2→A1 循环
+    isCycle: true
   },
   {
     id: 'initial-route-3',
-    routeId: 'initial-route-3',
+    timestamp: Date.now(),
+    nodes: [
+      { id: 'C1', coordinates: { lat: 34.9759, lng: 135.7736 }, node_type: 'station' },
+      { id: 'C2', coordinates: { lat: 34.9880, lng: 135.7717 }, node_type: 'station' },
+      { id: 'C3', coordinates: { lat: 35.0036, lng: 135.7789 }, node_type: 'station' }
+    ],
+    edges: [
+      { seq: 1, from: 'C1', to: 'C2', speed_limit: 50, type: 'road', mode: 1, length: 1500, cost: 60000 },
+      { seq: 2, from: 'C2', to: 'C3', speed_limit: 50, type: 'road', mode: 1, length: 2000, cost: 80000 }
+    ],
     name: 'テストルート3 (Road)',
-    nodeIds: ['C1', 'C2', 'C3'],  // Road テスト：東福寺 → 三十三間堂 → 祇園
     color: '#ff00ff',
-    speed: 0.012,
-    isCycle: true  // C1→C2→C3→C2→C1 循环
+    isCycle: true
   }
 ]
 
-// 车辆路线类型定义
-interface VehicleRoute {
-  id: string  // 使用 RouteResponse.id 作为唯一标识
-  routeId: string  // 保留路线 ID（与 id 相同）
-  name: string
-  nodeIds: string[]
-  color: string
-  speed: number
-  isCycle: boolean
+// 车辆路线类型定义（扩展 RouteResponse）
+interface VehicleRoute extends RouteResponse {
+  name: string      // 显示名称
+  color: string     // 车辆颜色
+  isCycle: boolean  // 是否循环路线
 }
 
 // カメラ追従更新コンポーネント
@@ -105,20 +126,18 @@ export default function CyberpunkCityDemo() {
   // 使用 ref 追踪已添加的路线 ID，避免闭包问题
   const addedRouteIdsRef = useRef<Set<string>>(new Set(['initial-route-1', 'initial-route-2', 'initial-route-3']))
 
-  // 从 RouteResponse 数据提取节点 ID 列表
-  const extractNodeIdsFromRoute = (routeResponse: RouteResponse): string[] => {
-    if (!routeResponse.nodes || routeResponse.nodes.length === 0) {
+  // 从 VehicleRoute 数据提取节点 ID 列表
+  const extractNodeIdsFromRoute = (route: VehicleRoute): string[] => {
+    if (!route.nodes || route.nodes.length === 0) {
       return []
     }
     // nodes 数组已经包含了路线的所有节点，按顺序返回其 ID
-    return routeResponse.nodes.map(node => node.id)
+    return route.nodes.map(node => node.id)
   }
 
   // 添加新车辆到场景（使用 ref 追踪已添加的 ID）
   const addNewVehicle = (start: string, destination: string, routeResponse: RouteResponse) => {
-    const nodeIds = extractNodeIdsFromRoute(routeResponse)
-
-    if (nodeIds.length === 0) {
+    if (!routeResponse.nodes || routeResponse.nodes.length === 0) {
       console.warn('⚠️ 无效的路线数据，无法添加车辆')
       return
     }
@@ -139,14 +158,13 @@ export default function CyberpunkCityDemo() {
     console.log('✅ 添加到 ref 追踪列表:', Array.from(addedRouteIdsRef.current))
 
     const newRoute: VehicleRoute = {
-      id: routeId,
-      routeId: routeId,
+      ...routeResponse,
       name: `${start} → ${destination}`,
-      nodeIds,
       color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // 随机颜色
-      speed: 0.012,
       isCycle: false // CityRun 的路线是单程
     }
+
+    const nodeIds = extractNodeIdsFromRoute(newRoute)
 
     // 添加到状态
     setVehicleRoutes(prev => {
@@ -214,13 +232,14 @@ export default function CyberpunkCityDemo() {
       // 如果该车辆的路径已存在，跳过
       if (newPaths.has(route.id)) return
 
-      const nodeIds = route.nodeIds.slice()
+      const nodeIds = extractNodeIdsFromRoute(route)
       console.log(`🚗 生成车辆 ID ${route.id} (${route.name}) 的路径，节点:`, nodeIds)
 
       const path = createRoutePathFromNodeIds(
         routeData.nodes,
         routeData.edges,
-        nodeIds
+        nodeIds,
+        route.edges // 传递包含cost信息的edges数组
       )
 
       if (path) {
@@ -414,10 +433,13 @@ export default function CyberpunkCityDemo() {
         />
 
         <SkyEnvironment />
-        {/* <DistantCityscape /> */}
+        <DistantCityscape />
         <CityGround
           onRouteDataLoaded={setRouteData}
-          highlightedRoute={selectedVehicleId !== null ? vehicleRoutes.find(r => r.id === selectedVehicleId) || null : null}
+          highlightedRoute={selectedVehicleId !== null ? (() => {
+            const route = vehicleRoutes.find(r => r.id === selectedVehicleId)
+            return route ? { nodeIds: extractNodeIdsFromRoute(route) } : null
+          })() : null}
         />
 
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
@@ -436,7 +458,6 @@ export default function CyberpunkCityDemo() {
             <Vehicle
               key={route.id}
               path={path}
-              speed={route.speed}
               startPosition={0}
               onClick={handleVehicleClick(route.id)}
               onPositionUpdate={handlePositionUpdate(route.id)}
@@ -482,8 +503,8 @@ export default function CyberpunkCityDemo() {
                   <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffffff', marginBottom: '8px' }}>
                     {selectedRoute.name}
                   </div>
-                  <div>📍 ルート: {getRouteNames(selectedRoute.nodeIds)}</div>
-                  <div>⚡ 速度: {selectedRoute.speed}</div>
+                  <div>📍 ルート: {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}</div>
+                  <div>⏱️ 所要時間: {calculateTotalTime(selectedRoute.edges)}分 (実際) → {Math.round(calculateTotalTime(selectedRoute.edges) / 20)}秒 (デモ)</div>
                   <div>🔄 モード: {selectedRoute.isCycle ? '循環' : '片道'}</div>
                   <div>🎨 カラー: <span style={{ color: selectedRoute.color }}>■</span> {selectedRoute.color}</div>
                   <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>

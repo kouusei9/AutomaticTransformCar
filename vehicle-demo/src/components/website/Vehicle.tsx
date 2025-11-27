@@ -5,7 +5,6 @@ import { Text } from '@react-three/drei'
 
 // ==================== 定数 ====================
 
-const VEHICLE_SPEED = 0.1
 const HOVER_HEIGHT_BASE = 0.5
 const HOVER_LIFT_FACTOR = 0
 const VEHICLE_SCALE = 6.0
@@ -27,8 +26,6 @@ const DEBUG_OCCLUSION = false
 interface VehicleProps {
   /** 車両が追従するカスタムパス */
   path?: THREE.Curve<THREE.Vector3>
-  /** 速度倍率（デフォルト：VEHICLE_SPEED） */
-  speed?: number
   /** パス上の開始位置（0-1） */
   startPosition?: number
   /** クリックハンドラー */
@@ -47,7 +44,6 @@ interface VehicleProps {
 
 export const Vehicle: React.FC<VehicleProps> = ({
   path,
-  speed = VEHICLE_SPEED,
   startPosition = 0,
   onClick,
   onPositionUpdate,
@@ -233,8 +229,9 @@ export const Vehicle: React.FC<VehicleProps> = ({
     // パス位置を先に取得
     const pathPos = path.getPointAt(t)
 
-    // 現在のパスセグメントからedgeTypeを取得
+    // 現在のパスセグメントからedgeTypeとcostを取得
     let edgeType = 'road' // デフォルト
+    let segmentCost = 60000 // デフォルト 1分
     if ((path as THREE.CurvePath<THREE.Vector3>).curves) {
       const curves = (path as THREE.CurvePath<THREE.Vector3>).curves
       const curveIndex = Math.floor(t * curves.length)
@@ -243,22 +240,26 @@ export const Vehicle: React.FC<VehicleProps> = ({
       const nextCurveIndex = Math.min(curveIndex + 1, curves.length - 1)
       const nextCurve = curves[nextCurveIndex]
 
-      // ✅ 使用下一段路线的 edgeType
-      if (nextCurve && (nextCurve as any).userData?.edgeType) {
-        edgeType = (nextCurve as any).userData.edgeType
+      // ✅ 使用下一段路线的 edgeType 和 cost
+      if (nextCurve && (nextCurve as any).userData) {
+        edgeType = (nextCurve as any).userData.edgeType || 'road'
+        segmentCost = (nextCurve as any).userData.cost || 60000
       }
     }
+
+    // 根据当前段的cost计算速度（1分钟 = 3秒，即 1:20）
+    const timeRatio = 1
+    const realTimeSeconds = segmentCost / 1000
+    const demoTimeSeconds = realTimeSeconds / timeRatio
+    const segmentSpeed = 1 / demoTimeSeconds
 
     // edgeTypeに基づいて車両モードを判定
     const isFlying = edgeType === 'drone'
     const isHighway = edgeType === 'highway'
     const isAirplane = edgeType === 'airplane'
 
-    // ハイウェイモードでは速度を2倍にする
-    const speedMultiplier = isHighway ? 2.0 : 1.0
-
-    // 進行状況を更新（根据方向前进或后退）
-    progressRef.current += speed * delta * speedMultiplier * directionRef.current
+    // 進行状況を更新（根据方向和当前段速度前进或后退）
+    progressRef.current += segmentSpeed * delta * directionRef.current
 
     // 到达终点或起点时的处理
     if (isCycle) {
@@ -288,7 +289,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
     }
 
     // 速度係数を計算（車両が移動する速さ）
-    const nextT = Math.max(0, Math.min(1, t + speed * delta * 0.1 * directionRef.current))
+    const nextT = Math.max(0, Math.min(1, t + segmentSpeed * delta * 0.1 * directionRef.current))
     const nextPos = path.getPointAt(nextT)
     const speedFactor = pathPos.distanceTo(nextPos) / delta
 
