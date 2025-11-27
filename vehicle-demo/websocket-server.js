@@ -5,13 +5,19 @@
 import { WebSocketServer } from 'ws';
 
 const PORT = 8080;
+const HOST = '0.0.0.0'; // 监听所有网络接口，允许外部访问
 const HEARTBEAT_INTERVAL = 30000; // 30秒心跳检测
 const HEARTBEAT_TIMEOUT = 35000;  // 35秒超时
 
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({ 
+  port: PORT,
+  host: HOST  // 对外暴露
+});
 const clients = new Map(); // 改用 Map 存储客户端和心跳状态
 
 console.log(`🚀 WebSocket 服务器启动在端口 ${PORT}`);
+console.log(`🌐 监听地址: ${HOST}:${PORT}`);
+console.log(`📡 外部访问: ws://<your-ip>:${PORT}`);
 
 // 心跳检测定时器
 const heartbeatInterval = setInterval(() => {

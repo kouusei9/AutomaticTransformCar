@@ -29,6 +29,7 @@ class WebSocketService {
   /**
    * 连接到WebSocket服务器
    */
+  // 10.192.114.167
   connect(url: string = 'ws://localhost:8080'): Promise<void> {
     // 如果已经连接，直接返回
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
