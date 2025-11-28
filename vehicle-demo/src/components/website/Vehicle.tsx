@@ -1,17 +1,19 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react'
+import React, { useRef, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame, useLoader } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
+import { useVehicleProgress } from '../../hooks/useVehicleProgress'
+import { useVehicleAppearance } from '../../hooks/useVehicleAppearance'
+import { useOcclusionDetection } from '../../hooks/useOcclusionDetection'
+import { WindParticles } from './WindParticles'
+import { FlameParticles } from './FlameParticles'
+import { calculateTextureAspect } from '../../utils/vehicleTextureConfig'
+import type { VehicleTextures, TextureAspects } from '../../types/vehicleTypes'
 
 // ==================== 定数 ====================
 
 const HOVER_HEIGHT_BASE = 0.5
-const HOVER_LIFT_FACTOR = 0
 const VEHICLE_SCALE = 6.0
-const WIND_PARTICLE_COUNT = 50 // 風パーティクル数
-const WIND_SPEED = 2.0 // 風パーティクル速度
-const FLAME_PARTICLE_COUNT = 50 // 炎パーティクル数
-const FLAME_SPEED = 4.0 // 炎パーティクル速度
 
 // サイドビューモード：
 // true = 固定モード（車両が経路に垂直、路線の傾斜に追従、カメラ回転に影響されない）
@@ -52,85 +54,14 @@ export const Vehicle: React.FC<VehicleProps> = ({
   isCycle = false
 }) => {
   const meshRef = useRef<THREE.Mesh>(null)
-  const xrayMeshRef = useRef<THREE.Mesh>(null) // 透視用メッシュ
-  const textRef = useRef<any>(null) // Text组件引用
-  const progressRef = useRef(startPosition)
-  const directionRef = useRef<1 | -1>(1) // 1: 前进, -1: 后退
-  const currentTextureRef = useRef<THREE.Texture | null>(null)
-  const flipScaleRef = useRef(1)
-  const currentAspectRef = useRef(1) // 現在のテクスチャのアスペクト比
-  const [currentScale, setCurrentScale] = useState<[number, number, number]>([-VEHICLE_SCALE, VEHICLE_SCALE, 1]) // 現在のスケール
+  const xrayMeshRef = useRef<THREE.Mesh>(null)
+  const textRef = useRef<any>(null)
   const windParticlesRef = useRef<THREE.Points>(null)
-  const flameParticlesRef = useRef<THREE.Points>(null) // 炎パーティクル参照
-  const isFlyingRef = useRef(false) // 現在の飛行状態を記録
-  const hasCompletedRef = useRef(false) // 是否已经触发过完成回调
-  const raycasterRef = useRef(new THREE.Raycaster()) // 遮蔽検出用
-  const [isOccluded, setIsOccluded] = useState(false) // 現在遮蔽されているか（state に変更）
-
-  // 風パーティクルシステムを作成
-  const windParticles = useMemo(() => {
-    const positions = new Float32Array(WIND_PARTICLE_COUNT * 3)
-    const velocities = new Float32Array(WIND_PARTICLE_COUNT * 3)
-    const lifetimes = new Float32Array(WIND_PARTICLE_COUNT)
-
-    for (let i = 0; i < WIND_PARTICLE_COUNT; i++) {
-      // 初期位置は車両周辺にランダム分布
-      positions[i * 3] = (Math.random() - 0.5) * 10
-      positions[i * 3 + 1] = Math.random() * 5
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 10
-
-      // ランダムなライフサイクル
-      lifetimes[i] = Math.random()
-    }
-
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3))
-    geometry.setAttribute('lifetime', new THREE.BufferAttribute(lifetimes, 1))
-
-    const material = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 0.3,
-      transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-    })
-
-    return { geometry, material }
-  }, [])
-
-  // 炎パーティクルシステムを作成（飛行時に使用）
-  const flameParticles = useMemo(() => {
-    const positions = new Float32Array(FLAME_PARTICLE_COUNT * 3)
-    const lifetimes = new Float32Array(FLAME_PARTICLE_COUNT)
-
-    for (let i = 0; i < FLAME_PARTICLE_COUNT; i++) {
-      // 初期位置
-      positions[i * 3] = 0
-      positions[i * 3 + 1] = 0
-      positions[i * 3 + 2] = 0
-
-      // ランダムなライフサイクル
-      lifetimes[i] = Math.random()
-    }
-
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geometry.setAttribute('lifetime', new THREE.BufferAttribute(lifetimes, 1))
-
-    const material = new THREE.PointsMaterial({
-      color: 0xff3300, // 赤い炎
-      size: 0.5,
-      transparent: true,
-      opacity: 0.8,
-      blending: THREE.AdditiveBlending,
-    })
-
-    return { geometry, material }
-  }, [])
+  const flameParticlesRef = useRef<THREE.Points>(null)
+  const [currentScale, setCurrentScale] = useState<[number, number, number]>([-VEHICLE_SCALE, VEHICLE_SCALE, 1])
 
   // 複数の車両テクスチャを読み込み
-  const textures = {
+  const textures: VehicleTextures = {
     front: useLoader(THREE.TextureLoader, '/website-assets/car_front.png'),
     back: useLoader(THREE.TextureLoader, '/website-assets/car_back.png'),
     side: useLoader(THREE.TextureLoader, '/website-assets/car_side.png'),
@@ -146,22 +77,20 @@ export const Vehicle: React.FC<VehicleProps> = ({
   }
 
   // 各テクスチャのアスペクト比を計算
-  const textureAspects = useMemo(() => {
-    return {
-      front: textures.front.image ? textures.front.image.width / textures.front.image.height : 1,
-      back: textures.back.image ? textures.back.image.width / textures.back.image.height : 1,
-      side: textures.side.image ? textures.side.image.width / textures.side.image.height : 1,
-      droneFront: textures.droneFront.image ? textures.droneFront.image.width / textures.droneFront.image.height : 1,
-      droneBack: textures.droneBack.image ? textures.droneBack.image.width / textures.droneBack.image.height : 1,
-      droneSide: textures.droneSide.image ? textures.droneSide.image.width / textures.droneSide.image.height : 1,
-      highwayFront: textures.highwayFront.image ? textures.highwayFront.image.width / textures.highwayFront.image.height : 1,
-      highwayBack: textures.highwayBack.image ? textures.highwayBack.image.width / textures.highwayBack.image.height : 1,
-      highwaySide: textures.highwaySide.image ? textures.highwaySide.image.width / textures.highwaySide.image.height : 1,
-      airplaneFront: textures.airplaneFront.image ? textures.airplaneFront.image.width / textures.airplaneFront.image.height : 1,
-      airplaneBack: textures.airplaneBack.image ? textures.airplaneBack.image.width / textures.airplaneBack.image.height : 1,
-      airplaneSide: textures.airplaneSide.image ? textures.airplaneSide.image.width / textures.airplaneSide.image.height / 2 : 1,
-    }
-  }, [textures.front, textures.back, textures.side, textures.droneFront, textures.droneBack, textures.droneSide, textures.highwayFront, textures.highwayBack, textures.highwaySide, textures.airplaneFront, textures.airplaneBack, textures.airplaneSide])
+  const textureAspects: TextureAspects = useMemo(() => ({
+    front: calculateTextureAspect(textures.front),
+    back: calculateTextureAspect(textures.back),
+    side: calculateTextureAspect(textures.side),
+    droneFront: calculateTextureAspect(textures.droneFront),
+    droneBack: calculateTextureAspect(textures.droneBack),
+    droneSide: calculateTextureAspect(textures.droneSide),
+    highwayFront: calculateTextureAspect(textures.highwayFront),
+    highwayBack: calculateTextureAspect(textures.highwayBack),
+    highwaySide: calculateTextureAspect(textures.highwaySide),
+    airplaneFront: calculateTextureAspect(textures.airplaneFront),
+    airplaneBack: calculateTextureAspect(textures.airplaneBack),
+    airplaneSide: calculateTextureAspect(textures.airplaneSide),
+  }), [textures])
 
   // ピボットポイントを調整したジオメトリを作成
   const geometry = useMemo(() => {
@@ -179,365 +108,134 @@ export const Vehicle: React.FC<VehicleProps> = ({
       side: THREE.DoubleSide,
       depthTest: true,
       depthWrite: true,
-      opacity: 1.0, // 完全不透明
+      opacity: 1.0,
     })
   }, [textures.front])
 
   // 透視用の青色発光マテリアル（遮蔽時用）
   const xrayMaterial = useMemo(() => {
-    const mat = new THREE.MeshBasicMaterial({
+    return new THREE.MeshBasicMaterial({
       map: textures.front,
       transparent: true,
       opacity: 0.8,
-      color: new THREE.Color(0x00ffff), // 青色
+      color: new THREE.Color(0x00ffff),
       side: THREE.DoubleSide,
-      depthTest: false, // 深度テストを無効化して常に最前面に表示
+      depthTest: false,
       depthWrite: false,
-      blending: THREE.AdditiveBlending, // 発光効果
-      toneMapped: false, // トーンマッピングを無効化して明るさを保つ
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
     })
-    // レンダリング順序を強制
-    mat.needsUpdate = true
-    return mat
   }, [textures.front])
 
-  // 現在のテクスチャを初期化
-  useEffect(() => {
-    currentTextureRef.current = textures.front
-    currentAspectRef.current = textureAspects.front
-  }, [textures.front, textureAspects.front])
+  // ==================== カスタムフック ====================
 
-  // クリックイベントを処理
+  // 路径进度管理
+  const {
+    updateProgress,
+    getCurrentSegmentInfo,
+    getPositionAndTangent
+  } = useVehicleProgress({
+    path,
+    startPosition,
+    isCycle,
+    onComplete
+  })
+
+  // 外观管理
+  const { updateAppearance } = useVehicleAppearance({
+    textures,
+    textureAspects,
+    material,
+    xrayMaterial,
+    vehicleScale: VEHICLE_SCALE
+  })
+
+  // 遮挡检测
+  const { isOccluded, checkOcclusion } = useOcclusionDetection({
+    meshRef,
+    xrayMeshRef,
+    windParticlesRef,
+    flameParticlesRef,
+    name,
+    debugMode: DEBUG_OCCLUSION
+  })
+
+  // ==================== イベントハンドラー ====================
+
   const handleClick = (e: any) => {
     e.stopPropagation()
     if (onClick && meshRef.current && path) {
-      const t = progressRef.current
-      const tangent = path.getTangentAt(t).normalize()
-      onClick(meshRef.current.position.clone(), tangent)
+      const { position, tangent } = getPositionAndTangent()
+      onClick(position, tangent)
     }
   }
 
-  // アニメーションループ
+  // ==================== アニメーションループ ====================
+
   useFrame((state, delta) => {
     if (!meshRef.current || !path) return
+
+    delta = Math.min(delta, 0.033) // 大きなフレーム時間を制限
 
     const mesh = meshRef.current
     const camera = state.camera
 
-    const t = progressRef.current
+    // 更新进度
+    updateProgress(delta)
 
-    // パス位置を先に取得
-    const pathPos = path.getPointAt(t)
-
-    // 現在のパスセグメントからedgeTypeとcostを取得
-    let edgeType = 'road' // デフォルト
-    let segmentCost = 60000 // デフォルト 1分
-    if ((path as THREE.CurvePath<THREE.Vector3>).curves) {
-      const curves = (path as THREE.CurvePath<THREE.Vector3>).curves
-      const curveLengths = curves.map(curve => curve.getLength())
-      const totalLength = curveLengths.reduce((a, b) => a + b, 0)
-      const travelDist = t * totalLength
-
-      let acc = 0
-      let curveIndex = 0
-      for (let i = 0; i < curveLengths.length; i++) {
-        acc += curveLengths[i]
-        if (travelDist <= acc) {
-          curveIndex = i
-          break
-        }
-      }
-      edgeType = (curves[curveIndex] as any).userData?.edgeType || 'road'
-      segmentCost = (curves[curveIndex] as any).userData?.cost || 60000
-    }
-
-    // 根据当前段的cost计算速度（1分钟 = 3秒，即 1:20）
-    const timeRatio = 1
-    const realTimeSeconds = segmentCost / 1000
-    const demoTimeSeconds = realTimeSeconds / timeRatio
-    const segmentSpeed = 1 / demoTimeSeconds
-
-    // edgeTypeに基づいて車両モードを判定
-    const isFlying = edgeType === 'drone'
-    const isHighway = edgeType === 'highway'
-    const isAirplane = edgeType === 'airplane'
-
-    // 進行状況を更新（根据方向和当前段速度前进或后退）
-    progressRef.current += segmentSpeed * delta * directionRef.current
-
-    // 到达终点或起点时的处理
-    if (isCycle) {
-      // 循环模式：到达终点反向，到达起点再反向
-      if (progressRef.current >= 1.0) {
-        progressRef.current = 1.0
-        directionRef.current = -1 // 反向
-      } else if (progressRef.current <= 0.0) {
-        progressRef.current = 0.0
-        directionRef.current = 1 // 正向
-      }
-    } else {
-      // 非循环模式：到达终点触发完成回调
-      if (progressRef.current >= 1.0) {
-        if (!hasCompletedRef.current && onComplete) {
-          hasCompletedRef.current = true
-          onComplete()
-        }
-        progressRef.current = 1.0 // 停在终点
-      }
-    }
-
-    // 接線を取得（反向时需要反转方向）
-    let tangent = path.getTangentAt(t).normalize()
-    if (directionRef.current === -1) {
-      tangent.negate() // 反向行驶时反转切线方向
-    }
-
-    // 速度係数を計算（車両が移動する速さ）
-    const nextT = Math.max(0, Math.min(1, t + segmentSpeed * delta * 0.1 * directionRef.current))
-    const nextPos = path.getPointAt(nextT)
-    const speedFactor = pathPos.distanceTo(nextPos) / delta
+    // 获取当前段信息
+    const segmentInfo = getCurrentSegmentInfo()
+    const { position: pathPos, tangent } = getPositionAndTangent()
 
     // パス高度に対する浮遊効果を適用
-    const hoverOffset = HOVER_HEIGHT_BASE + (speedFactor * HOVER_LIFT_FACTOR)
+    const hoverOffset = HOVER_HEIGHT_BASE
     const position = pathPos.clone()
     position.y = pathPos.y + hoverOffset
 
     // 車両位置を設定
     mesh.position.copy(position)
 
-    // 透視メッシュの位置も同期（わずかにカメラ方向にオフセット）
+    // 透視メッシュの位置も同期
     if (xrayMeshRef.current) {
       xrayMeshRef.current.position.copy(position)
-      // カメラの方向に 0.01 単位オフセット（z-fighting を防ぐ）
       const toCamera = new THREE.Vector3().subVectors(camera.position, position).normalize()
       xrayMeshRef.current.position.addScaledVector(toCamera, 0.01)
     }
 
-    // 遮蔽検出：カメラから車両への raycasting
-    const raycaster = raycasterRef.current
-    const direction = new THREE.Vector3().subVectors(position, camera.position).normalize()
-    const distance = position.distanceTo(camera.position)
+    // 遮挡检测
+    checkOcclusion(position, camera, state.scene)
 
-    // Raycaster の設定（LineSegments2 のために camera を設定）
-    raycaster.camera = camera as THREE.Camera
-    raycaster.set(camera.position, direction)
-    raycaster.near = camera.near || 0.1
-    raycaster.far = Math.max(distance - 0.5, 0.1) // 車両の少し手前まで（最小値を保証）
+    // 更新外观
+    const { scaleX, scaleY, isSideView } = updateAppearance(
+      segmentInfo.edgeType,
+      tangent,
+      camera.position,
+      meshRef,
+      xrayMeshRef
+    )
 
-    // シーンの他のオブジェクトとの交差をチェック
-    const intersects = raycaster.intersectObjects(state.scene.children, true)
-
-    // 車両自身と粒子を除外してチェック
-    let isOccluded = false
-    for (const intersect of intersects) {
-      const obj = intersect.object
-
-      // 除外条件：
-      // - 車両メッシュ自身
-      // - 透視メッシュ
-      // - 粒子システム
-      // - Text（車両名）
-      // - Line系（ルート線）
-      // - Helper系オブジェクト
-      if (obj !== mesh &&
-        obj !== xrayMeshRef.current &&
-        obj !== windParticlesRef.current &&
-        obj !== flameParticlesRef.current &&
-        obj.type !== 'Points' &&
-        obj.type !== 'Line' &&
-        obj.type !== 'LineLoop' &&
-        obj.type !== 'LineSegments' &&
-        !obj.type.includes('Helper') &&
-        !obj.name.includes('Text')) {
-        isOccluded = true
-        break
-      }
-    }
-
-    // 遮蔽状態を更新（状態が変わった時のみ）
-    setIsOccluded(prevOccluded => {
-      if (prevOccluded !== isOccluded) {
-        // デバッグ情報
-        if (DEBUG_OCCLUSION) {
-          console.log(`Vehicle ${name}: isOccluded=${isOccluded}, intersects=${intersects.length}`)
-        }
-        return isOccluded
-      }
-      return prevOccluded
-    })
-
-    // 正常メッシュは常に可視
-    mesh.visible = true
-
-    // 車両のカメラに対する方向を計算し、適切なテクスチャを選択
-    const toCameraDir = new THREE.Vector3()
-      .subVectors(camera.position, position)
-      .normalize()
-
-    // 車両の前進方向とカメラ方向の内積を計算
-    const dotForward = tangent.dot(toCameraDir)
-
-    // 車両の右側方向を計算
-    const rightDir = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize()
-    const dotRight = rightDir.dot(toCameraDir)
-
-    // 角度に基づいてテクスチャとミラーリングを選択
-    let selectedTexture: THREE.Texture
-    let flipScale = 1
-    let aspectRatio = 1
-    let isSideView = false // サイドビューかどうか
-
-    if (isAirplane) {
-      // 飛行機状態：airplaneテクスチャを使用
-      if (Math.abs(dotForward) > Math.abs(dotRight)) {
-        // 主に前後方向
-        if (dotForward > 0) {
-          selectedTexture = textures.airplaneFront
-          aspectRatio = textureAspects.airplaneFront
-        } else {
-          selectedTexture = textures.airplaneBack
-          aspectRatio = textureAspects.airplaneBack
-        }
-      } else {
-        // 主に左右方向 - サイドビュー
-        selectedTexture = textures.airplaneSide
-        aspectRatio = textureAspects.airplaneSide
-        isSideView = true
-        if (dotRight > 0) {
-          flipScale = 1
-        } else {
-          flipScale = -1
-        }
-      }
-    } else if (isFlying) {
-      // 飛行状態：droneテクスチャを使用、ロジックは地上と同じ
-      if (Math.abs(dotForward) > Math.abs(dotRight)) {
-        // 主に前後方向
-        if (dotForward > 0) {
-          selectedTexture = textures.droneFront
-          aspectRatio = textureAspects.droneFront
-        } else {
-          selectedTexture = textures.droneBack
-          aspectRatio = textureAspects.droneBack
-        }
-      } else {
-        // 主に左右方向 - サイドビュー
-        selectedTexture = textures.droneSide
-        aspectRatio = textureAspects.droneSide
-        isSideView = true
-        if (dotRight > 0) {
-          flipScale = 1
-        } else {
-          flipScale = -1
-        }
-      }
-    } else if (isHighway) {
-      // ハイウェイ状態：highwayテクスチャを使用
-      if (Math.abs(dotForward) > Math.abs(dotRight)) {
-        // 主に前後方向
-        if (dotForward > 0) {
-          selectedTexture = textures.highwayFront
-          aspectRatio = textureAspects.highwayFront
-        } else {
-          selectedTexture = textures.highwayBack
-          aspectRatio = textureAspects.highwayBack
-        }
-      } else {
-        // 主に左右方向 - サイドビュー
-        selectedTexture = textures.highwaySide
-        aspectRatio = textureAspects.highwaySide
-        isSideView = true
-        if (dotRight > 0) {
-          flipScale = 1
-        } else {
-          flipScale = -1
-        }
-      }
-    } else {
-      // 地上状態：視点に基づいてテクスチャを選択
-      if (Math.abs(dotForward) > Math.abs(dotRight)) {
-        // 主に前後方向
-        if (dotForward > 0) {
-          selectedTexture = textures.front
-          aspectRatio = textureAspects.front
-        } else {
-          selectedTexture = textures.back
-          aspectRatio = textureAspects.back
-        }
-      } else {
-        // 主に左右方向 - サイドビュー
-        selectedTexture = textures.side
-        aspectRatio = textureAspects.side
-        isSideView = true
-        if (dotRight > 0) {
-          flipScale = 1
-        } else {
-          flipScale = -1
-        }
-      }
-    }
-
-    // テクスチャを更新（変更された場合）
-    if (currentTextureRef.current !== selectedTexture) {
-      currentTextureRef.current = selectedTexture
-      material.map = selectedTexture
-      material.needsUpdate = true
-      // 透視材質のテクスチャも更新
-      xrayMaterial.map = selectedTexture
-      xrayMaterial.needsUpdate = true
-    }    // アスペクト比とミラーリング状態を更新
-    if (flipScaleRef.current !== flipScale || currentAspectRef.current !== aspectRatio) {
-      flipScaleRef.current = flipScale
-      currentAspectRef.current = aspectRatio
-      // アスペクト比を使用してX軸スケールを調整
-      const scaleX = -VEHICLE_SCALE * flipScale * aspectRatio
-      const scaleY = VEHICLE_SCALE
-
-      mesh.scale.x = scaleX
-      mesh.scale.y = scaleY
-
-      // スケールを state に保存（透視メッシュ用）
+    // 更新缩放状态
+    if (currentScale[0] !== scaleX || currentScale[1] !== scaleY) {
       setCurrentScale([scaleX, scaleY, 1])
-
-      // 透視メッシュのスケールも同期（存在する場合）
-      if (xrayMeshRef.current) {
-        xrayMeshRef.current.scale.x = scaleX
-        xrayMeshRef.current.scale.y = scaleY
-      }
     }
 
     // 車両の向きを処理
     if (isSideView && SIDE_VIEW_FIXED_MODE) {
       // サイドビュー + 固定モード：車両は経路の前進方向に垂直で、経路の傾斜に追従
-
-      // 経路の水平面上の方向を計算
       const pathHorizontal = new THREE.Vector3(tangent.x, 0, tangent.z).normalize()
-
-      // サイド軸を計算（経路の水平方向に垂直）
       const sideAxis = new THREE.Vector3().crossVectors(pathHorizontal, new THREE.Vector3(0, 1, 0)).normalize()
-
-      // カメラ方向を取得し、どちら側を向くべきか判定
       const camToVehicle = new THREE.Vector3().subVectors(mesh.position, camera.position)
       camToVehicle.y = 0
       camToVehicle.normalize()
-
-      // カメラ位置に基づいて車両が左側か右側を向くかを決定（方向を反転）
       const facingDirection = camToVehicle.dot(sideAxis) > 0 ? sideAxis.clone().negate() : sideAxis
-
-      // 車両をサイド方向に向ける（経路に垂直）
       const lookAtPoint = mesh.position.clone().add(facingDirection)
       mesh.lookAt(lookAtPoint)
-
-      // 経路の傾斜角度を計算
       const horizontalDistance = Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z)
       const pathPitchAngle = Math.atan2(tangent.y, horizontalDistance)
-
-      // サイド軸（車両の左右軸）周りにpitch回転を適用
       const pitchQuaternion = new THREE.Quaternion().setFromAxisAngle(pathHorizontal, pathPitchAngle)
       mesh.quaternion.multiply(pitchQuaternion)
-
     } else {
-      // 追従モードまたは前後ビュー：Billboard効果、常にカメラに向く
+      // 追従モードまたは前後ビュー：Billboard効果
       mesh.lookAt(camera.position)
     }
 
@@ -546,112 +244,17 @@ export const Vehicle: React.FC<VehicleProps> = ({
       xrayMeshRef.current.rotation.copy(mesh.rotation)
     }
 
-    // 風パーティクルを更新（地上時のみ）
-    if (windParticlesRef.current) {
-      if (!isFlying) {
-        // 地上時：風パーティクルを表示・更新
-        windParticlesRef.current.visible = true
-
-        const positions = windParticles.geometry.attributes.position.array as Float32Array
-        const lifetimes = windParticles.geometry.attributes.lifetime.array as Float32Array
-
-        for (let i = 0; i < WIND_PARTICLE_COUNT; i++) {
-          const i3 = i * 3
-
-          // ライフサイクルを更新
-          lifetimes[i] -= delta * 2
-
-          // パーティクルをリセット
-          if (lifetimes[i] <= 0) {
-            // 車両後方に新しいパーティクルを生成
-            const spawnDistance = 5
-            const spawnOffset = tangent.clone().multiplyScalar(-spawnDistance)
-
-            positions[i3] = position.x + spawnOffset.x + (Math.random() - 0.5) * 3
-            positions[i3 + 1] = position.y + (Math.random() - 0.5) * 2
-            positions[i3 + 2] = position.z + spawnOffset.z + (Math.random() - 0.5) * 3
-
-            lifetimes[i] = 0.5 + Math.random() * 0.5
-          } else {
-            // パーティクルが車両の前進方向と反対方向に移動（後方から風が吹く効果）
-            const windDirection = tangent.clone().multiplyScalar(-WIND_SPEED * delta * 10)
-            positions[i3] += windDirection.x
-            positions[i3 + 1] += windDirection.y - delta * 2 // わずかに下降
-            positions[i3 + 2] += windDirection.z
-          }
-        }
-
-        windParticles.geometry.attributes.position.needsUpdate = true
-        windParticles.geometry.attributes.lifetime.needsUpdate = true
-      } else {
-        // 飛行時：風パーティクルを非表示
-        windParticlesRef.current.visible = false
-      }
-    }
-
-    // 炎パーティクルを更新（飛行時のみ）
-    if (flameParticlesRef.current) {
-      const flamePositions = flameParticles.geometry.attributes.position.array as Float32Array
-      const flameLifetimes = flameParticles.geometry.attributes.lifetime.array as Float32Array
-
-      // 飛行状態を更新
-      isFlyingRef.current = isFlying
-
-      if (isFlying) {
-        // 飛行時：炎パーティクルを更新
-        for (let i = 0; i < FLAME_PARTICLE_COUNT; i++) {
-          const i3 = i * 3
-
-          // ライフサイクルを更新
-          flameLifetimes[i] -= delta * 3
-
-          // パーティクルをリセット
-          if (flameLifetimes[i] <= 0) {
-            // 車両後方に新しいパーティクルを生成（テール噴射位置）
-            const spawnOffset = tangent.clone().multiplyScalar(-VEHICLE_SCALE * 0.3) // 車両後方
-
-            flamePositions[i3] = position.x + spawnOffset.x + (Math.random() - 0.5) * 1.5
-            flamePositions[i3 + 1] = position.y + (Math.random() - 0.5) * 1.5
-            flamePositions[i3 + 2] = position.z + spawnOffset.z + (Math.random() - 0.5) * 1.5
-
-            flameLifetimes[i] = 0.3 + Math.random() * 0.3
-          } else {
-            // パーティクルが進行方向と反対方向に噴射（推進効果）
-            const flameDirection = tangent.clone().multiplyScalar(-FLAME_SPEED * delta * 8)
-            flamePositions[i3] += flameDirection.x
-            flamePositions[i3 + 1] += flameDirection.y
-            flamePositions[i3 + 2] += flameDirection.z
-
-            // ランダムな拡散を追加
-            flamePositions[i3] += (Math.random() - 0.5) * delta * 3
-            flamePositions[i3 + 1] += (Math.random() - 0.5) * delta * 3
-            flamePositions[i3 + 2] += (Math.random() - 0.5) * delta * 3
-          }
-        }
-
-        // 炎パーティクルを表示
-        flameParticlesRef.current.visible = true
-      } else {
-        // 地上時：炎パーティクルを非表示
-        flameParticlesRef.current.visible = false
-      }
-
-      flameParticles.geometry.attributes.position.needsUpdate = true
-      flameParticles.geometry.attributes.lifetime.needsUpdate = true
-    }
-
-    // 更新Text位置（跟随车辆）
+    // 更新Text位置
     if (textRef.current && mesh) {
       textRef.current.position.set(
         mesh.position.x,
         mesh.position.y + VEHICLE_SCALE + 2,
         mesh.position.z
       )
-      // Text始终面向相机
       textRef.current.lookAt(camera.position)
     }
 
-    // 毎フレーム位置情報を更新（追従モード用）
+    // 毎フレーム位置情報を更新
     if (onPositionUpdate) {
       onPositionUpdate(mesh.position.clone(), tangent.clone())
     }
@@ -662,13 +265,13 @@ export const Vehicle: React.FC<VehicleProps> = ({
       {/* 車両メッシュ（正常表示） */}
       <mesh
         ref={meshRef}
-        scale={[-VEHICLE_SCALE, VEHICLE_SCALE, 1]}
+        scale={currentScale}
         onClick={handleClick}
         onPointerOver={() => document.body.style.cursor = 'pointer'}
         onPointerOut={() => document.body.style.cursor = 'default'}
         castShadow
         receiveShadow
-        renderOrder={0} // 通常のレンダリング順
+        renderOrder={0}
       >
         <primitive object={geometry} />
         <primitive object={material} attach="material" />
@@ -678,8 +281,8 @@ export const Vehicle: React.FC<VehicleProps> = ({
       {isOccluded && (
         <mesh
           ref={xrayMeshRef}
-          scale={currentScale} // 正常メッシュと同じスケールを使用
-          renderOrder={10000} // 非常に高い値で最後にレンダリング（最前面）
+          scale={currentScale}
+          renderOrder={10000}
         >
           <primitive object={geometry} />
           <primitive object={xrayMaterial} attach="material" />
@@ -697,17 +300,26 @@ export const Vehicle: React.FC<VehicleProps> = ({
           anchorY="middle"
           outlineWidth={0.15}
           outlineColor="#000000"
-          renderOrder={10001} // 名前は常に最前面
+          renderOrder={10001}
         >
           {name}
         </Text>
       )}
 
-      {/* 風パーティクルシステム */}
-      <points ref={windParticlesRef} geometry={windParticles.geometry} material={windParticles.material} />
+      {/* 風パーティクルシステム（地上時のみ） */}
+      <WindParticles
+        visible={getCurrentSegmentInfo().edgeType !== 'drone'}
+        position={meshRef.current?.position || new THREE.Vector3()}
+        tangent={getPositionAndTangent().tangent}
+      />
 
-      {/* 炎パーティクルシステム（飛行時） */}
-      <points ref={flameParticlesRef} geometry={flameParticles.geometry} material={flameParticles.material} />
+      {/* 炎パーティクルシステム（飛行時のみ） */}
+      <FlameParticles
+        visible={getCurrentSegmentInfo().edgeType === 'drone'}
+        position={meshRef.current?.position || new THREE.Vector3()}
+        tangent={getPositionAndTangent().tangent}
+        vehicleScale={VEHICLE_SCALE}
+      />
     </group>
   )
 }

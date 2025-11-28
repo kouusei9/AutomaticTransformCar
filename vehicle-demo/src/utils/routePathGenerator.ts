@@ -44,6 +44,9 @@ export function createRoutePathFromNodeIds(
     return null
   }
 
+  // 后面改成160000
+  const MOVIE_LENGTH = 80000 // 映画の総時間（ms）
+
   // 直接使用传入的节点序列（不使用 Dijkstra 算法）
   const pathNodes: RouteNode[] = []
   for (const id of nodeIds) {
@@ -68,9 +71,9 @@ export function createRoutePathFromNodeIds(
 
   // 2つのノード間のコストを検索（routeEdgesから、ない場合はデフォルト値）
   const getEdgeCost = (a: string, b: string): number => {
-    if (!routeEdges) return 60000 // デフォルト 1分
+    if (!routeEdges) return MOVIE_LENGTH // デフォルト 1分
     const edge = routeEdges.find(e => (e.from === a && e.to === b) || (e.from === b && e.to === a))
-    return edge?.cost || 60000
+    return edge?.cost || MOVIE_LENGTH
   }
 
   // エッジタイプに応じた高度を取得
@@ -88,7 +91,7 @@ export function createRoutePathFromNodeIds(
 
   const EPSILON = 1e-6
 
-  const addSegmentPoint = (point: THREE.Vector3, edgeType: string, cost: number = 60000) => {
+  const addSegmentPoint = (point: THREE.Vector3, edgeType: string, cost: number = MOVIE_LENGTH) => {
     if (points.length === 0) {
       points.push(point.clone())
       return
@@ -109,7 +112,7 @@ export function createRoutePathFromNodeIds(
     toAltitude: number,
     position: THREE.Vector3,
     edgeType: string,
-    totalCost: number = 60000
+    totalCost: number = MOVIE_LENGTH
   ) => {
     const heightDiff = Math.abs(toAltitude - fromAltitude)
     if (heightDiff < EPSILON) {
@@ -119,16 +122,6 @@ export function createRoutePathFromNodeIds(
       const verticalPoint = new THREE.Vector3(position.x, toAltitude, position.z)
       addSegmentPoint(verticalPoint, edgeType, totalCost)
     }
-
-    // const segments = Math.max(1, Math.ceil(heightDiff * VERTICAL_DISTANCE_MULTIPLIER))
-    // const costPerSegment = totalCost / segments
-
-    // for (let j = 1; j <= segments; j++) {
-    //   const t = j / segments
-    //   const y = fromAltitude + (toAltitude - fromAltitude) * t
-    //   const verticalPoint = new THREE.Vector3(position.x, y, position.z)
-    //   addSegmentPoint(verticalPoint, edgeType, costPerSegment)
-    // }
   }
 
   // 记录当前实际高度（只有drone需要严格管理高度）
@@ -157,13 +150,8 @@ export function createRoutePathFromNodeIds(
 
     // Drone模式：需要垂直爬升/下降
     if (edgeType === 'drone') {
-      // 将cost分配：30%用于爬升，40%用于水平飞行，30%用于下降
-      const climbCost = edgeCost * 0.3
-      const horizontalCost = edgeCost * 0.4
-      const descendCost = edgeCost * 0.3
-
       // 起点垂直爬升到目标高度
-      addVerticalTransition(currentAltitude, targetAltitude, currAnchor, edgeType, 0)
+      addVerticalTransition(currentAltitude, targetAltitude, currAnchor, edgeType, MOVIE_LENGTH)
 
       // 水平飞行到终点
       const horizontalPoint = new THREE.Vector3(nextPos.x, targetAltitude, nextPos.z)
@@ -178,7 +166,7 @@ export function createRoutePathFromNodeIds(
       if (isLastEdge || nextEdgeType !== 'drone') {
         console.log(`current edge type is ${edgeType}, next edge type is ${nextEdgeType}, descending to ground.`)
         const nextAnchor = new THREE.Vector3(nextPos.x, currentAltitude, nextPos.z)
-        addVerticalTransition(currentAltitude, GROUND_Y, nextAnchor, edgeType, 0)
+        addVerticalTransition(currentAltitude, GROUND_Y, nextAnchor, edgeType, MOVIE_LENGTH)
         currentAltitude = GROUND_Y
       }
     }
@@ -198,8 +186,8 @@ export function createRoutePathFromNodeIds(
 
       // 如果当前不在 3m 高度，先过渡到 3m（使用较小的cost）
       if (Math.abs(currentAltitude - highwayTarget) > EPSILON) {
-        const transitionCost = edgeCost * 0.1
-        addVerticalTransition(currentAltitude, highwayTarget, currAnchor, edgeType, 0)
+        // const transitionCost = edgeCost * 0.1
+        addVerticalTransition(currentAltitude, highwayTarget, currAnchor, edgeType, MOVIE_LENGTH)
         currentAltitude = highwayTarget
       }
 
@@ -212,11 +200,9 @@ export function createRoutePathFromNodeIds(
     // 🚗 Road模式：地面（0m）移动
     else {
       const groundTarget = GROUND_Y
-      const transitionCost = edgeCost * 0.1
-      const mainCost = edgeCost * 0.9
-      addVerticalTransition(currentAltitude, groundTarget, currAnchor, edgeType, edgeCost)
+      addVerticalTransition(currentAltitude, groundTarget, currAnchor, edgeType, MOVIE_LENGTH)
       const toPoint = new THREE.Vector3(nextPos.x, groundTarget, nextPos.z)
-      addSegmentPoint(toPoint, edgeType, mainCost)
+      addSegmentPoint(toPoint, edgeType, edgeCost)
       currentAltitude = groundTarget
     }
   }
@@ -232,7 +218,7 @@ export function createRoutePathFromNodeIds(
     const b = points[i + 1]
     const edgeType = pointEdgeTypes[i] || 'road'
     // 0 - 60000ms
-    const edgeCost = pointEdgeCosts[i] || 60000
+    const edgeCost = pointEdgeCosts[i] || MOVIE_LENGTH
 
     // 
     // if (edgeCost === 0) {
