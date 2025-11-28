@@ -11,16 +11,16 @@ function createCircleTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 32;
   canvas.height = 32;
-  
+
   const ctx = canvas.getContext('2d')!;
   const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
   gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
   gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
   gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  
+
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 32, 32);
-  
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
@@ -31,56 +31,56 @@ function createShogiSignTexture(modeText: string) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 256;
-  
+
   const ctx = canvas.getContext('2d')!;
-  
+
   // 透明背景
   ctx.clearRect(0, 0, 256, 256);
-  
+
   // 绘制将棋形状（扁平五角形，左右更宽）
   const centerX = 128;
   const centerY = 128;
   const width = 80; // 水平方向更长
   const height = 100; // 垂直方向较短
-  
+
   ctx.beginPath();
   // 顶点
   ctx.moveTo(centerX, centerY - height);
   // 右上
   ctx.lineTo(centerX + width * 0.7, centerY - height * 0.8);
   // 右下
-  ctx.lineTo(centerX + width , centerY + height);
+  ctx.lineTo(centerX + width, centerY + height);
   // 左下
-  ctx.lineTo(centerX - width , centerY + height);
+  ctx.lineTo(centerX - width, centerY + height);
   // 左上
   ctx.lineTo(centerX - width * 0.7, centerY - height * 0.8);
   ctx.closePath();
-  
+
   // 赛博朋克发光边框
   ctx.strokeStyle = '#00ffff';
   ctx.lineWidth = 4;
   ctx.shadowColor = '#00ffff';
   ctx.shadowBlur = 20;
   ctx.stroke();
-  
+
   // 半透明填充
   ctx.fillStyle = 'rgba(0, 255, 255, 0.15)';
   ctx.shadowBlur = 0;
   ctx.fill();
-  
+
   // 内外双层边框
   const innerWidth = width - 15;
   const innerHeight = height - 12;
-  
+
   ctx.beginPath();
   // 顶点
   ctx.moveTo(centerX, centerY - innerHeight);
   // 右上
   ctx.lineTo(centerX + innerWidth * 0.7, centerY - innerHeight * 0.8);
   // 右下
-  ctx.lineTo(centerX + innerWidth , centerY + innerHeight);
+  ctx.lineTo(centerX + innerWidth, centerY + innerHeight);
   // 左下
-  ctx.lineTo(centerX - innerWidth , centerY + innerHeight);
+  ctx.lineTo(centerX - innerWidth, centerY + innerHeight);
   // 左上
   ctx.lineTo(centerX - innerWidth * 0.7, centerY - innerHeight * 0.8);
   ctx.closePath();
@@ -89,7 +89,7 @@ function createShogiSignTexture(modeText: string) {
   ctx.shadowColor = '#00ffff';
   ctx.shadowBlur = 10;
   ctx.stroke();
-  
+
   // 绘制中心文字
   ctx.font = 'bold 64px Arial, sans-serif';
   ctx.fillStyle = '#00ffff';
@@ -98,7 +98,7 @@ function createShogiSignTexture(modeText: string) {
   ctx.shadowColor = '#00ffff';
   ctx.shadowBlur = 15;
   ctx.fillText(modeText, centerX, centerY + 10);
-  
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
@@ -111,8 +111,8 @@ interface ThirdPersonViewProps {
   isEntering?: boolean; // 是否正在进入第三视角（true=进入，false=退出）
 }
 
-export default function ThirdPersonView({ 
-  isMoving, 
+export default function ThirdPersonView({
+  isMoving,
   currentMode,
   isTransitioning = false,
   isEntering = true
@@ -159,7 +159,7 @@ export default function ThirdPersonView({
 
       // 随机生命周期
       lifetimes[i] = Math.random();
-      
+
       // 初始速度
       velocities[i * 3] = 0;
       velocities[i * 3 + 1] = 0;
@@ -205,12 +205,12 @@ export default function ThirdPersonView({
   };
 
   const currentTexture = getCurrentTexture();
-  
+
   // 根据纹理图片的实际尺寸计算宽高比
-  const textureAspectRatio = currentTexture.image 
-    ? currentTexture.image.width / currentTexture.image.height 
+  const textureAspectRatio = currentTexture.image
+    ? currentTexture.image.width / currentTexture.image.height
     : 1.5; // 默认比例
-  
+
   // 设置车辆高度，宽度根据比例自动计算
   const carHeight = 2;
   const carWidth = carHeight * textureAspectRatio;
@@ -219,7 +219,18 @@ export default function ThirdPersonView({
   const ANIMATION_DURATION = 1.0; // 1秒动画时长
   const ENTER_OFFSET_Z = 10; // 进入时从远处开始的距离（Z轴）
   const EXIT_OFFSET_Z = 10; // 退出时向远方移动的距离（Z轴）
-  const BASE_Y = -2.5; // 车辆的基础Y位置
+
+  // 根据模式设置车辆高度
+  const getBaseYByMode = () => {
+    switch (currentMode) {
+      case 1 && 4: return -2.5; // 金模式（地面） 飞模式（高空）
+      case 2: return -1.5; // 香模式（低空）
+      case 3: return 0.5; // 桂模式（中空）
+      default: return -2.5;
+    }
+  };
+
+  const BASE_Y = getBaseYByMode(); // 车辆的基础Y位置
   const BASE_Z = 0; // 车辆的基础Z位置
   const MIN_SCALE = 0.3; // 远处时的最小缩放比例
 
@@ -228,7 +239,7 @@ export default function ThirdPersonView({
     if (isTransitioning) {
       animationProgress.current = 0;
       initialOpacity.current = isEntering ? 0 : 1;
-      
+
       // 立即设置初始透明度
       if (carRef.current && carRef.current.material) {
         (carRef.current.material as THREE.SpriteMaterial).opacity = initialOpacity.current;
@@ -248,11 +259,11 @@ export default function ThirdPersonView({
     // 处理过渡动画
     if (isTransitioning) {
       animationProgress.current = Math.min(1, animationProgress.current + delta / ANIMATION_DURATION);
-      
+
       const progress = animationProgress.current;
       // 使用缓动函数（ease-in-out）
-      const easeProgress = progress < 0.5 
-        ? 2 * progress * progress 
+      const easeProgress = progress < 0.5
+        ? 2 * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
       if (isEntering) {
@@ -327,26 +338,26 @@ export default function ThirdPersonView({
             if (currentMode === 1) {
               // 普通模式：从车辆前方中央生成
               positions[i3] = (Math.random() - 0.5) * 2.5; // X轴散布
-              positions[i3 + 1] = -3.5 + (Math.random() - 0.5) * 1.5; // Y轴（车辆高度附近）
+              positions[i3 + 1] = BASE_Y - 1.0 + (Math.random() - 0.5) * 1.5; // Y轴（车辆高度附近）
               positions[i3 + 2] = -3 + Math.random() * 2; // 从车辆前方开始
-            } else if (currentMode === 2 ) {
+            } else if (currentMode === 2) {
               // 高速模式：从车辆两侧生成（左侧或右侧）
               const side = Math.random() > 0.5 ? 1 : -1; // 随机选择左侧或右侧
               positions[i3] = side * (0.5 + Math.random() * 0.5); // X轴：在两侧
-              positions[i3 + 1] = -3.0 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
+              positions[i3 + 1] = BASE_Y - 0.5 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
               positions[i3 + 2] = -2 + Math.random() * 1; // 从车辆侧面开始
             } else if (currentMode === 3) {
-             // Drone模式：从车辆两侧生成（左侧或右侧）
+              // Drone模式：从车辆两侧生成（左侧或右侧）
               const side = Math.random() > 0.5 ? 1 : -1; // 随机选择左侧或右侧
               positions[i3] = side * (1.0 + Math.random() * 0.5); // X轴：在两侧
-              positions[i3 + 1] = -3.0 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
+              positions[i3 + 1] = BASE_Y - 0.5 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
               positions[i3 + 2] = -2 + Math.random() * 1; // 从车辆侧面开始 
             }
-             else if (currentMode === 4) {
+            else if (currentMode === 4) {
               // Airplane模式：从车辆后方中央生成
               const side = Math.random() > 0.5 ? 1 : -1; // 随机选择左侧或右侧
               positions[i3] = side * (0.5 + Math.random() * 0.5); // X轴：在两侧
-              positions[i3 + 1] = -3.0 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
+              positions[i3 + 1] = BASE_Y - 0.5 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
               positions[i3 + 2] = -2 + Math.random() * 1; // 从车辆侧面开始
             }
 
@@ -355,7 +366,7 @@ export default function ThirdPersonView({
             // 粒子向后飞散（正Z轴方向）
             const speedMultiplier = currentMode === 4 ? 15 : 10; // Airplane更快
             positions[i3 + 2] += PARTICLE_SPEED * delta * speedMultiplier;
-            
+
             if (currentMode === 1) {
               // 普通模式：添加左右散开效果
               positions[i3] += (Math.random() - 0.5) * delta * 2;
@@ -366,7 +377,7 @@ export default function ThirdPersonView({
               const expandSpeed = currentMode === 4 ? 2.5 : 1.5; // Airplane扩散更快
               positions[i3] += expandDirection * delta * expandSpeed;
             }
-            
+
             // 轻微下降
             positions[i3 + 1] -= delta * 0.5;
           }
@@ -388,19 +399,19 @@ export default function ThirdPersonView({
     <group>
       {/* 车辆精灵 */}
       <sprite ref={carRef} position={[0, -2.5, 0]} scale={[carWidth, carHeight, 1]}>
-        <spriteMaterial 
-          map={currentTexture} 
-          transparent 
+        <spriteMaterial
+          map={currentTexture}
+          transparent
           opacity={isTransitioning && !isEntering ? 0 : (isTransitioning && isEntering ? 0 : 1.0)}
         />
       </sprite>
 
       {/* 将棋形状指示牌（车顶上方） */}
-      <mesh ref={signRef} position={[0, -1.2, 0]}>
+      <mesh ref={signRef} position={[0, BASE_Y + 1.3, 0]}>
         <planeGeometry args={[1.5, 1.5]} />
-        <meshBasicMaterial 
-          map={signTexture} 
-          transparent 
+        <meshBasicMaterial
+          map={signTexture}
+          transparent
           opacity={isTransitioning ? 0 : 0.95}
           depthTest={false}
           side={THREE.DoubleSide}
