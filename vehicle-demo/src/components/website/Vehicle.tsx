@@ -234,17 +234,21 @@ export const Vehicle: React.FC<VehicleProps> = ({
     let segmentCost = 60000 // デフォルト 1分
     if ((path as THREE.CurvePath<THREE.Vector3>).curves) {
       const curves = (path as THREE.CurvePath<THREE.Vector3>).curves
-      const curveIndex = Math.floor(t * curves.length)
+      const curveLengths = curves.map(curve => curve.getLength())
+      const totalLength = curveLengths.reduce((a, b) => a + b, 0)
+      const travelDist = t * totalLength
 
-      // ✅ 下一段路线的索引（提前变形）
-      const nextCurveIndex = Math.min(curveIndex + 1, curves.length - 1)
-      const nextCurve = curves[nextCurveIndex]
-
-      // ✅ 使用下一段路线的 edgeType 和 cost
-      if (nextCurve && (nextCurve as any).userData) {
-        edgeType = (nextCurve as any).userData.edgeType || 'road'
-        segmentCost = (nextCurve as any).userData.cost || 60000
+      let acc = 0
+      let curveIndex = 0
+      for (let i = 0; i < curveLengths.length; i++) {
+        acc += curveLengths[i]
+        if (travelDist <= acc) {
+          curveIndex = i
+          break
+        }
       }
+      edgeType = (curves[curveIndex] as any).userData?.edgeType || 'road'
+      segmentCost = (curves[curveIndex] as any).userData?.cost || 60000
     }
 
     // 根据当前段的cost计算速度（1分钟 = 3秒，即 1:20）
@@ -300,7 +304,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
 
     // 車両位置を設定
     mesh.position.copy(position)
-    
+
     // 透視メッシュの位置も同期（わずかにカメラ方向にオフセット）
     if (xrayMeshRef.current) {
       xrayMeshRef.current.position.copy(position)
@@ -313,21 +317,21 @@ export const Vehicle: React.FC<VehicleProps> = ({
     const raycaster = raycasterRef.current
     const direction = new THREE.Vector3().subVectors(position, camera.position).normalize()
     const distance = position.distanceTo(camera.position)
-    
+
     // Raycaster の設定（LineSegments2 のために camera を設定）
     raycaster.camera = camera as THREE.Camera
     raycaster.set(camera.position, direction)
     raycaster.near = camera.near || 0.1
     raycaster.far = Math.max(distance - 0.5, 0.1) // 車両の少し手前まで（最小値を保証）
-    
+
     // シーンの他のオブジェクトとの交差をチェック
     const intersects = raycaster.intersectObjects(state.scene.children, true)
-    
+
     // 車両自身と粒子を除外してチェック
     let isOccluded = false
     for (const intersect of intersects) {
       const obj = intersect.object
-      
+
       // 除外条件：
       // - 車両メッシュ自身
       // - 透視メッシュ
@@ -335,21 +339,21 @@ export const Vehicle: React.FC<VehicleProps> = ({
       // - Text（車両名）
       // - Line系（ルート線）
       // - Helper系オブジェクト
-      if (obj !== mesh && 
-          obj !== xrayMeshRef.current &&
-          obj !== windParticlesRef.current &&
-          obj !== flameParticlesRef.current &&
-          obj.type !== 'Points' &&
-          obj.type !== 'Line' &&
-          obj.type !== 'LineLoop' &&
-          obj.type !== 'LineSegments' &&
-          !obj.type.includes('Helper') &&
-          !obj.name.includes('Text')) {
+      if (obj !== mesh &&
+        obj !== xrayMeshRef.current &&
+        obj !== windParticlesRef.current &&
+        obj !== flameParticlesRef.current &&
+        obj.type !== 'Points' &&
+        obj.type !== 'Line' &&
+        obj.type !== 'LineLoop' &&
+        obj.type !== 'LineSegments' &&
+        !obj.type.includes('Helper') &&
+        !obj.name.includes('Text')) {
         isOccluded = true
         break
       }
     }
-    
+
     // 遮蔽状態を更新（状態が変わった時のみ）
     setIsOccluded(prevOccluded => {
       if (prevOccluded !== isOccluded) {
@@ -361,7 +365,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
       }
       return prevOccluded
     })
-    
+
     // 正常メッシュは常に可視
     mesh.visible = true
 
@@ -473,7 +477,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
       }
     }
 
-      // テクスチャを更新（変更された場合）
+    // テクスチャを更新（変更された場合）
     if (currentTextureRef.current !== selectedTexture) {
       currentTextureRef.current = selectedTexture
       material.map = selectedTexture
@@ -488,13 +492,13 @@ export const Vehicle: React.FC<VehicleProps> = ({
       // アスペクト比を使用してX軸スケールを調整
       const scaleX = -VEHICLE_SCALE * flipScale * aspectRatio
       const scaleY = VEHICLE_SCALE
-      
+
       mesh.scale.x = scaleX
       mesh.scale.y = scaleY
-      
+
       // スケールを state に保存（透視メッシュ用）
       setCurrentScale([scaleX, scaleY, 1])
-      
+
       // 透視メッシュのスケールも同期（存在する場合）
       if (xrayMeshRef.current) {
         xrayMeshRef.current.scale.x = scaleX
@@ -536,7 +540,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
       // 追従モードまたは前後ビュー：Billboard効果、常にカメラに向く
       mesh.lookAt(camera.position)
     }
-    
+
     // 透視メッシュの回転も同期
     if (xrayMeshRef.current) {
       xrayMeshRef.current.rotation.copy(mesh.rotation)
