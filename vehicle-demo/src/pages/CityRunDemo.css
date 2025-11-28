@@ -108,3 +108,54 @@
   width: 100%;
   height: 100%;
 }
+
+/* ===== 转换提示:旋转指示牌(右下) ===== */
+.transform-sign-wrapper {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 200;
+  pointer-events: none;
+  --animation-duration: 2.4s;
+  /* 默认时长,可通过内联样式覆盖 */
+}
+
+.transform-sign {
+  width: 88px;
+  height: 112px;
+}
+
+.sign-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  animation: card-spin calc(var(--animation-duration, 2.4s) / 2) linear infinite;
+  transform-origin: 50% 50%;
+}
+
+.sign-card.animation-end {
+  animation: none;
+  transform: rotateY(0deg);
+}
+
+.sign-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+@keyframes card-spin {
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateY(360deg);
+  }
+}

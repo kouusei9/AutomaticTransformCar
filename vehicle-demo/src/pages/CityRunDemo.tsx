@@ -12,6 +12,68 @@ import type { RouteResponse } from '../types/routeAPI';
 import { websocketService } from '../services/websocketService';
 import './CityRunDemo.css';
 
+// 创建将棋形状的赛博朋克风格指示牌纹理(带调色板)
+function createShogiSignTextureWithPalette(modeText: string, palette: { from: string; to: string; primary: string }): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+
+  const ctx = canvas.getContext('2d')!;
+
+  // 透明背景
+  ctx.clearRect(0, 0, 256, 256);
+
+  // 绘制将棋形状(扁平五角形,左右更宽)
+  const centerX = 128;
+  const centerY = 128;
+  const width = 80; // 水平方向更长
+  const height = 100; // 垂直方向较短
+
+  const drawPentagon = (w: number, h: number) => {
+    ctx.beginPath();
+    // 顶点
+    ctx.moveTo(centerX, centerY - h);
+    // 右上
+    ctx.lineTo(centerX + w * 0.7, centerY - h * 0.8);
+    // 右下
+    ctx.lineTo(centerX + w, centerY + h);
+    // 左下
+    ctx.lineTo(centerX - w, centerY + h);
+    // 左上
+    ctx.lineTo(centerX - w * 0.7, centerY - h * 0.8);
+    ctx.closePath();
+  };
+
+  // 外层边框(较粗,发光)
+  drawPentagon(width, height);
+  ctx.strokeStyle = palette.primary;
+  ctx.lineWidth = 4;
+  ctx.shadowColor = palette.primary;
+  ctx.shadowBlur = 20;
+  ctx.stroke();
+
+  // 内层边框(较细)
+  const innerWidth = width - 12;
+  const innerHeight = height - 10;
+  drawPentagon(innerWidth, innerHeight);
+  ctx.strokeStyle = palette.primary;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = palette.primary;
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+
+  // 绘制中心文字(使用primary颜色)
+  ctx.font = 'bold 72px Arial, sans-serif';
+  ctx.fillStyle = palette.primary;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = palette.primary;
+  ctx.shadowBlur = 15;
+  ctx.fillText(modeText, centerX, centerY + 10);
+
+  return canvas.toDataURL();
+}
+
 // ===== 1. 使用 Enum 替代魔法数字 =====
 export enum VehicleMode {
   NORMAL = 1,   // 金将 - 通常モード
@@ -69,6 +131,11 @@ export default function CityRunDemo() {
   const [isEnteringFirstPerson, setIsEnteringFirstPerson] = useState(true);
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [currentTransformVideo, setCurrentTransformVideo] = useState<string>('');
+  const [transformFromMode, setTransformFromMode] = useState<VehicleMode | null>(null);
+  const [transformToMode, setTransformToMode] = useState<VehicleMode | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number>(2.4);
+  const [isAnimationEnding, setIsAnimationEnding] = useState(false);
+  const [showToMode, setShowToMode] = useState(false); // 控制显示from还是to模式
   const [hasPlayedInitialTransform, setHasPlayedInitialTransform] = useState(false);
   const [currentMode, setCurrentMode] = useState<VehicleMode>(VehicleMode.NORMAL);
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number>(0);
@@ -121,33 +188,67 @@ export default function CityRunDemo() {
     return SPEED_MULTIPLIERS[mode] ?? 1.0;
   }, []);
 
+  // 辅助：模式字符 / 名称 / 调色板
+  const modeChar = (mode: VehicleMode | null) => {
+    if (!mode) return '';
+    switch (mode) {
+      case VehicleMode.NORMAL: return '金';
+      case VehicleMode.HIGHWAY: return '香';
+      case VehicleMode.DRONE: return '桂';
+      case VehicleMode.FLIGHT: return '飛';
+      default: return '';
+    }
+  };
+
+  const modeName = (mode: VehicleMode | null) => {
+    if (!mode) return '';
+    switch (mode) {
+      case VehicleMode.NORMAL: return '金将';
+      case VehicleMode.HIGHWAY: return '香車';
+      case VehicleMode.DRONE: return '桂馬';
+      case VehicleMode.FLIGHT: return '飛車';
+      default: return '';
+    }
+  };
+
+  const modePalette = (mode: VehicleMode | null) => {
+    if (!mode) return { from: '#000', to: '#111', primary: '#00ffff' };
+    switch (mode) {
+      case VehicleMode.NORMAL: return { from: '#FFD700', to: '#FFF4CC', primary: '#FFD700' };
+      case VehicleMode.HIGHWAY: return { from: '#C0C0C0', to: '#F0F0F0', primary: '#C0C0C0' };
+      case VehicleMode.DRONE: return { from: '#9C27B0', to: '#C0C0C0', primary: '#9C27B0' };
+      case VehicleMode.FLIGHT: return { from: '#FF0040', to: '#FFD700', primary: '#FF0040' };
+      default: return { from: '#000', to: '#111', primary: '#00ffff' };
+    }
+  };
+
   // ===== イベントハンドラー =====
   const handleStartStop = useCallback((moving: boolean) => {
     setIsMoving(moving);
     if (moving) {
       lastTimeRef.current = Date.now();
-      
+
       // 通过 WebSocket 发送路线数据到 CyberpunkCityDemo
       if (routeData) {
         const startNode = routeData.nodes[0];
         const destNode = routeData.nodes[routeData.nodes.length - 1];
-        
+
         // 从 kyoto_routes.json 加载节点名称
         fetch('/website-assets/kyoto_routes.json')
           .then(res => res.json())
           .then(data => {
             const startKyotoNode = data.nodes.find((n: any) => n.id === startNode.id);
             const destKyotoNode = data.nodes.find((n: any) => n.id === destNode.id);
-            
+
             const startName = startKyotoNode?.name || startNode.id;
             const destName = destKyotoNode?.name || destNode.id;
-            
+
             websocketService.sendNewRoute(
               startName,
               destName,
               routeData
             );
-            
+
             console.log('📡 发送路线到 CyberpunkCityDemo:', { start: startName, destination: destName });
           })
           .catch(err => {
@@ -206,10 +307,42 @@ export default function CityRunDemo() {
     setShowTransformVideo(true);
   }, []);
 
+  const handleVideoLoaded = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    const duration = video.duration;
+    setVideoDuration(duration);
+    setIsAnimationEnding(false);
+    setShowToMode(false);
+    console.log(`🎬 視頻時長: ${duration.toFixed(2)}秒`);
+
+    const rotationDuration = duration / 2; // 单次旋转时长(速度x2)
+    const halfDuration = duration / 2; // 视频播放到一半的时间
+
+    // 在视频播放到一半时切换到to模式
+    const timer1 = window.setTimeout(() => {
+      setShowToMode(true);
+      console.log('🔄 视频播放到一半,切换到to模式');
+    }, halfDuration * 1000);
+    addTimer(timer1);
+
+    // 在视频结束前的最后一个旋转周期停止动画
+    const stopTime = Math.floor(duration / rotationDuration) * rotationDuration;
+    const timer2 = window.setTimeout(() => {
+      setIsAnimationEnding(true);
+      console.log('🎯 停止旋转,固定在to模式');
+    }, stopTime * 1000);
+    addTimer(timer2);
+  }, [addTimer]);
+
   const handleVideoEnded = useCallback(() => {
     console.log('✅ 変換動画終了、走行再開');
     setShowTransformVideo(false);
     setIsPausedForVideo(false);
+    setIsAnimationEnding(false);
+    setShowToMode(false);
+    // 清除 transform 提示状态
+    setTransformFromMode(null);
+    setTransformToMode(null);
     lastTimeRef.current = Date.now();
   }, []);
 
@@ -298,9 +431,14 @@ export default function CityRunDemo() {
             const prevEdge = prevIndex >= 0 ? routeData.edges[prevIndex] : null;
 
             if (newSegmentIndex > 0 && prevEdge && newEdge.mode !== prevEdge.mode) {
-              const video = getTransformVideo(currentMode, newEdge.mode as VehicleMode);
+              const toMode = newEdge.mode as VehicleMode;
+              const fromMode = prevEdge.mode as VehicleMode;
+              const video = getTransformVideo(currentMode, toMode);
               if (video) {
                 console.log(`🎬 モード変更: ${prevEdge.mode} → ${newEdge.mode}, 動画: ${video}`);
+                // 设置转换来源/目标，用于右下角提示
+                setTransformFromMode(fromMode);
+                setTransformToMode(toMode);
                 setCurrentTransformVideo(video);
                 setShowTransformVideo(true);
                 setIsPausedForVideo(true);
@@ -338,6 +476,8 @@ export default function CityRunDemo() {
         const video = getTransformVideo(currentMode, firstMode);
         if (video) {
           console.log(`🎬 初期モード: ${firstMode}, 動画: ${video}`);
+          setTransformFromMode(currentMode);
+          setTransformToMode(firstMode);
           setCurrentTransformVideo(video);
           setShowTransformVideo(true);
           setIsPausedForVideo(true);
@@ -409,6 +549,7 @@ export default function CityRunDemo() {
               key={currentTransformVideo}
               src={currentTransformVideo}
               autoPlay
+              onLoadedMetadata={handleVideoLoaded}
               onEnded={handleVideoEnded}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
@@ -420,6 +561,34 @@ export default function CityRunDemo() {
         {isTransitioning && (
           <div className="transition-overlay" />
         )}
+
+        {/* 转换提示（右下角：旋转指示牌 - 使用Canvas绘制） */}
+        {showTransformVideo && transformFromMode != null && transformToMode != null && (() => {
+          const fromSignUrl = createShogiSignTextureWithPalette(modeChar(transformFromMode), modePalette(transformFromMode));
+          const toSignUrl = createShogiSignTextureWithPalette(modeChar(transformToMode), modePalette(transformToMode));
+
+          return (
+            <div
+              className="transform-sign-wrapper"
+              aria-hidden
+              style={{
+                '--animation-duration': `${videoDuration}s`
+              } as React.CSSProperties}
+            >
+              <div className="transform-sign">
+                <div className={`sign-card${isAnimationEnding ? ' animation-end' : ''}`}>
+                  <div className="sign-content">
+                    <img
+                      src={showToMode ? toSignUrl : fromSignUrl}
+                      alt={showToMode ? modeName(transformToMode) : modeName(transformFromMode)}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 4. 3D 场景 (Canvas) */}
         <ThreeScene>
