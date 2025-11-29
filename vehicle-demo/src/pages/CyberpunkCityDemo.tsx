@@ -7,6 +7,8 @@ import SkyEnvironment from '../components/website/SkyEnvironment'
 import DistantCityscape from '../components/website/DistantCityscape'
 import Vehicle from '../components/website/Vehicle'
 import { CameraFollower } from '../components/website/CameraFollower'
+import { RouteMarkers } from '../components/website/RouteMarkers'
+import { FocusVignette } from '../components/website/FocusVignette'
 import { useVehicleRoutes } from '../hooks/useVehicleRoutes'
 import { useRoutePaths } from '../hooks/useRoutePaths'
 import { useCameraFollow } from '../hooks/useCameraFollow'
@@ -309,17 +311,33 @@ export default function CyberpunkCityDemo() {
             return null;
           }
 
+          // 获取起点和终点位置
+          const startPos = path.getPointAt(0);
+          const endPos = path.getPointAt(1);
+          const isFollowing = selectedVehicleId === route.id && followMode;
+
           return (
-            <Vehicle
-              key={route.id}
-              path={path}
-              startPosition={0}
-              onClick={handleVehicleClick(route.id)}
-              onPositionUpdate={handlePositionUpdate(route.id)}
-              onComplete={() => handleVehicleComplete(route.id)}
-              name={route.name}
-              isCycle={route.isCycle}
-            />
+            <group key={route.id}>
+              <Vehicle
+                path={path}
+                startPosition={0}
+                onClick={handleVehicleClick(route.id)}
+                onPositionUpdate={handlePositionUpdate(route.id)}
+                onComplete={() => handleVehicleComplete(route.id)}
+                name={route.name}
+                isCycle={route.isCycle}
+              />
+              
+              {/* 跟踪模式下显示起点和终点标志 */}
+              {isFollowing && (
+                <RouteMarkers
+                  startPosition={startPos}
+                  endPosition={endPos}
+                  startName={route.nodes[0]?.id || 'START'}
+                  endName={route.nodes[route.nodes.length - 1]?.id || 'END'}
+                />
+              )}
+            </group>
           );
         })}
 
