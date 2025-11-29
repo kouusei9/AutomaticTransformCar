@@ -30,6 +30,7 @@ export default function CyberpunkCityDemo() {
   const isAutoModeRef = useRef(false) // 跟踪自动模式状态
   const stickyVehicleIdRef = useRef<string | null>(null) // 粘性跟踪的车辆ID
   const routePathsRef = useRef<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 路径 ref
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false) // 全体情报展开状态
 
   // 车辆路线管理
   const {
@@ -347,20 +348,31 @@ export default function CyberpunkCityDemo() {
 
       {/* UIオーバーレイ */}
       <div
+        onClick={() => !selectedVehicleId && setIsOverviewExpanded(!isOverviewExpanded)}
         style={{
           position: 'absolute',
-          top: 20,
-          left: 20,
+          top: isOverviewExpanded ? 20 : 20,
+          left: isOverviewExpanded ? '50%' : 20,
+          transform: isOverviewExpanded ? 'translateX(-50%)' : 'none',
           color: '#00ffff',
           fontFamily: 'monospace',
-          fontSize: '14px',
-          background: 'rgba(0, 0, 0, 0.7)',
-          padding: '15px',
-          borderRadius: '8px',
-          border: `1px solid ${selectedVehicleId !== null ? '#ff00ff' : '#00ffff'}`,
+          fontSize: isOverviewExpanded ? '15px' : '14px',
+          background: 'rgba(0, 0, 0, 0.92)',
+          padding: isOverviewExpanded ? '30px 40px' : '15px',
+          borderRadius: isOverviewExpanded ? '12px' : '8px',
+          border: `2px solid ${selectedVehicleId !== null ? '#ff00ff' : '#00ffff'}`,
           zIndex: 10,
-          pointerEvents: 'none',
-          textAlign: 'left'
+          pointerEvents: selectedVehicleId ? 'none' : 'auto',
+          textAlign: 'left',
+          width: isOverviewExpanded ? 'calc(100vw - 100px)' : 'auto',
+          maxWidth: isOverviewExpanded ? '1400px' : '350px',
+          minWidth: isOverviewExpanded ? '900px' : '280px',
+          cursor: selectedVehicleId ? 'default' : 'pointer',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: isOverviewExpanded 
+            ? '0 0 60px rgba(0, 255, 255, 0.6), inset 0 0 30px rgba(0, 255, 255, 0.1)' 
+            : '0 0 20px rgba(0, 255, 255, 0.3)',
+          backdropFilter: 'blur(15px)'
         }}
       >
         {selectedVehicleId !== null && vehicleRoutes.find(r => r.id === selectedVehicleId) ? (
@@ -390,19 +402,283 @@ export default function CyberpunkCityDemo() {
         ) : (
           // 全体情報
           <>
-            <h2 style={{ margin: '0 0 10px 0', color: '#ff00ff', textAlign: 'left' }}>
-              🚀 京都市街地ナビゲーション
+            <h2 style={{ 
+              margin: '0 0 15px 0', 
+              color: '#ff00ff', 
+              textAlign: 'left',
+              fontSize: isOverviewExpanded ? '24px' : '16px',
+              borderBottom: isOverviewExpanded ? '2px solid #00ffff' : 'none',
+              paddingBottom: isOverviewExpanded ? '10px' : '0'
+            }}>
+              🚀 京都市街地ナビゲーション {!isOverviewExpanded && '▼'}
             </h2>
-            <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
-              {vehicleRoutes.filter(r => activeVehicles.has(r.id)).map((route, idx) => (
-                <div key={route.id}>🚗 車両{idx + 1}: {route.name}</div>
-              ))}
-              <div>• {routePaths.size > 0 ? `✓ ${routePaths.size}ルート読み込み完了` : '⏳ ルート読み込み中...'}</div>
-              <div>• アクティブ車両: {activeVehicles.size}台</div>
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
-                クリックで車両を追跡 | マウスで視点操作
+            
+            {!isOverviewExpanded ? (
+              // 缩略版
+              <div style={{ lineHeight: '1.6', textAlign: 'left' }}>
+                {vehicleRoutes.filter(r => activeVehicles.has(r.id)).slice(0, 3).map((route, idx) => (
+                  <div key={route.id} style={{ fontSize: '13px' }}>🚗 車両{idx + 1}: {route.name}</div>
+                ))}
+                {vehicleRoutes.filter(r => activeVehicles.has(r.id)).length > 3 && (
+                  <div style={{ fontSize: '13px', color: '#888' }}>
+                    ... 他 {vehicleRoutes.filter(r => activeVehicles.has(r.id)).length - 3} 台
+                  </div>
+                )}
+                <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                  • {routePaths.size > 0 ? `✓ ${routePaths.size}ルート読み込み完了` : '⏳ ルート読み込み中...'}
+                </div>
+                <div style={{ fontSize: '12px' }}>• アクティブ車両: {activeVehicles.size}台</div>
+                <div style={{ marginTop: '10px', fontSize: '11px', color: '#888' }}>
+                  クリックで詳細表示 →
+                </div>
               </div>
-            </div>
+            ) : (
+              // 展开版详细信息 - 横向布局
+              <div style={{ textAlign: 'left' }}>
+                {/* 顶部系统状态栏 */}
+                <div style={{ 
+                  display: 'flex',
+                  gap: '25px',
+                  marginBottom: '25px',
+                  padding: '20px 25px',
+                  background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.08) 0%, rgba(0, 255, 255, 0.02) 100%)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(0, 255, 255, 0.4)',
+                  boxShadow: '0 4px 15px rgba(0, 255, 255, 0.1)'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>ルート総数</div>
+                    <div style={{ fontSize: '24px', color: '#00ffff', fontWeight: 'bold' }}>{routePaths.size}</div>
+                  </div>
+                  <div style={{ width: '1px', background: 'rgba(0, 255, 255, 0.2)' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>アクティブ車両</div>
+                    <div style={{ fontSize: '24px', color: '#00ff00', fontWeight: 'bold' }}>{activeVehicles.size} 台</div>
+                  </div>
+                  <div style={{ width: '1px', background: 'rgba(0, 255, 255, 0.2)' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>ノード/エッジ</div>
+                    <div style={{ fontSize: '24px', color: '#fff', fontWeight: 'bold' }}>
+                      {routeData?.nodes?.length || 0} / {routeData?.edges?.length || 0}
+                    </div>
+                  </div>
+                  <div style={{ width: '1px', background: 'rgba(0, 255, 255, 0.2)' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>制御モード</div>
+                    <div style={{ fontSize: '24px', color: isAutoMode ? '#00ff00' : '#ffaa00', fontWeight: 'bold' }}>
+                      {isAutoMode ? '自動' : '手動'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 车辆详细信息 - 横向网格布局 */}
+                <div style={{ 
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                  gap: '20px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  paddingRight: '10px',
+                  marginBottom: '20px'
+                }}>
+                  {vehicleRoutes.filter(r => activeVehicles.has(r.id)).map((route, idx) => {
+                    const path = routePaths.get(route.id)
+                    const totalTime = calculateTotalTime(route.edges)
+                    const demoTime = Math.round(totalTime / 20)
+                    const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
+                    
+                    // 统计各模式的边数量
+                    const modeCounts = route.edges.reduce((acc, edge) => {
+                      const modeType = edge.type || 'road'
+                      acc[modeType] = (acc[modeType] || 0) + 1
+                      return acc
+                    }, {} as Record<string, number>)
+                    
+                    return (
+                      <div 
+                        key={route.id}
+                        style={{ 
+                          padding: '18px',
+                          background: `linear-gradient(135deg, ${route.color}08 0%, rgba(0, 0, 0, 0.3) 100%)`,
+                          borderRadius: '10px',
+                          border: `2px solid ${route.color}`,
+                          borderLeft: `6px solid ${route.color}`,
+                          boxShadow: `0 4px 20px ${route.color}40`
+                        }}
+                      >
+                        {/* 车辆标题 */}
+                        <div style={{ 
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '15px',
+                          paddingBottom: '12px',
+                          borderBottom: `1px solid ${route.color}40`
+                        }}>
+                          <div style={{ 
+                            fontSize: '18px', 
+                            fontWeight: 'bold', 
+                            color: route.color
+                          }}>
+                            🚗 車両 {idx + 1}
+                          </div>
+                          <div style={{
+                            padding: '4px 12px',
+                            background: route.isCycle ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 170, 0, 0.2)',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            color: route.isCycle ? '#00ff00' : '#ffaa00',
+                            border: `1px solid ${route.isCycle ? '#00ff00' : '#ffaa00'}`
+                          }}>
+                            {route.isCycle ? '🔄 循環' : '➡️ 片道'}
+                          </div>
+                        </div>
+
+                        {/* 路线名称 */}
+                        <div style={{ fontSize: '16px', color: '#fff', marginBottom: '12px', fontWeight: '500' }}>
+                          📌 {route.name}
+                        </div>
+
+                        {/* 详细统计 - 两列布局 */}
+                        <div style={{ 
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '10px',
+                          fontSize: '13px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ color: '#aaa' }}>
+                            📍 ノード: <span style={{ color: '#fff', fontWeight: 'bold' }}>{route.nodes?.length || 0}</span>
+                          </div>
+                          <div style={{ color: '#aaa' }}>
+                            🔗 エッジ: <span style={{ color: '#fff', fontWeight: 'bold' }}>{route.edges?.length || 0}</span>
+                          </div>
+                          <div style={{ color: '#aaa' }}>
+                            📏 距離: <span style={{ color: '#00ffff', fontWeight: 'bold' }}>{(totalDistance / 1000).toFixed(2)} km</span>
+                          </div>
+                          <div style={{ color: '#aaa' }}>
+                            ⏱️ 実際: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{totalTime} 分</span>
+                          </div>
+                          <div style={{ color: '#aaa' }}>
+                            🎮 デモ: <span style={{ color: '#ff00ff', fontWeight: 'bold' }}>{demoTime} 秒</span>
+                          </div>
+                          {path && (
+                            <div style={{ color: '#aaa' }}>
+                              📐 Path: <span style={{ color: '#fff', fontWeight: 'bold' }}>{path.getLength().toFixed(1)} u</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 模式统计 */}
+                        <div style={{ 
+                          marginTop: '12px',
+                          paddingTop: '12px',
+                          borderTop: `1px dashed ${route.color}30`
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>🚦 移動モード分布:</div>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {modeCounts.road && (
+                              <div style={{ 
+                                padding: '4px 10px',
+                                background: 'rgba(0, 255, 255, 0.15)',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                color: '#00ffff',
+                                border: '1px solid rgba(0, 255, 255, 0.3)'
+                              }}>
+                                🚗 道路 ×{modeCounts.road}
+                              </div>
+                            )}
+                            {modeCounts.highway && (
+                              <div style={{ 
+                                padding: '4px 10px',
+                                background: 'rgba(255, 170, 0, 0.15)',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                color: '#ffaa00',
+                                border: '1px solid rgba(255, 170, 0, 0.3)'
+                              }}>
+                                🏎️ 高速 ×{modeCounts.highway}
+                              </div>
+                            )}
+                            {modeCounts.drone && (
+                              <div style={{ 
+                                padding: '4px 10px',
+                                background: 'rgba(0, 255, 0, 0.15)',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                color: '#00ff00',
+                                border: '1px solid rgba(0, 255, 0, 0.3)'
+                              }}>
+                                🚁 ドローン ×{modeCounts.drone}
+                              </div>
+                            )}
+                            {modeCounts.sky && (
+                              <div style={{ 
+                                padding: '4px 10px',
+                                background: 'rgba(255, 0, 255, 0.15)',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                color: '#ff00ff',
+                                border: '1px solid rgba(255, 0, 255, 0.3)'
+                              }}>
+                                ✈️ 飛行 ×{modeCounts.sky}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 路线节点详情 */}
+                        <div style={{ 
+                          marginTop: '12px',
+                          paddingTop: '12px',
+                          borderTop: `1px dashed ${route.color}30`
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#888', marginBottom: '6px' }}>📍 経由ルート:</div>
+                          <div style={{ fontSize: '12px', color: '#ccc', lineHeight: '1.6' }}>
+                            {route.nodes?.slice(0, 6).map((node, i) => (
+                              <span key={node.id}>
+                                {i > 0 && <span style={{ color: '#00ffff', margin: '0 4px' }}>→</span>}
+                                <span style={{ color: '#fff' }}>{node.id}</span>
+                              </span>
+                            ))}
+                            {route.nodes && route.nodes.length > 6 && (
+                              <span style={{ color: '#888' }}> ... (+{route.nodes.length - 6})</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* 底部提示 */}
+                <div style={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: '15px',
+                  borderTop: '1px solid rgba(0, 255, 255, 0.3)',
+                  fontSize: '13px'
+                }}>
+                  <div style={{ color: '#888' }}>
+                    💡 ヒント: 車両をクリックで追跡 | マウスで視点操作
+                  </div>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: '#00ffff',
+                    cursor: 'pointer',
+                    padding: '6px 15px',
+                    background: 'rgba(0, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(0, 255, 255, 0.3)',
+                    transition: 'all 0.2s'
+                  }}>
+                    ✕ クリックで閉じる
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
