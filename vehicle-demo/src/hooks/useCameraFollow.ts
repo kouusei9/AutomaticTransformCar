@@ -18,7 +18,7 @@ export interface CameraFollowOptions {
 const DEFAULT_OPTIONS: CameraFollowOptions = {
   defaultPosition: new THREE.Vector3(100, 80, 100),
   defaultTarget: new THREE.Vector3(0, 0, 0),
-  followDistance: 12,
+  followDistance: 16,
   followHeight: 6,
   lookAheadDistance: 15,
   transitionDuration: 1.2
