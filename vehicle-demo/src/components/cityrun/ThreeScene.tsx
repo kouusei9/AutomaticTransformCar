@@ -3,23 +3,24 @@ import { ReactNode } from 'react';
 
 interface ThreeSceneProps {
   children: ReactNode;
+  cameraPosition?: [number, number, number]; // 相机位置
 }
 
-export default function ThreeScene({ children }: ThreeSceneProps) {
+export default function ThreeScene({ children, cameraPosition = [0, -1, 5] }: ThreeSceneProps) {
   return (
     <Canvas
-      camera={{ position: [0, -1, 5], fov: 75 }}
-      gl={{ 
+      camera={{ position: cameraPosition, fov: 75 }}
+      gl={{
         antialias: true,
         toneMapping: 0, // NoToneMapping - 不进行色调映射
         toneMappingExposure: 1,
       }}
-      style={{ 
+      style={{
         position: 'absolute',
         top: 0,
         left: 0,
-        width: '100%', 
-        height: '100%' 
+        width: '100%',
+        height: '100%'
       }}
     >
       {/* 场景背景和雾效 */}

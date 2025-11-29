@@ -78,13 +78,13 @@ export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: Roa
   const currentRoadTexture = currentMode === 2
     ? roadHighwayTexture   // 香車 - 高速公路
     : currentMode === 3
-      ? roadDroneTexture     // 桂馬 - 低空飞行
+      ? roadHighwayTexture   // 桂馬 - 使用高速公路纹理
       : currentMode === 4
         ? roadFlyTexture       // 飛車 - 高空飞行
         : roadTexture;         // 金将 - 普通道路
 
   // drone 模式下使用赛博风格（半透明蓝色）
-  const isDroneMode = currentMode === 3;
+  const isDroneMode = false; // 桁模式不再使用透明效果
   const roadOpacity = isDroneMode ? 0.6 : 1.0;
   const roadColor = isDroneMode ? new THREE.Color(0x00d4ff) : new THREE.Color(0xffffff);
 

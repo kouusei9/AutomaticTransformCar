@@ -591,7 +591,11 @@ export default function CityRunDemo() {
         })()}
 
         {/* 4. 3D 场景 (Canvas) */}
-        <ThreeScene>
+        <ThreeScene cameraPosition={
+          currentMode === 3 ? [0, 3, 8] :  // 桂模式：高俯视
+            currentMode === 2 ? [0, 1.5, 6] : // 香模式：低俯视
+              [0, -1, 5]                         // 其他模式：正常视角
+        }>
           <FarScenery isMoving={isMoving} speed={0} />
           <MiddleScenery isMoving={isMoving} speed={0} currentMode={currentMode} />
 
