@@ -13,7 +13,7 @@ import type { VehicleTextures, TextureAspects } from '../../types/vehicleTypes'
 // ==================== 定数 ====================
 
 const HOVER_HEIGHT_BASE = 0.5
-const VEHICLE_SCALE = 6.0
+const VEHICLE_SCALE = 15.0
 
 // サイドビューモード：
 // true = 固定モード（車両が経路に垂直、路線の傾斜に追従、カメラ回転に影響されない）
