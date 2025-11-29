@@ -2,9 +2,10 @@
  * 相机跟踪功能 Hook
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import * as THREE from 'three'
 import gsap from 'gsap'
+import { useFrame } from '@react-three/fiber'
 
 export interface CameraFollowOptions {
   defaultPosition: THREE.Vector3
@@ -141,4 +142,116 @@ export function useCameraFollow(
     toggleFollow,
     updateVehiclePosition
   }
+}
+
+interface CameraFollowerProps {
+  followMode: boolean
+  vehiclePosition: THREE.Vector3 | null
+  vehicleForward: THREE.Vector3 | null
+  cameraRef: React.RefObject<THREE.PerspectiveCamera>
+  controlsRef: React.RefObject<any>
+  isAutoMode?: boolean        // 是否为自动模式
+  rotationSpeed?: number      // 旋转速度（弧度/秒）
+}
+
+export function CameraFollower({
+  followMode,
+  vehiclePosition,
+  vehicleForward,
+  cameraRef,
+  controlsRef,
+  isAutoMode = false,
+  rotationSpeed = 0.1
+}: CameraFollowerProps) {
+  const vehicleRotationRef = useRef(0)      // 车辆跟踪时的旋转角度
+  const overviewRotationRef = useRef(0)     // 全视角时的旋转角度
+  const lastModeRef = useRef<'vehicle' | 'overview' | null>(null)
+
+  // 模式切换时重置旋转角度
+  useEffect(() => {
+    const currentMode = followMode ? 'vehicle' : 'overview'
+    
+    if (lastModeRef.current !== currentMode) {
+      if (currentMode === 'overview') {
+        // 切换到全视角时，从当前相机角度开始
+        const camera = cameraRef.current
+        if (camera) {
+          overviewRotationRef.current = Math.atan2(
+            camera.position.z,
+            camera.position.x
+          )
+        }
+      } else {
+        // 切换到车辆跟踪时重置
+        vehicleRotationRef.current = 0
+      }
+      lastModeRef.current = currentMode
+    }
+  }, [followMode, cameraRef])
+
+  useFrame((state, delta) => {
+    if (!cameraRef.current || !controlsRef.current) return
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+
+    // 自动模式下的全视角旋转
+    if (isAutoMode && !followMode) {
+      // 全视角：围绕城市中心缓慢旋转
+      overviewRotationRef.current += rotationSpeed * delta
+      
+      const radius = 150        // 旋转半径
+      const height = 80         // 相机高度
+      const targetHeight = 10   // 🎯 目标点高度（城市中心高度）
+      
+      // 计算相机位置（圆周运动）
+      const x = Math.cos(overviewRotationRef.current) * radius
+      const z = Math.sin(overviewRotationRef.current) * radius
+      
+      camera.position.set(x, height, z)
+      
+      // 🎯 关键：让相机看向城市中心的合适高度
+      controls.target.set(0, targetHeight, 0)
+      controls.update()
+      return
+    }
+
+    // 车辆跟踪模式
+    if (followMode && vehiclePosition && vehicleForward) {
+      const distance = 16
+      const height = 6
+      const lookAheadDistance = 15
+
+      if (isAutoMode) {
+        // 自动模式：围绕车辆旋转
+        vehicleRotationRef.current += rotationSpeed * delta
+
+        const offsetX = Math.cos(vehicleRotationRef.current) * distance
+        const offsetZ = Math.sin(vehicleRotationRef.current) * distance
+
+        camera.position.set(
+          vehiclePosition.x + offsetX,
+          vehiclePosition.y + height,
+          vehiclePosition.z + offsetZ
+        )
+
+        controls.target.copy(vehiclePosition)
+      } else {
+        // 手动模式：跟随车辆前进方向
+        const backward = vehicleForward.clone().multiplyScalar(-distance)
+        const targetPos = vehiclePosition.clone().add(backward)
+        targetPos.y += height
+
+        camera.position.lerp(targetPos, 0.1)
+
+        const lookAhead = vehiclePosition.clone().add(
+          vehicleForward.clone().multiplyScalar(lookAheadDistance)
+        )
+        controls.target.lerp(lookAhead, 0.1)
+      }
+
+      controls.update()
+    }
+  })
+
+  return null
 }

@@ -32,11 +32,12 @@ export function CameraFollower({
   lookAheadDistance = 15,
   lerpFactor = 0.08,
   isAutoMode = false,
-  rotationSpeed = 0.1
+  rotationSpeed = 0.05
 }: CameraFollowerProps) {
   const vehicleRotationAngleRef = useRef(0)
   const overviewRotationAngleRef = useRef(0)
   const overviewInitializedRef = useRef(false)
+  const radiusRef = useRef(100);  // 默认半径
 
   useFrame((_, delta) => {
     if (!cameraRef.current || !controlsRef.current) {
@@ -70,7 +71,7 @@ export function CameraFollower({
       cameraRef.current.position.lerp(targetCameraPos, lerpFactor)
 
       const lookTarget = vehiclePosition.clone().add(
-        isAutoMode 
+        isAutoMode
           ? new THREE.Vector3(0, 0, 0)
           : vehicleForward.clone().multiplyScalar(lookAheadDistance)
       )
@@ -85,42 +86,48 @@ export function CameraFollower({
     }
 
     if (isAutoMode) {
-      // 自动模式 + 全视角：围绕全景目标旋转
-      const target = controlsRef.current.target
-        ? controlsRef.current.target.clone()
-        : new THREE.Vector3(0, 0, 0)
-      const currentPos = cameraRef.current.position.clone()
-      const horizontalOffset = new THREE.Vector3(
-        currentPos.x - target.x,
-        0,
-        currentPos.z - target.z
-      )
+      const target = new THREE.Vector3(0, 0, 0)
+      const defaultCameraPos = new THREE.Vector3(100, 80, 100)
 
-      let radius = horizontalOffset.length()
-      if (radius < 1) {
-        radius = followDistance
-      }
-
+      // 初始化一次 overview 的状态
       if (!overviewInitializedRef.current) {
-        overviewRotationAngleRef.current = Math.atan2(horizontalOffset.x, horizontalOffset.z)
+
+        // 半径 = 默认位置到中心的水平距离
+        const offset = new THREE.Vector3(
+          defaultCameraPos.x - target.x,
+          0,
+          defaultCameraPos.z - target.z
+        )
+
+        radiusRef.current = offset.length()
+
+        // 初始角度
+        overviewRotationAngleRef.current = Math.atan2(offset.x, offset.z)
+
+        // 设置相机位置
+        cameraRef.current.position.copy(defaultCameraPos)
+
+        // 设置 target
+        controlsRef.current.target.copy(target)
+
         overviewInitializedRef.current = true
       }
 
+      // 每帧更新旋转角度
       overviewRotationAngleRef.current += rotationSpeed * delta
 
+      // 旋转相机
       const desiredPos = new THREE.Vector3(
-        target.x + Math.sin(overviewRotationAngleRef.current) * radius,
-        currentPos.y,
-        target.z + Math.cos(overviewRotationAngleRef.current) * radius
+        target.x + Math.sin(overviewRotationAngleRef.current) * radiusRef.current,
+        80, // 固定高度
+        target.z + Math.cos(overviewRotationAngleRef.current) * radiusRef.current
       )
 
       cameraRef.current.position.lerp(desiredPos, lerpFactor)
 
-      if (controlsRef.current.target) {
-        controlsRef.current.target.lerp(target, lerpFactor)
-      }
+      // 看向中心
+      controlsRef.current.target.lerp(target, lerpFactor)
     }
   })
-
   return null
 }

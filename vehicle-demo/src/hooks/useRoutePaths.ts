@@ -2,7 +2,7 @@
  * 路径生成管理 Hook
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import type { VehicleRoute } from '../types/vehicle'
 import { createRoutePathFromNodeIds } from '../utils/routePathGenerator'
@@ -13,65 +13,54 @@ import { createRoutePathFromNodeIds } from '../utils/routePathGenerator'
 export function useRoutePaths(
   vehicleRoutes: VehicleRoute[],
   routeData: any,
-  extractNodeIds: (route: VehicleRoute) => string[]
+  extractNodeIds: (route: VehicleRoute) => string[],
+  onNewPathGenerated?: (vehicleId: string) => void // 新增：路径生成完成回调
 ) {
   const [routePaths, setRoutePaths] = useState<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map())
 
+  // 将 vehicleRoutes 转换为 ID 字符串，用于依赖比较
+  const vehicleIdsString = useMemo(() => {
+    return vehicleRoutes.map(r => r.id).join(',')
+  }, [vehicleRoutes])
+
   useEffect(() => {
     if (!routeData) return
-    if (routePaths.size === vehicleRoutes.length) return
-
-    console.log('🛣️ 开始生成路径，车辆数量:', vehicleRoutes.length)
-    const newPaths = new Map(routePaths)
-
-    vehicleRoutes.forEach((route: VehicleRoute) => {
-      if (newPaths.has(route.id)) return
-
-      const nodeIds = extractNodeIds(route)
-      console.log(`🚗 生成车辆 ID ${route.id} (${route.name}) 的路径，节点:`, nodeIds)
-
-      const path = createRoutePathFromNodeIds(
-        routeData.nodes,
-        routeData.edges,
-        nodeIds,
-        route.edges
-      )
-
-      if (true && path) {
-        // 打印详细的路径信息
-        console.log(`🛣️ 生成的路径 [车辆ID: ${route.id}]:`)
-        console.log('  📊 路径对象:', path)
-        console.log('  📐 曲线数量:', path.curves.length)
-        console.log('  📏 总长度:', path.getLength().toFixed(2), 'units')
-
-        // 打印每个曲线段的详细信息
-        path.curves.forEach((curve: any, index: number) => {
-          const startPoint = curve.getPoint(0)
-          const endPoint = curve.getPoint(1)
-          const edgeType = curve.userData?.edgeType || 'unknown'
-          const cost = curve.userData?.cost || 0
-          const curveLength = curve.getLength()
-
-          console.log(`  🔗 曲线段 ${index + 1}/${path.curves.length}:`)
-          console.log(`    📌 类型: ${edgeType}`)
-          console.log(`    ⏱️  Cost: ${cost}ms (${(cost / 1000).toFixed(1)}s)`)
-          console.log(`    📏 长度: ${curveLength.toFixed(2)} units`)
-          console.log(`    📍 起点: (${startPoint.x.toFixed(2)}, ${startPoint.y.toFixed(2)}, ${startPoint.z.toFixed(2)})`)
-          console.log(`    📍 终点: (${endPoint.x.toFixed(2)}, ${endPoint.y.toFixed(2)}, ${endPoint.z.toFixed(2)})`)
-          console.log(`    📈 高度变化: ${startPoint.y.toFixed(2)}m → ${endPoint.y.toFixed(2)}m`)
-        })
+    
+    // 使用函数式更新来确保获取最新的 routePaths
+    setRoutePaths(currentPaths => {
+      // 检查是否有新车辆需要生成路径
+      const missingVehicles = vehicleRoutes.filter(route => !currentPaths.has(route.id))
+      
+      if (missingVehicles.length === 0) {
+        return currentPaths
       }
-      if (path) {
-        newPaths.set(route.id, path)
-        console.log(`✅ 车辆 ID ${route.id} 路径生成成功`)
-      } else {
-        console.warn(`❌ 车辆 ID ${route.id} 路径生成失败`)
-      }
+
+      console.log(`🚗 生成 ${missingVehicles.length} 个新车辆路径:`, missingVehicles.map(r => r.id))
+      
+      const newPaths = new Map(currentPaths)
+
+      missingVehicles.forEach((route: VehicleRoute) => {
+        const nodeIds = extractNodeIds(route)
+        const path = createRoutePathFromNodeIds(
+          routeData.nodes,
+          routeData.edges,
+          nodeIds,
+          route.edges
+        )
+        
+        if (path) {
+          newPaths.set(route.id, path)
+          console.log(`✅ 路径生成: ${route.name} (${route.id})`)
+          
+          // 通知外部：路径生成完成
+          if (onNewPathGenerated) {
+            setTimeout(() => onNewPathGenerated(route.id), 0)
+          }
+        }
+      })
+      return newPaths
     })
-
-    console.log(`✅ 总共生成 ${newPaths.size} 条路径`)
-    setRoutePaths(newPaths)
-  }, [routeData, vehicleRoutes, extractNodeIds, routePaths])
+  }, [routeData, vehicleIdsString, extractNodeIds, vehicleRoutes, onNewPathGenerated])
 
   return routePaths
 }

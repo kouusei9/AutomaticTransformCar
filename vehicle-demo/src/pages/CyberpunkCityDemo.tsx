@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import * as THREE from 'three'
 import CityGround from '../components/website/CityGround'
 import SkyEnvironment from '../components/website/SkyEnvironment'
@@ -11,8 +11,12 @@ import { useVehicleRoutes } from '../hooks/useVehicleRoutes'
 import { useRoutePaths } from '../hooks/useRoutePaths'
 import { useCameraFollow } from '../hooks/useCameraFollow'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { useAutoViewSwitch } from '../hooks/useAutoViewSwitch'
 import { INITIAL_VEHICLE_ROUTES } from '../config/vehicleRoutes'
 import { calculateTotalTime } from '../types/routeAPI'
+
+// 自动切换间隔时间（毫秒）
+const AUTO_SWITCH_INTERVAL = 10000 // 10 秒
 
 /**
  * サイバーパンク都市デモページ
@@ -21,6 +25,9 @@ export default function CyberpunkCityDemo() {
   const [routeData, setRouteData] = useState<any>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!)
   const controlsRef = useRef<any>(null!)
+  const isAutoModeRef = useRef(false) // 跟踪自动模式状态
+  const stickyVehicleIdRef = useRef<string | null>(null) // 粘性跟踪的车辆ID
+  const routePathsRef = useRef<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 路径 ref
 
   // 车辆路线管理
   const {
@@ -32,9 +39,6 @@ export default function CyberpunkCityDemo() {
     getVehicleRoute
   } = useVehicleRoutes(INITIAL_VEHICLE_ROUTES)
 
-  // 路径生成
-  const routePaths = useRoutePaths(vehicleRoutes, routeData, extractNodeIds)
-
   // 相机跟踪
   const {
     followMode,
@@ -42,8 +46,97 @@ export default function CyberpunkCityDemo() {
     vehiclePosition,
     vehicleForward,
     toggleFollow,
-    updateVehiclePosition
+    updateVehiclePosition,
+    startFollowing,
+    stopFollowing
   } = useCameraFollow(cameraRef, controlsRef)
+
+  // 获取活跃车辆ID列表
+  const activeVehicleIds = useMemo(() => {
+    return vehicleRoutes
+      .filter(route => activeVehicles.has(route.id))
+      .map(route => route.id)
+  }, [vehicleRoutes, activeVehicles])
+
+  // 路径生成（使用回调通知新路径生成）
+  const routePaths = useRoutePaths(
+    vehicleRoutes, 
+    routeData, 
+    extractNodeIds, 
+    useCallback((vehicleId: string) => {
+      console.log(`📢 路径生成回调触发: ${vehicleId}`)
+      console.log(`  自动模式: ${isAutoModeRef.current}`)
+      
+      // 如果在自动模式下，立即切换到新车辆并设置粘性跟踪
+      if (isAutoModeRef.current) {
+        console.log(`🆕 新车辆加入，切换跟踪: ${vehicleId}`)
+        setTimeout(() => {
+          const route = getVehicleRoute(vehicleId)
+          console.log(`  找到路线:`, route?.name || '无')
+          
+          if (route) {
+            // 从 ref 获取最新的路径 Map
+            const path = routePathsRef.current.get(vehicleId)
+            console.log(`  找到路径:`, path ? '是' : '否')
+            console.log(`  当前 routePathsRef 大小:`, routePathsRef.current.size)
+            console.log(`  当前 routePathsRef keys:`, Array.from(routePathsRef.current.keys()))
+            
+            if (path) {
+              const startPos = path.getPointAt(0)
+              const startTangent = path.getTangentAt(0).normalize()
+              startFollowing(vehicleId, startPos, startTangent)
+              // 设置粘性跟踪标记
+              stickyVehicleIdRef.current = vehicleId
+              console.log(`🔒 粘性跟踪启用: ${route.name}`)
+            } else {
+              console.warn(`⚠️ 未找到路径: ${vehicleId}`)
+            }
+          }
+        }, 100) // 增加延迟到 100ms
+      }
+    }, [getVehicleRoute, startFollowing])
+  )
+
+  // 同步 routePaths 到 ref
+  useEffect(() => {
+    routePathsRef.current = routePaths
+  }, [routePaths])
+
+  // 切换到指定车辆的回调
+  const handleSwitchToVehicle = useCallback((vehicleId: string) => {
+    const route = getVehicleRoute(vehicleId)
+    if (route) {
+      const path = routePaths.get(vehicleId)
+      if (path) {
+        const startPos = path.getPointAt(0)
+        const startTangent = path.getTangentAt(0).normalize()
+        startFollowing(vehicleId, startPos, startTangent)
+      }
+    }
+  }, [routePaths, getVehicleRoute, startFollowing])
+
+  // 切换到全视角的回调
+  const handleSwitchToOverview = useCallback(() => {
+    stopFollowing()
+  }, [stopFollowing])
+
+  // 自动视角切换
+  const {
+    isAutoMode,
+    toggleAutoMode,
+    disableAutoMode
+  } = useAutoViewSwitch(
+    activeVehicleIds,
+    handleSwitchToVehicle,
+    handleSwitchToOverview,
+    { switchInterval: AUTO_SWITCH_INTERVAL },
+    () => stickyVehicleIdRef.current // 传递获取粘性跟踪状态的函数
+  )
+
+  // 同步 isAutoMode 到 ref
+  useEffect(() => {
+    isAutoModeRef.current = isAutoMode
+  }, [isAutoMode])
 
   // WebSocket 连接
   useWebSocket({
@@ -85,6 +178,8 @@ export default function CyberpunkCityDemo() {
 
   // 车辆点击处理
   const handleVehicleClick = (vehicleId: string) => (position: THREE.Vector3, forward: THREE.Vector3) => {
+    // 手动点击时关闭自动模式
+    disableAutoMode()
     toggleFollow(vehicleId, position, forward)
   }
 
@@ -97,8 +192,17 @@ export default function CyberpunkCityDemo() {
   const handleVehicleComplete = (vehicleId: string) => {
     const route = getVehicleRoute(vehicleId)
     if (!route || route.isCycle) return
-    
     removeVehicle(vehicleId)
+    // 如果是粘性跟踪的车辆完成了，解除粘性跟踪
+    if (stickyVehicleIdRef.current === vehicleId) {
+      console.log(`🔓 粘性跟踪解除: ${route?.name || vehicleId}`)
+      stickyVehicleIdRef.current = null
+      // 恢复自动切换
+      if (isAutoModeRef.current) {
+        console.log(`🔄 恢复自动切换模式`)
+        stopFollowing()
+      }
+    }
   }
 
   return (
@@ -111,6 +215,17 @@ export default function CyberpunkCityDemo() {
       background: '#000',
       overflow: 'hidden'
     }}>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.6;
+          }
+        }
+      `}</style>
+      
       <Canvas
         shadows
         gl={{
@@ -154,6 +269,7 @@ export default function CyberpunkCityDemo() {
           vehicleForward={vehicleForward}
           cameraRef={cameraRef}
           controlsRef={controlsRef}
+          isAutoMode={isAutoMode}
         />
 
         <ambientLight intensity={0.4} />
@@ -172,7 +288,7 @@ export default function CyberpunkCityDemo() {
         />
 
         <SkyEnvironment />
-        <DistantCityscape />
+        {/* <DistantCityscape /> */}
         <CityGround
           onRouteDataLoaded={setRouteData}
           highlightedRoute={selectedVehicleId !== null ? (() => {
@@ -311,6 +427,70 @@ export default function CyberpunkCityDemo() {
             <span>航空路線 (Airplane)</span>
           </div>
         </div>
+      </div>
+
+      {/* 自动/手动切换按钮（左下角） */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          left: 20,
+          zIndex: 10
+        }}
+      >
+        <button
+          onClick={toggleAutoMode}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            color: isAutoMode ? '#000' : '#00ffff',
+            background: isAutoMode 
+              ? 'linear-gradient(135deg, #00ffff 0%, #00ff88 100%)' 
+              : 'rgba(0, 0, 0, 0.7)',
+            border: `2px solid ${isAutoMode ? '#00ffff' : '#00ffff'}`,
+            borderRadius: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: isAutoMode 
+              ? '0 0 20px rgba(0, 255, 255, 0.5)' 
+              : '0 0 10px rgba(0, 255, 255, 0.2)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)'
+            e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 255, 255, 0.8)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = isAutoMode 
+              ? '0 0 20px rgba(0, 255, 255, 0.5)' 
+              : '0 0 10px rgba(0, 255, 255, 0.2)'
+          }}
+        >
+          {isAutoMode ? '🤖 自動モード' : '👤 手動モード'}
+        </button>
+        
+        {isAutoMode && (
+          <div
+            style={{
+              marginTop: '10px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontFamily: 'monospace',
+              color: '#00ffff',
+              background: 'rgba(0, 0, 0, 0.7)',
+              border: '1px solid #00ffff',
+              borderRadius: '6px',
+              textAlign: 'center',
+              animation: 'pulse 2s infinite'
+            }}
+          >
+            ⏱️ {AUTO_SWITCH_INTERVAL / 1000}秒ごとに視点切替中
+          </div>
+        )}
       </div>
     </div>
   )
