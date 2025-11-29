@@ -248,7 +248,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
     if (textRef.current && mesh) {
       textRef.current.position.set(
         mesh.position.x,
-        mesh.position.y + VEHICLE_SCALE + 2,
+        mesh.position.y + 10,
         mesh.position.z
       )
       textRef.current.lookAt(camera.position)
