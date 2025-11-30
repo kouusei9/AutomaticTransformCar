@@ -1,0 +1,451 @@
+{
+  "landmarks": [
+    {
+      "id": "B01",
+      "name": "京都大學時計台",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.026111,
+        "lng": 135.781944
+      },
+      "height": 35,
+      "description": "京都大學標誌性建築時計台",
+      "rank": "medium"
+    },
+    {
+      "id": "B02",
+      "name": "京都国際会館",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.062222,
+        "lng": 135.782778
+      },
+      "height": 40,
+      "description": "京都國際會議中心",
+      "rank": "medium"
+    },
+    {
+      "id": "B03",
+      "name": "イオンモール京都",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.977778,
+        "lng": 135.746111
+      },
+      "height": 30,
+      "description": "大型購物中心AEON MALL",
+      "rank": "medium"
+    },
+    {
+      "id": "B04",
+      "name": "京都ホテルオークラ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.011944,
+        "lng": 135.768889
+      },
+      "height": 60,
+      "description": "京都大倉飯店高層建築",
+      "rank": "large"
+    },
+    {
+      "id": "B05",
+      "name": "伊勢丹京都店",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.985278,
+        "lng": 135.758611
+      },
+      "height": 55,
+      "description": "伊勢丹百貨京都店",
+      "rank": "large"
+    },
+    {
+      "id": "B07",
+      "name": "京都市役所",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.012222,
+        "lng": 135.768333
+      },
+      "height": 45,
+      "description": "京都市政府本庁舎",
+      "rank": "medium"
+    },
+    {
+      "id": "B08",
+      "name": "京都コンサートホール",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.048333,
+        "lng": 135.760556
+      },
+      "height": 38,
+      "description": "京都音楽堂、クラシック音楽の殿堂",
+      "rank": "medium"
+    },
+    {
+      "id": "B09",
+      "name": "京都駅ビル",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.985849,
+        "lng": 135.758767
+      },
+      "height": 60,
+      "description": "京都駅複合ビル、原広司設計の現代建築",
+      "rank": "large"
+    },
+    {
+      "id": "B10",
+      "name": "京都府立図書館",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.015278,
+        "lng": 135.782222
+      },
+      "height": 28,
+      "description": "京都府立圖書館、岡崎公園内",
+      "rank": "small"
+    },
+    {
+      "id": "B11",
+      "name": "ロームシアター京都",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.014722,
+        "lng": 135.781667
+      },
+      "height": 32,
+      "description": "京都會館改修後的現代劇場",
+      "rank": "medium"
+    },
+    {
+      "id": "B12",
+      "name": "京都国立博物館",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.987778,
+        "lng": 135.773333
+      },
+      "height": 35,
+      "description": "日本国立博物館之一、収蔵文化財寶庫",
+      "rank": "medium"
+    },
+    {
+      "id": "B13",
+      "name": "京都市美術館",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.013889,
+        "lng": 135.782500
+      },
+      "height": 30,
+      "description": "京都市立美術館（京セラ美術館）",
+      "rank": "medium"
+    },
+    {
+      "id": "B14",
+      "name": "京都ブライトンホテル",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.020833,
+        "lng": 135.764444
+      },
+      "height": 52,
+      "description": "高級ホテル、御所近くに位置",
+      "rank": "large"
+    },
+    {
+      "id": "B15",
+      "name": "京都リサーチパーク",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.993333,
+        "lng": 135.748889
+      },
+      "height": 48,
+      "description": "日本最大級の民間研究開発施設",
+      "rank": "medium"
+    },
+    {
+      "id": "S01",
+      "name": "伏見稲荷大社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 34.967146,
+        "lng": 135.772695
+      },
+      "height": 15,
+      "description": "千本鳥居で有名な稲荷神社の総本社",
+      "rank": "major"
+    },
+    {
+      "id": "S02",
+      "name": "八坂神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.003611,
+        "lng": 135.778611
+      },
+      "height": 12,
+      "description": "祇園祭で有名な京都を代表する神社",
+      "rank": "major"
+    },
+    {
+      "id": "S03",
+      "name": "平安神宮",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.016194,
+        "lng": 135.782750
+      },
+      "height": 18,
+      "description": "平安遷都1100年を記念して創建された朱色の大鳥居が特徴",
+      "rank": "major"
+    },
+    {
+      "id": "S04",
+      "name": "下鴨神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.038889,
+        "lng": 135.772778
+      },
+      "height": 12,
+      "description": "正式名称は賀茂御祖神社、世界遺産登録の古社",
+      "rank": "major"
+    },
+    {
+      "id": "S05",
+      "name": "上賀茂神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.060278,
+        "lng": 135.752500
+      },
+      "height": 12,
+      "description": "正式名称は賀茂別雷神社、京都最古の神社の一つ",
+      "rank": "major"
+    },
+    {
+      "id": "S06",
+      "name": "北野天満宮",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.031806,
+        "lng": 135.735528
+      },
+      "height": 14,
+      "description": "学問の神様・菅原道真を祀る天満宮の総本社",
+      "rank": "major"
+    },
+    {
+      "id": "S07",
+      "name": "貴船神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.122778,
+        "lng": 135.762222
+      },
+      "height": 10,
+      "description": "水の神様を祀る縁結びで有名な神社",
+      "rank": "major"
+    },
+    {
+      "id": "S08",
+      "name": "松尾大社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 34.999167,
+        "lng": 135.684444
+      },
+      "height": 12,
+      "description": "酒造の神様として知られる京都最古級の神社",
+      "rank": "major"
+    },
+    {
+      "id": "S09",
+      "name": "今宮神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.043056,
+        "lng": 135.745833
+      },
+      "height": 10,
+      "description": "玉の輿のお守りで有名な神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S10",
+      "name": "吉田神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.023889,
+        "lng": 135.784167
+      },
+      "height": 10,
+      "description": "節分祭で有名な吉田山に鎮座する神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S11",
+      "name": "車折神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.014722,
+        "lng": 135.706111
+      },
+      "height": 8,
+      "description": "芸能の神様として芸能人の信仰を集める神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S12",
+      "name": "御金神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.012500,
+        "lng": 135.760278
+      },
+      "height": 8,
+      "description": "金運アップで有名な黄金の鳥居が特徴の神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S13",
+      "name": "安井金比羅宮",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.001111,
+        "lng": 135.778333
+      },
+      "height": 9,
+      "description": "縁切り縁結び碑で有名な神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S14",
+      "name": "野宮神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.017222,
+        "lng": 135.674167
+      },
+      "height": 7,
+      "description": "嵐山の竹林に囲まれた縁結びの神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S15",
+      "name": "地主神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 34.994722,
+        "lng": 135.785000
+      },
+      "height": 8,
+      "description": "清水寺境内にある恋愛成就で有名な神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S16",
+      "name": "晴明神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.021944,
+        "lng": 135.754722
+      },
+      "height": 9,
+      "description": "陰陽師・安倍晴明を祀る魔除けの神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S17",
+      "name": "岡崎神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.018056,
+        "lng": 135.788889
+      },
+      "height": 8,
+      "description": "子授け・安産祈願で有名なうさぎの神社",
+      "rank": "medium"
+    },
+    {
+      "id": "S18",
+      "name": "大将軍八神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.032778,
+        "lng": 135.731944
+      },
+      "height": 7,
+      "description": "方位除けの神様を祀る神社",
+      "rank": "small"
+    },
+    {
+      "id": "S19",
+      "name": "粟田神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.010556,
+        "lng": 135.785278
+      },
+      "height": 7,
+      "description": "旅立ちの神様を祀る神社",
+      "rank": "small"
+    },
+    {
+      "id": "S20",
+      "name": "梨木神社",
+      "type": "shrine",
+      "coordinates": {
+        "lat": 35.020556,
+        "lng": 135.766667
+      },
+      "height": 7,
+      "description": "京都三名水の一つ染井の水がある神社",
+      "rank": "small"
+    },
+    {
+      "id": "SK01",
+      "name": "スカイツリー",
+      "type": "skytree",
+      "coordinates": {
+        "lat": 35.044962,
+        "lng": 135.731528
+      },
+      "height": 634,
+      "description": "京都未来都市のシンボル的超高層タワー",
+      "rank": "landmark"
+    },
+    {
+      "id": "CT01",
+      "name": "コクーンタワー",
+      "type": "cocoontower",
+      "coordinates": {
+        "lat": 35.06,
+        "lng": 135.74
+      },
+      "height": 204,
+      "description": "新宿モード学園のシンボル的な繭型超高層ビル",
+      "rank": "landmark"
+    }
+  ],
+  "metadata": {
+    "total_landmarks": 37,
+    "buildings": 15,
+    "shrines": 20,
+    "skytrees": 1,
+    "cocoontowers": 1,
+    "map_bounds": {
+      "north": 35.122778,
+      "south": 34.967146,
+      "east": 135.788889,
+      "west": 135.674167
+    },
+    "description": "京都市内の主要建築物と神社の統合リスト",
+    "last_updated": "2025-11-30"
+  }
+}
