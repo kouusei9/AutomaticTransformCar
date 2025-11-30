@@ -647,12 +647,30 @@ export default function CyberpunkCityDemo() {
                         }}>
                           <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px', fontWeight: '500' }}>📍 経由ルート:</div>
                           <div style={{ fontSize: '15px', color: '#ccc', lineHeight: '2' }}>
-                            {route.nodes?.slice(0, 6).map((node, i) => (
-                              <span key={node.id}>
-                                {i > 0 && <span style={{ color: '#00ffff', margin: '0 6px', fontSize: '14px' }}>→</span>}
-                                <span style={{ color: '#fff', fontWeight: 'bold' }}>{node.id}</span>
-                              </span>
-                            ))}
+                            {route.nodes?.slice(0, 6).map((node, i) => {
+                              // 获取当前节点到下一个节点的边类型
+                              const edgeToNext = i < route.edges?.length ? route.edges[i] : null
+                              const edgeType = edgeToNext?.type || 'road'
+                              
+                              // 根据边类型选择颜色和图标
+                              const edgeDisplay = {
+                                road: { icon: '🚗', color: '#00ffff' },
+                                highway: { icon: '🏎️', color: '#ffaa00' },
+                                drone: { icon: '🚁', color: '#00ff00' },
+                                sky: { icon: '✈️', color: '#ff00ff' }
+                              }[edgeType] || { icon: '→', color: '#00ffff' }
+                              
+                              return (
+                                <span key={node.id}>
+                                  <span style={{ color: '#fff', fontWeight: 'bold' }}>{getNodeName(node.id)}</span>
+                                  {i < route.nodes.length - 1 && (
+                                    <span style={{ color: edgeDisplay.color, margin: '0 6px', fontSize: '14px' }}>
+                                      {edgeDisplay.icon}
+                                    </span>
+                                  )}
+                                </span>
+                              )
+                            })}
                             {route.nodes && route.nodes.length > 6 && (
                               <span style={{ color: '#888', fontSize: '14px' }}> ... (+{route.nodes.length - 6})</span>
                             )}
@@ -718,19 +736,19 @@ export default function CyberpunkCityDemo() {
         <div style={{ lineHeight: '1.8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: '#00ffff', fontSize: '16px' }}>━━</span>
-            <span>地上ルート (Road)</span>
+            <span>一般道路</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: '#ffaa00', fontSize: '16px' }}>━━</span>
-            <span>高速道路 (Highway)</span>
+            <span>高速道路</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: '#ff00ff', fontSize: '16px' }}>━━</span>
-            <span>ドローン (Drone)</span>
+            <span>ドローン</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: '#00ff00', fontSize: '16px' }}>━━</span>
-            <span>航空路線 (Airplane)</span>
+            <span>航空路線</span>
           </div>
         </div>
       </div>

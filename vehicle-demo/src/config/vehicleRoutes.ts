@@ -18,7 +18,7 @@ export const INITIAL_VEHICLE_ROUTES: VehicleRoute[] = [
       { seq: 1, from: 'D1', to: 'H1', speed_limit: 100, type: 'road', mode: 1, length: 3000, cost: 120000 },
       { seq: 2, from: 'H1', to: 'OUT_H1', speed_limit: 300, type: 'sky', mode: 4, length: 5000, cost: 6000 }
     ],
-    name: 'テストルート1 (Airplane)',
+    name: 'めぐりルート1',
     color: '#00ff00',
     isCycle: true
   },
@@ -36,7 +36,7 @@ export const INITIAL_VEHICLE_ROUTES: VehicleRoute[] = [
       { seq: 2, from: 'A1', to: 'A3', speed_limit: 60, type: 'drone', mode: 3, length: 5000, cost: 150000 },
       { seq: 3, from: 'A3', to: 'A4', speed_limit: 60, type: 'drone', mode: 3, length: 4500, cost: 90000 }
     ],
-    name: 'テストルート2 (Drone)',
+    name: 'めぐりルート2',
     color: '#00ffff',
     isCycle: true
   },
@@ -52,7 +52,7 @@ export const INITIAL_VEHICLE_ROUTES: VehicleRoute[] = [
       { seq: 1, from: 'C1', to: 'C2', speed_limit: 50, type: 'road', mode: 1, length: 1500, cost: 60000 },
       { seq: 2, from: 'C2', to: 'C3', speed_limit: 50, type: 'road', mode: 1, length: 2000, cost: 80000 }
     ],
-    name: 'テストルート3 (Road)',
+    name: 'めぐりルート3',
     color: '#ff00ff',
     isCycle: true
   }
