@@ -156,3 +156,80 @@
     transform: rotateY(360deg);
   }
 }
+
+/* ===== iPad 适配 ===== */
+
+/* iPad 横屏优化 HUD 面板位置 */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .transform-sign-wrapper {
+    right: 24px;
+    bottom: 24px;
+  }
+
+  .transform-sign {
+    width: 96px;
+    height: 120px;
+  }
+}
+
+/* iPad 竖屏优化 */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .transform-sign-wrapper {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .transform-sign {
+    width: 80px;
+    height: 100px;
+  }
+}
+
+/* iPad Pro 适配 */
+@media screen and (min-width: 1024px) and (max-width: 1366px) {
+  .transform-sign-wrapper {
+    right: 32px;
+    bottom: 32px;
+  }
+
+  .transform-sign {
+    width: 104px;
+    height: 132px;
+  }
+}
+
+/* 触摸优化 - 增加按钮点击区域 */
+@media (hover: none) and (pointer: coarse) {
+  button {
+    min-height: 48px;
+    padding: 0.8em 1.4em;
+  }
+
+  select {
+    min-height: 48px;
+    font-size: 16px;
+    /* 防止 iOS 自动缩放 */
+  }
+}
+
+/* iPad横屏 */
+@media screen and (orientation: landscape) and (max-height: 768px) {
+  .transform-sign-wrapper {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .transform-sign {
+    width: 72px;
+    height: 92px;
+  }
+}
+
+/* iPad性能优化 - 减少阴影和模糊效果 */
+@supports (-webkit-touch-callout: none) {
+
+  /* 仅在iOS/iPadOS上应用 */
+  .bg-gradient-to-br {
+    backdrop-filter: none !important;
+  }
+}

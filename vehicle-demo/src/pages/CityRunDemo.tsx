@@ -8,6 +8,7 @@ import MiddleScenery from '../components/cityrun/MiddleScenery.tsx';
 import FarScenery from '../components/cityrun/FarScenery.tsx';
 import HUDPanel from '../components/cityrun/HUDPanel.tsx';
 import OncomingVehicles from '../components/cityrun/OncomingVehicles.tsx';
+import DebugPanel from '../components/cityrun/DebugPanel.tsx';
 import type { RouteResponse } from '../types/routeAPI';
 import { websocketService } from '../services/websocketService';
 import './CityRunDemo.css';
@@ -123,6 +124,9 @@ export const useSimulation = () => {
 };
 
 export default function CityRunDemo() {
+  // ===== 浏览器检测 =====
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
   // ===== State定義 =====
   const [isMoving, setIsMoving] = useState(false);
   const [isFirstPerson, setIsFirstPerson] = useState(true);
@@ -143,6 +147,8 @@ export default function CityRunDemo() {
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isPausedForVideo, setIsPausedForVideo] = useState(false);
+  const [isTestRoute, setIsTestRoute] = useState(false); // 是否显示DebugPanel(仅测试路线行驶时)
+  const isTestRouteRef = useRef(false); // 标记当前路线是否为测试路线
 
   const exitAnimationModeRef = useRef<VehicleMode>(VehicleMode.NORMAL);
   const timersRef = useRef<number[]>([]);
@@ -336,14 +342,18 @@ export default function CityRunDemo() {
 
   const handleVideoEnded = useCallback(() => {
     console.log('✅ 変換動画終了、走行再開');
-    setShowTransformVideo(false);
-    setIsPausedForVideo(false);
-    setIsAnimationEnding(false);
-    setShowToMode(false);
-    // 清除 transform 提示状态
-    setTransformFromMode(null);
-    setTransformToMode(null);
-    lastTimeRef.current = Date.now();
+
+    // 使用setTimeout确保状态更新顺序正确,防止卡住
+    setTimeout(() => {
+      setShowTransformVideo(false);
+      setIsPausedForVideo(false);
+      setIsAnimationEnding(false);
+      setShowToMode(false);
+      // 清除 transform 提示状态
+      setTransformFromMode(null);
+      setTransformToMode(null);
+      lastTimeRef.current = Date.now();
+    }, 50); // 延迟50ms确保视频完全结束
   }, []);
 
   const handleRouteDataChange = useCallback((newRouteData: RouteResponse | null) => {
@@ -352,8 +362,35 @@ export default function CityRunDemo() {
     setElapsedTime(0);
     setProgressPercent(0);
     setCurrentSegmentIndex(0);
-    console.log('📍 ルートデータ更新:', newRouteData);
+
+    // 检查是否为测试路线(通过ID判断,测试路线ID包含THREE-MODE或ALL-MODES)
+    const isTest = newRouteData?.id?.includes('THREE-MODE') ||
+      newRouteData?.id?.includes('ALL-MODES') ||
+      false;
+    isTestRouteRef.current = isTest;
+    setIsTestRoute(false); // 加载路线时不显示DebugPanel
+
+    console.log('📍 ルートデータ更新:', newRouteData, isTest ? '(テストルート)' : '');
   }, []);
+
+  // ===== isMoving变化时控制DebugPanel显示 =====
+  useEffect(() => {
+    console.log('🔍 DebugPanel状态检查:', {
+      isMoving,
+      isTestRouteRef: isTestRouteRef.current,
+      isDev: (import.meta as any)?.env?.DEV
+    });
+
+    if (isMoving && isTestRouteRef.current) {
+      // 开始行驶测试路线时显示DebugPanel
+      console.log('✅ 显示DebugPanel');
+      setIsTestRoute(true);
+    } else {
+      // 停止行驶时隐藏DebugPanel
+      console.log('❌ 隐藏DebugPanel');
+      setIsTestRoute(false);
+    }
+  }, [isMoving]);
 
   // ===== requestAnimationFrame 进度更新 =====
   useEffect(() => {
@@ -433,19 +470,28 @@ export default function CityRunDemo() {
             if (newSegmentIndex > 0 && prevEdge && newEdge.mode !== prevEdge.mode) {
               const toMode = newEdge.mode as VehicleMode;
               const fromMode = prevEdge.mode as VehicleMode;
-              const video = getTransformVideo(currentMode, toMode);
+              const video = getTransformVideo(fromMode, toMode); // 使用fromMode而不是currentMode
               if (video) {
-                console.log(`🎬 モード変更: ${prevEdge.mode} → ${newEdge.mode}, 動画: ${video}`);
+                console.log(`🎬 モード変更: ${fromMode} → ${toMode}, 動画: ${video}`);
                 // 设置转换来源/目标，用于右下角提示
                 setTransformFromMode(fromMode);
                 setTransformToMode(toMode);
                 setCurrentTransformVideo(video);
                 setShowTransformVideo(true);
                 setIsPausedForVideo(true);
-              }
-            }
 
-            setCurrentMode(newEdge.mode as VehicleMode);
+                // 延迟更新模式,确保视频正常播放
+                setTimeout(() => {
+                  setCurrentMode(toMode);
+                }, 100);
+              } else {
+                // 没有视频时立即更新模式
+                setCurrentMode(toMode);
+              }
+            } else {
+              // 首次进入或无模式变化时更新模式
+              setCurrentMode(newEdge.mode as VehicleMode);
+            }
           }
           return newSegmentIndex;
         });
@@ -521,7 +567,9 @@ export default function CityRunDemo() {
   return (
     <SimulationContext.Provider value={simulationContextValue}>
       <div style={{
-        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+        position: 'fixed', top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        maxWidth: '100vw', maxHeight: '100vh',
         background: '#000', overflow: 'hidden', margin: 0, padding: 0
       }}>
 
@@ -549,8 +597,32 @@ export default function CityRunDemo() {
               key={currentTransformVideo}
               src={currentTransformVideo}
               autoPlay
-              onLoadedMetadata={handleVideoLoaded}
+              playsInline
+              muted={isSafari} // Safari需要静音才能自动播放,Chrome/Firefox/Edge可有声
+              webkit-playsinline="true"
+              onLoadedMetadata={(e) => {
+                console.log('🎬 視頻元數據加載:', currentTransformVideo);
+                handleVideoLoaded(e);
+                // 强制播放,处理Safari自动播放限制
+                const video = e.currentTarget;
+                video.play().catch(err => {
+                  console.error('❌ 視頻播放失敗:', err);
+                  // 播放失败时跳过视频
+                  setTimeout(() => handleVideoEnded(), 100);
+                });
+              }}
               onEnded={handleVideoEnded}
+              onError={(e) => {
+                console.error('❌ 視頻加載失敗:', currentTransformVideo, e);
+                // 视频加载失败时自动继续
+                handleVideoEnded();
+              }}
+              onLoadStart={() => console.log('🎬 視頻開始加載:', currentTransformVideo)}
+              onCanPlay={() => console.log('✅ 視頻可以播放:', currentTransformVideo)}
+              onPlay={() => console.log('▶️ 視頻開始播放')}
+              onPause={() => console.log('⏸️ 視頻暫停')}
+              onWaiting={() => console.log('⏳ 視頻緩衝中...')}
+              onStalled={() => console.log('⚠️ 視頻加載停滯')}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
@@ -636,6 +708,9 @@ export default function CityRunDemo() {
           )}
 
         </ThreeScene>
+
+        {/* Debug面板 (测试路线行驶时显示) */}
+        {isTestRoute && <DebugPanel />}
       </div>
     </SimulationContext.Provider>
   );

@@ -2,8 +2,13 @@ import { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// 粒子系统常量
-const SPEED_PARTICLE_COUNT = 60; // 速度粒子数量
+// 粒子系统常量 - iPad优化版本
+const isIPad = typeof navigator !== 'undefined' && (
+  /iPad/.test(navigator.userAgent) || 
+  (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
+);
+
+const SPEED_PARTICLE_COUNT = isIPad ? 30 : 60; // iPad减半粒子数量
 const PARTICLE_SPEED = 2.0; // 粒子移动速度
 
 // 创建圆形纹理用于粒子
