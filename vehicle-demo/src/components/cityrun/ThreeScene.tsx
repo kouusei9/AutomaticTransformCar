@@ -9,7 +9,7 @@ interface ThreeSceneProps {
 export default function ThreeScene({ children, cameraPosition = [0, -1, 5] }: ThreeSceneProps) {
   // 检测是否为iPad，降低渲染质量以提升性能
   const isIPad = typeof navigator !== 'undefined' && (
-    /iPad/.test(navigator.userAgent) || 
+    /iPad/.test(navigator.userAgent) ||
     (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
   );
 

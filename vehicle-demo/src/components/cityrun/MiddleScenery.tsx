@@ -11,7 +11,7 @@ interface MiddleSceneryProps {
 export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }: MiddleSceneryProps) {
   // fly 模式下不显示中景
   const isFlyMode = currentMode === 4;
-  
+
   if (isFlyMode) {
     return null;
   }
@@ -28,7 +28,7 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
     dayTexture.wrapS = THREE.RepeatWrapping;
     dayTexture.wrapT = THREE.RepeatWrapping;
     dayTexture.repeat.set(3, 1); // 横向重复3次
-    
+
     nightTexture.wrapS = THREE.RepeatWrapping;
     nightTexture.wrapT = THREE.RepeatWrapping;
     nightTexture.repeat.set(3, 1);
@@ -43,7 +43,7 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
     const halfCycle = cycleTime / 2;
     const currentPhase = timeRef.current % cycleTime;
     const shouldBeDay = currentPhase < halfCycle;
-    
+
     // 计算过渡进度（0-1之间）
     const transitionDuration = 2; // 2秒过渡时间
     if (shouldBeDay) {
@@ -62,7 +62,7 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
         transitionRef.current = 0;
       }
     }
-    
+
     if (shouldBeDay !== isDay) {
       setIsDay(shouldBeDay);
     }
@@ -78,7 +78,7 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
 
   // 中景几何体和材质
   const geometry = useMemo(() => new THREE.PlaneGeometry(200, 40), []);
-  
+
   // 白天材质
   const dayMaterial = useMemo(
     () =>
@@ -115,18 +115,18 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
   return (
     <>
       {/* 夜晚层 */}
-      <mesh 
-        geometry={geometry} 
-        material={nightMaterial} 
-        position={[0, yPosition, -85]} 
+      <mesh
+        geometry={geometry}
+        material={nightMaterial}
+        position={[0, yPosition, -85]}
         rotation={[0, 0, 0]}
         scale={1.5}
       />
       {/* 白天层（在上面） */}
-      <mesh 
-        geometry={geometry} 
-        material={dayMaterial} 
-        position={[0, yPosition, -84.99]} 
+      <mesh
+        geometry={geometry}
+        material={dayMaterial}
+        position={[0, yPosition, -84.99]}
         rotation={[0, 0, 0]}
         scale={1.5}
       />

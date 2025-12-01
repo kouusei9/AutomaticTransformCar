@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 // 粒子系统常量 - iPad优化版本
 const isIPad = typeof navigator !== 'undefined' && (
-  /iPad/.test(navigator.userAgent) || 
+  /iPad/.test(navigator.userAgent) ||
   (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
 );
 

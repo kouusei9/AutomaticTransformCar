@@ -21,7 +21,10 @@ export default function DebugPanel() {
       ).join(' ');
 
       const time = new Date().toLocaleTimeString('ja-JP');
-      setLogs(prev => [...prev.slice(-50), { time, type, message }]);
+      // 使用 setTimeout 将状态更新推迟到渲染完成后，避免在渲染过程中更新状态
+      setTimeout(() => {
+        setLogs(prev => [...prev.slice(-50), { time, type, message }]);
+      }, 0);
     };
 
     console.log = (...args) => {

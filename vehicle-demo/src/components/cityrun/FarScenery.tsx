@@ -21,7 +21,7 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
     dayTexture.wrapS = THREE.ClampToEdgeWrapping;
     dayTexture.wrapT = THREE.ClampToEdgeWrapping;
     dayTexture.repeat.set(1, 1);
-    
+
     nightTexture.wrapS = THREE.ClampToEdgeWrapping;
     nightTexture.wrapT = THREE.ClampToEdgeWrapping;
     nightTexture.repeat.set(1, 1);
@@ -36,7 +36,7 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
     const halfCycle = cycleTime / 2;
     const currentPhase = timeRef.current % cycleTime;
     const shouldBeDay = currentPhase < halfCycle;
-    
+
     // 计算过渡进度（0-1之间）
     const transitionDuration = 2; // 2秒过渡时间
     if (shouldBeDay) {
@@ -57,7 +57,7 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
         transitionRef.current = 0; // 完全夜晚
       }
     }
-    
+
     if (shouldBeDay !== isDay) {
       setIsDay(shouldBeDay);
     }
@@ -77,7 +77,7 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
     const width = height * 2; // 默认宽高比2:1
     return new THREE.PlaneGeometry(width, height);
   }, []);
-  
+
   // 白天材质
   const dayMaterial = useMemo(
     () =>
@@ -111,17 +111,17 @@ export default function FarScenery({ isMoving, speed = 50 }: FarSceneryProps) {
   return (
     <>
       {/* 夜晚层 */}
-      <mesh 
-        geometry={geometry} 
-        material={nightMaterial} 
-        position={[0, 5, -100]} 
+      <mesh
+        geometry={geometry}
+        material={nightMaterial}
+        position={[0, 5, -100]}
         rotation={[0, 0, 0]}
       />
       {/* 白天层（在上面） */}
-      <mesh 
-        geometry={geometry} 
-        material={dayMaterial} 
-        position={[0, 5, -99.99]} 
+      <mesh
+        geometry={geometry}
+        material={dayMaterial}
+        position={[0, 5, -99.99]}
         rotation={[0, 0, 0]}
       />
     </>
