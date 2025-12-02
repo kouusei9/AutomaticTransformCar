@@ -55,6 +55,7 @@ useGLTF.preload('/website-assets/futuristic_city.glb')
 useGLTF.preload('/website-assets/shrine.glb')
 useGLTF.preload('/website-assets/tokyo_skytree_japan.glb')
 useGLTF.preload('/website-assets/cocoon_tower.glb')
+useGLTF.preload('/website-assets/skyscraper.glb')
 
 /**
  * 3D建築物モデルコンポーネント
@@ -157,12 +158,12 @@ const SkyTree3DModel: React.FC<{
         receiveShadow
       />
       {/* スカイツリー周囲の光効果 */}
-      <pointLight
+      {/* <pointLight
         position={[0, 80, 0]}
         intensity={0.5}
         color="#00ffff"
         distance={100}
-      />
+      /> */}
     </group>
   )
 }
