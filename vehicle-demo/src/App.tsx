@@ -27,7 +27,7 @@ function App() {
         }
         timeoutId = window.setTimeout(() => {
           setIsNavVisible(false)
-        }, 3000)
+        }, 2000)
       }
     }
 
@@ -78,7 +78,7 @@ function App() {
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
             >
-              京都市街地ナビゲーション
+              NEO TOKYO ナビゲーション
             </button>
             <button
               onClick={() => setCurrentPage('cityrun')}

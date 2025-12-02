@@ -416,7 +416,7 @@ export default function CyberpunkCityDemo() {
               borderBottom: isOverviewExpanded ? '2px solid #00ffff' : 'none',
               paddingBottom: isOverviewExpanded ? '12px' : '0'
             }}>
-              🚀 京都市街地ナビゲーション {!isOverviewExpanded && '▼'}
+              NEO TOKYO ナビゲーション {!isOverviewExpanded && '▼'}
             </h2>
             
             {!isOverviewExpanded ? (
