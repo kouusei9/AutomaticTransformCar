@@ -301,6 +301,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
           outlineWidth={0.15}
           outlineColor="#000000"
           renderOrder={10001}
+          font="/fonts/NotoSansJP-Regular.otf"
         >
           {name}
         </Text>

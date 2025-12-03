@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react'
+import React, { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
@@ -15,7 +15,7 @@ export const LocationMarker: React.FC<LocationMarkerProps> = ({
   position,
   name,
   color = '#00ffff',
-  scale = 1.0,
+  scale = 1,
   dimmed = false
 }) => {
   const markerRef = useRef<THREE.Mesh>(null)
@@ -66,6 +66,7 @@ export const LocationMarker: React.FC<LocationMarkerProps> = ({
         <meshBasicMaterial color={color} transparent opacity={0.6} />
       </mesh>
       
+      
       <Text
         position={[0, 3.5, 0]}
         fontSize={0.8 * scale}
@@ -74,6 +75,7 @@ export const LocationMarker: React.FC<LocationMarkerProps> = ({
         anchorY="middle"
         outlineWidth={0.1}
         outlineColor="#000000"
+        font="/fonts/NotoSansJP-Regular.otf"
       >
         {name}
       </Text>

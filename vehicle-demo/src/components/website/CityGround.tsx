@@ -51,28 +51,28 @@ interface Landmark {
 
 // ==================== コンポーネント ====================
 // GLTFモデルをプリロード
-useGLTF.preload('/website-assets/futuristic_city.glb')
-useGLTF.preload('/website-assets/shrine.glb')
-useGLTF.preload('/website-assets/tokyo_skytree_japan.glb')
-useGLTF.preload('/website-assets/cocoon_tower.glb')
-useGLTF.preload('/website-assets/central_park_tower.glb')
+useGLTF.preload('/website-assets/futuristic_city.glb', '/draco/')
+useGLTF.preload('/website-assets/shrine.glb', '/draco/')
+useGLTF.preload('/website-assets/tokyo_skytree_japan.glb', '/draco/')
+useGLTF.preload('/website-assets/cocoon_tower.glb', '/draco/')
+useGLTF.preload('/website-assets/central_park_tower.glb', '/draco/')
 
 /**
  * 3D建築物モデルコンポーネント (InstancedMesh版)
  */
 const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildings }) => {
-  const { scene } = useGLTF('/website-assets/futuristic_city.glb')
+  const { scene } = useGLTF('/website-assets/futuristic_city.glb', '/draco/')
   const groupRef = useRef<THREE.Group>(null)
-  
+
   // 为每个建筑物创建独立的实例
   const instances = useMemo(() => {
     return buildings.map((building) => {
       if (!building.position) return null
-      
+
       const [x, y, z] = building.position
       const scale = 5
       const adjustedScale = (building.height / 30) * scale
-      
+
       return {
         position: [x, y, z] as [number, number, number],
         scale: adjustedScale,
@@ -80,12 +80,12 @@ const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildin
       }
     }).filter(Boolean)
   }, [buildings])
-  
+
   return (
     <group ref={groupRef}>
       {instances.map((instance) => {
         if (!instance) return null
-        
+
         const clonedScene = scene.clone()
         clonedScene.traverse((child: any) => {
           if (child.isMesh) {
@@ -96,7 +96,7 @@ const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildin
             }
           }
         })
-        
+
         return (
           <primitive
             key={instance.key}
@@ -114,17 +114,17 @@ const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildin
  * 神社3Dモデルコンポーネント (InstancedMesh版)
  */
 const Shrine3DModelInstanced: React.FC<{ shrines: Landmark[] }> = ({ shrines }) => {
-  const { scene } = useGLTF('/website-assets/shrine01.glb')
+  const { scene } = useGLTF('/website-assets/shrine01.glb', '/draco/')
   const groupRef = useRef<THREE.Group>(null)
-  
+
   const instances = useMemo(() => {
     return shrines.map((shrine) => {
       if (!shrine.position) return null
-      
+
       const [x, y, z] = shrine.position
       const rankScale = shrine.rank === 'major' ? 1.2 : shrine.rank === 'medium' ? 1.0 : 0.8
       const finalScale = rankScale * 0.01
-      
+
       return {
         position: [x, y, z] as [number, number, number],
         scale: finalScale,
@@ -132,12 +132,12 @@ const Shrine3DModelInstanced: React.FC<{ shrines: Landmark[] }> = ({ shrines }) 
       }
     }).filter(Boolean)
   }, [shrines])
-  
+
   return (
     <group ref={groupRef}>
       {instances.map((instance) => {
         if (!instance) return null
-        
+
         const clonedScene = scene.clone()
         clonedScene.traverse((child: any) => {
           if (child.isMesh) {
@@ -148,7 +148,7 @@ const Shrine3DModelInstanced: React.FC<{ shrines: Landmark[] }> = ({ shrines }) 
             }
           }
         })
-        
+
         return (
           <primitive
             key={instance.key}
@@ -170,7 +170,7 @@ const Building3DModel: React.FC<{
   scale?: number
   height?: number
 }> = ({ position, scale = 1, height = 120 }) => {
-  const { scene } = useGLTF('/website-assets/futuristic_city.glb')
+  const { scene } = useGLTF('/website-assets/futuristic_city.glb', '/draco/')
   const clonedScene = useMemo(() => {
     const cloned = scene.clone()
     // 遍历所有子对象，确保阴影设置应用到所有网格
@@ -220,7 +220,7 @@ const Shrine3DModel: React.FC<{
   name: string
 }> = ({ position, scale = 1, rank }) => {
   // try {
-  const { scene } = useGLTF('/website-assets/shrine01.glb')
+  const { scene } = useGLTF('/website-assets/shrine01.glb', '/draco/')
   const clonedScene = useMemo(() => {
     const cloned = scene.clone()
     // 遍历所有子对象，确保阴影设置应用到所有网格
@@ -275,7 +275,7 @@ const SkyTree3DModel: React.FC<{
   position: [number, number, number]
   scale?: number
 }> = ({ position, scale = 1 }) => {
-  const { scene } = useGLTF('/website-assets/tokyo_skytree_japan.glb')
+  const { scene } = useGLTF('/website-assets/tokyo_skytree_japan.glb', '/draco/')
   const clonedScene = useMemo(() => {
     return scene.clone()
   }, [scene])
@@ -309,50 +309,50 @@ const CocoonTower3DModel: React.FC<{
   position: [number, number, number]
   scale?: number
 }> = ({ position, scale = 1 }) => {
-  try {
-    const { scene } = useGLTF('/website-assets/cocoon_tower.glb')
-    const clonedScene = useMemo(() => {
-      const cloned = scene.clone()
-      // モデル内のすべてのメッシュを表示設定
-      cloned.traverse((child: any) => {
-        if (child.isMesh) {
-          child.visible = true
-          child.castShadow = true
-          child.receiveShadow = true
-          if (child.material) {
-            child.material.needsUpdate = true
-          }
+  // try {
+  const { scene } = useGLTF('/website-assets/cocoon_tower.glb', '/draco/')
+  const clonedScene = useMemo(() => {
+    const cloned = scene.clone()
+    // モデル内のすべてのメッシュを表示設定
+    cloned.traverse((child: any) => {
+      if (child.isMesh) {
+        child.visible = true
+        child.castShadow = true
+        child.receiveShadow = true
+        if (child.material) {
+          child.material.needsUpdate = true
         }
-      })
-      return cloned
-    }, [scene])
+      }
+    })
+    return cloned
+  }, [scene])
 
-    // Cocoon Towerの基準スケール（高さ204mを考慮）
-    const finalScale = scale * 20
+  // Cocoon Towerの基準スケール（高さ204mを考慮）
+  const finalScale = scale * 20
 
-    return (
-      <group position={position}>
-        {/* 実際のモデル */}
-        <primitive
-          object={clonedScene}
-          scale={[finalScale, finalScale, finalScale]}
-          castShadow
-          receiveShadow
-        />
+  return (
+    <group position={position}>
+      {/* 実際のモデル */}
+      <primitive
+        object={clonedScene}
+        scale={[finalScale, finalScale, finalScale]}
+        castShadow
+        receiveShadow
+      />
 
-        {/* Cocoon Tower周囲の光効果 */}
-        <pointLight
-          position={[0, 50, 0]}
-          intensity={0.6}
-          color="#ff9900"
-          distance={120}
-        />
-      </group>
-    )
-  } catch (error) {
-    console.error('❌ Cocoon Tower loading error:', error)
-    return null
-  }
+      {/* Cocoon Tower周囲の光効果 */}
+      <pointLight
+        position={[0, 50, 0]}
+        intensity={0.6}
+        color="#ff9900"
+        distance={120}
+      />
+    </group>
+  )
+  // } catch (error) {
+  //   console.error('❌ Cocoon Tower loading error:', error)
+  //   return null
+  // }
 }
 
 /**
@@ -362,53 +362,53 @@ const Skyscraper3DModel: React.FC<{
   position: [number, number, number]
   scale?: number
 }> = ({ position, scale = 1 }) => {
-  try {
-    const { scene } = useGLTF('/website-assets/central_park_tower.glb')
-    const clonedScene = useMemo(() => {
-      const cloned = scene.clone()
-      // モデル内のすべてのメッシュを表示設定
-      cloned.traverse((child: any) => {
-        if (child.isMesh) {
-          child.visible = true
-          child.castShadow = true
-          child.receiveShadow = true
-          if (child.material) {
-            child.material.side = THREE.DoubleSide
-            child.material.transparent = false
-            child.material.opacity = 1.0
-            child.material.needsUpdate = true
-          }
+  // try {
+  const { scene } = useGLTF('/website-assets/central_park_tower.glb', '/draco/')
+  const clonedScene = useMemo(() => {
+    const cloned = scene.clone()
+    // モデル内のすべてのメッシュを表示設定
+    cloned.traverse((child: any) => {
+      if (child.isMesh) {
+        child.visible = true
+        child.castShadow = true
+        child.receiveShadow = true
+        if (child.material) {
+          child.material.side = THREE.DoubleSide
+          child.material.transparent = false
+          child.material.opacity = 1.0
+          child.material.needsUpdate = true
         }
-      })
-      return cloned
-    }, [scene])
+      }
+    })
+    return cloned
+  }, [scene])
 
-    // Central Park Towerの基準スケール（高さ472mを考慮）
-    const finalScale = scale * 0.5
+  // Central Park Towerの基準スケール（高さ472mを考慮）
+  const finalScale = scale * 0.5
 
-    return (
-      <group position={position}>
-        {/* 実際のモデル */}
-        <primitive
-          object={clonedScene}
-          scale={[finalScale, finalScale, finalScale]}
-          castShadow
-          receiveShadow
-        />
+  return (
+    <group position={position}>
+      {/* 実際のモデル */}
+      <primitive
+        object={clonedScene}
+        scale={[finalScale, finalScale, finalScale]}
+        castShadow
+        receiveShadow
+      />
 
-        {/* Skyscraper周囲の光効果 */}
-        <pointLight
-          position={[0, 100, 0]}
-          intensity={0.8}
-          color="#00ddff"
-          distance={150}
-        />
-      </group>
-    )
-  } catch (error) {
-    console.error('❌ Skyscraper loading error:', error)
-    return null
-  }
+      {/* Skyscraper周囲の光効果 */}
+      <pointLight
+        position={[0, 100, 0]}
+        intensity={0.8}
+        color="#00ddff"
+        distance={150}
+      />
+    </group>
+  )
+  // } catch (error) {
+  //   console.error('❌ Skyscraper loading error:', error)
+  //   return null
+  // }
 }
 
 /**

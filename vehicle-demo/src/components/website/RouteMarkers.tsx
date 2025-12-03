@@ -146,6 +146,7 @@ function Marker({ position, label, color, type }: MarkerProps) {
         anchorY="middle"
         outlineWidth={0.05}
         outlineColor="#000000"
+        font="/fonts/NotoSansJP-Regular.otf"
       >
         {label}
       </Text>
