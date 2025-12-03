@@ -32,7 +32,7 @@ function createCircleTexture() {
 }
 
 // 创建将棋形状的赛博朋克风格指示牌纹理
-function createShogiSignTexture(modeText: string) {
+function createShogiSignTexture(modeText: string, color: string) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 256;
@@ -62,14 +62,20 @@ function createShogiSignTexture(modeText: string) {
   ctx.closePath();
 
   // 赛博朋克发光边框
-  ctx.strokeStyle = '#00ffff';
+  ctx.strokeStyle = color;
   ctx.lineWidth = 4;
-  ctx.shadowColor = '#00ffff';
+  ctx.shadowColor = color;
   ctx.shadowBlur = 20;
   ctx.stroke();
 
   // 半透明填充
-  ctx.fillStyle = 'rgba(0, 255, 255, 0.15)';
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+  ctx.fillStyle = hexToRgba(color, 0.15);
   ctx.shadowBlur = 0;
   ctx.fill();
 
@@ -89,18 +95,18 @@ function createShogiSignTexture(modeText: string) {
   // 左上
   ctx.lineTo(centerX - innerWidth * 0.7, centerY - innerHeight * 0.8);
   ctx.closePath();
-  ctx.strokeStyle = '#00ffff';
+  ctx.strokeStyle = color;
   ctx.lineWidth = 2;
-  ctx.shadowColor = '#00ffff';
+  ctx.shadowColor = color;
   ctx.shadowBlur = 10;
   ctx.stroke();
 
   // 绘制中心文字
   ctx.font = 'bold 64px Arial, sans-serif';
-  ctx.fillStyle = '#00ffff';
+  ctx.fillStyle = color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = '#00ffff';
+  ctx.shadowColor = color;
   ctx.shadowBlur = 15;
   ctx.fillText(modeText, centerX, centerY + 10);
 
@@ -145,9 +151,25 @@ export default function ThirdPersonView({
     }
   };
 
+  // 根据模式获取颜色
+  const getModeColor = (mode: number): string => {
+    switch (mode) {
+      case 1:
+        return '#F2D56A'; // 金将
+      case 2:
+        return '#E8BAA0'; // 香車
+      case 3:
+        return '#C1CB93'; // 桂馬
+      case 4:
+        return '#ADC6D7'; // 飛車
+      default:
+        return '#F2D56A';
+    }
+  };
+
   // 创建指示牌纹理（每次模式变化时重新创建）
   const signTexture = useMemo(() => {
-    return createShogiSignTexture(getModeText(currentMode));
+    return createShogiSignTexture(getModeText(currentMode), getModeColor(currentMode));
   }, [currentMode]);
 
   // 创建速度粒子系统（在普通模式下显示向后飞散的粒子）
