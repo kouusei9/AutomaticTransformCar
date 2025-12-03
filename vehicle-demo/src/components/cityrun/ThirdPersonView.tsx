@@ -32,7 +32,7 @@ function createCircleTexture() {
 }
 
 // 创建将棋形状的赛博朋克风格指示牌纹理
-function createShogiSignTexture(modeText: string, color: string) {
+function createShogiSignTexture(modeText: string, color: string, outerColor?: string) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 256;
@@ -48,20 +48,33 @@ function createShogiSignTexture(modeText: string, color: string) {
   const width = 80; // 水平方向更长
   const height = 100; // 垂直方向较短
 
-  ctx.beginPath();
-  // 顶点
-  ctx.moveTo(centerX, centerY - height);
-  // 右上
-  ctx.lineTo(centerX + width * 0.7, centerY - height * 0.8);
-  // 右下
-  ctx.lineTo(centerX + width, centerY + height);
-  // 左下
-  ctx.lineTo(centerX - width, centerY + height);
-  // 左上
-  ctx.lineTo(centerX - width * 0.7, centerY - height * 0.8);
-  ctx.closePath();
+  const drawPentagon = (w: number, h: number) => {
+    ctx.beginPath();
+    // 顶点
+    ctx.moveTo(centerX, centerY - h);
+    // 右上
+    ctx.lineTo(centerX + w * 0.7, centerY - h * 0.8);
+    // 右下
+    ctx.lineTo(centerX + w, centerY + h);
+    // 左下
+    ctx.lineTo(centerX - w, centerY + h);
+    // 左上
+    ctx.lineTo(centerX - w * 0.7, centerY - h * 0.8);
+    ctx.closePath();
+  };
 
-  // 赛博朋克发光边框
+  // 如果有外层颜色，先绘制外层（浅色）
+  if (outerColor) {
+    drawPentagon(width + 6, height + 5);
+    ctx.strokeStyle = outerColor;
+    ctx.lineWidth = 6;
+    ctx.shadowColor = outerColor;
+    ctx.shadowBlur = 25;
+    ctx.stroke();
+  }
+
+  // 绘制主边框
+  drawPentagon(width, height);
   ctx.strokeStyle = color;
   ctx.lineWidth = 4;
   ctx.shadowColor = color;
@@ -75,26 +88,15 @@ function createShogiSignTexture(modeText: string, color: string) {
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
-  ctx.fillStyle = hexToRgba(color, 0.15);
+  ctx.fillStyle = hexToRgba(color, 0.35);
   ctx.shadowBlur = 0;
   ctx.fill();
 
-  // 内外双层边框
+  // 内层边框
   const innerWidth = width - 15;
   const innerHeight = height - 12;
 
-  ctx.beginPath();
-  // 顶点
-  ctx.moveTo(centerX, centerY - innerHeight);
-  // 右上
-  ctx.lineTo(centerX + innerWidth * 0.7, centerY - innerHeight * 0.8);
-  // 右下
-  ctx.lineTo(centerX + innerWidth, centerY + innerHeight);
-  // 左下
-  ctx.lineTo(centerX - innerWidth, centerY + innerHeight);
-  // 左上
-  ctx.lineTo(centerX - innerWidth * 0.7, centerY - innerHeight * 0.8);
-  ctx.closePath();
+  drawPentagon(innerWidth, innerHeight);
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.shadowColor = color;
@@ -103,11 +105,20 @@ function createShogiSignTexture(modeText: string, color: string) {
 
   // 绘制中心文字
   ctx.font = 'bold 64px Arial, sans-serif';
-  ctx.fillStyle = color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 15;
+
+  // 如果有外层颜色（香模式），使用浅色字体+深色阴影
+  if (outerColor) {
+    ctx.fillStyle = outerColor; // 浅色字体
+    ctx.shadowColor = color; // 深色阴影
+    ctx.shadowBlur = 25;
+  } else {
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 15;
+  }
+
   ctx.fillText(modeText, centerX, centerY + 10);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -155,21 +166,37 @@ export default function ThirdPersonView({
   const getModeColor = (mode: number): string => {
     switch (mode) {
       case 1:
+        return '#A5821D'; // 金将
+      case 2:
+        return '#F24B90'; // 香車
+      case 3:
+        return '#64673E'; // 桂馬
+      case 4:
+        return '#396177'; // 飛車
+      default:
+        return '#A5821D';
+    }
+  };
+
+  // 根据模式获取外层颜色
+  const getModeOuterColor = (mode: number): string | undefined => {
+    switch (mode) {
+      case 1:
         return '#F2D56A'; // 金将
       case 2:
-        return '#E8BAA0'; // 香車
+        return '#EFD6D5'; // 香車
       case 3:
-        return '#C1CB93'; // 桂馬
+        return '#B1C075'; // 桂馬
       case 4:
-        return '#ADC6D7'; // 飛車
+        return '#98B5C2'; // 飛車
       default:
-        return '#F2D56A';
+        return undefined;
     }
   };
 
   // 创建指示牌纹理（每次模式变化时重新创建）
   const signTexture = useMemo(() => {
-    return createShogiSignTexture(getModeText(currentMode), getModeColor(currentMode));
+    return createShogiSignTexture(getModeText(currentMode), getModeColor(currentMode), getModeOuterColor(currentMode));
   }, [currentMode]);
 
   // 创建速度粒子系统（在普通模式下显示向后飞散的粒子）
