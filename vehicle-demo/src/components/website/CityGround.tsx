@@ -37,7 +37,7 @@ interface NodeEdgeTypes {
 interface Landmark {
   id: string
   name: string
-  type: 'building' | 'shrine' | 'skytree' | 'cocoontower'
+  type: 'building' | 'shrine' | 'skytree' | 'cocoontower' | 'skyscraper'
   coordinates: {
     lat: number
     lng: number
@@ -55,7 +55,112 @@ useGLTF.preload('/website-assets/futuristic_city.glb')
 useGLTF.preload('/website-assets/shrine.glb')
 useGLTF.preload('/website-assets/tokyo_skytree_japan.glb')
 useGLTF.preload('/website-assets/cocoon_tower.glb')
-useGLTF.preload('/website-assets/skyscraper.glb')
+useGLTF.preload('/website-assets/central_park_tower.glb')
+
+/**
+ * 3D建築物モデルコンポーネント (InstancedMesh版)
+ */
+const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildings }) => {
+  const { scene } = useGLTF('/website-assets/futuristic_city.glb')
+  const groupRef = useRef<THREE.Group>(null)
+  
+  // 为每个建筑物创建独立的实例
+  const instances = useMemo(() => {
+    return buildings.map((building) => {
+      if (!building.position) return null
+      
+      const [x, y, z] = building.position
+      const scale = 5
+      const adjustedScale = (building.height / 30) * scale
+      
+      return {
+        position: [x, y, z] as [number, number, number],
+        scale: adjustedScale,
+        key: building.id
+      }
+    }).filter(Boolean)
+  }, [buildings])
+  
+  return (
+    <group ref={groupRef}>
+      {instances.map((instance) => {
+        if (!instance) return null
+        
+        const clonedScene = scene.clone()
+        clonedScene.traverse((child: any) => {
+          if (child.isMesh) {
+            child.castShadow = true
+            child.receiveShadow = true
+            if (child.material) {
+              child.material.needsUpdate = true
+            }
+          }
+        })
+        
+        return (
+          <primitive
+            key={instance.key}
+            object={clonedScene}
+            position={instance.position}
+            scale={[instance.scale, instance.scale, instance.scale]}
+          />
+        )
+      })}
+    </group>
+  )
+}
+
+/**
+ * 神社3Dモデルコンポーネント (InstancedMesh版)
+ */
+const Shrine3DModelInstanced: React.FC<{ shrines: Landmark[] }> = ({ shrines }) => {
+  const { scene } = useGLTF('/website-assets/shrine01.glb')
+  const groupRef = useRef<THREE.Group>(null)
+  
+  const instances = useMemo(() => {
+    return shrines.map((shrine) => {
+      if (!shrine.position) return null
+      
+      const [x, y, z] = shrine.position
+      const rankScale = shrine.rank === 'major' ? 1.2 : shrine.rank === 'medium' ? 1.0 : 0.8
+      const finalScale = rankScale * 0.01
+      
+      return {
+        position: [x, y, z] as [number, number, number],
+        scale: finalScale,
+        key: shrine.id
+      }
+    }).filter(Boolean)
+  }, [shrines])
+  
+  return (
+    <group ref={groupRef}>
+      {instances.map((instance) => {
+        if (!instance) return null
+        
+        const clonedScene = scene.clone()
+        clonedScene.traverse((child: any) => {
+          if (child.isMesh) {
+            child.castShadow = true
+            child.receiveShadow = true
+            if (child.material) {
+              child.material.needsUpdate = true
+            }
+          }
+        })
+        
+        return (
+          <primitive
+            key={instance.key}
+            object={clonedScene}
+            position={instance.position}
+            scale={[instance.scale, instance.scale, instance.scale]}
+          />
+        )
+      })}
+    </group>
+  )
+}
 
 /**
  * 3D建築物モデルコンポーネント
@@ -65,28 +170,44 @@ const Building3DModel: React.FC<{
   scale?: number
   height?: number
 }> = ({ position, scale = 1, height = 120 }) => {
-  // try {
   const { scene } = useGLTF('/website-assets/futuristic_city.glb')
   const clonedScene = useMemo(() => {
-    return scene.clone()
+    const cloned = scene.clone()
+    // 遍历所有子对象，确保阴影设置应用到所有网格
+    cloned.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        // 确保材质支持阴影
+        if (child.material) {
+          child.material.needsUpdate = true
+        }
+      }
+    })
+    return cloned
   }, [scene])
 
   // 统一高度120m，调整缩放使建筑物大小合适
-  const adjustedScale = (height / 30) * scale * 0.5 // 基准scale调整
+  // futuristic_city.glb -> 5
+  // central_park_tower.glb -> 0.7
+  scale = 5
+  const adjustedScale = (height / 30) * scale // 基准scale调整
 
   return (
-    <primitive
-      object={clonedScene}
-      position={position}
-      scale={[adjustedScale, adjustedScale, adjustedScale]}
-      castShadow
-      receiveShadow
-    />
+    <group position={position}>
+      {/* <mesh>
+        <boxGeometry args={[10, 0.1, 10]} />
+        <meshStandardMaterial color={0x222244} />
+      </mesh> */}
+      <primitive
+        object={clonedScene}
+        // position={position}
+        scale={[adjustedScale, adjustedScale, adjustedScale]}
+        castShadow
+        receiveShadow
+      />
+    </group>
   )
-  // } catch (error) {
-  //   console.error('Error loading building model:', error)
-  //   return null
-  // }
 }
 
 /**
@@ -99,14 +220,27 @@ const Shrine3DModel: React.FC<{
   name: string
 }> = ({ position, scale = 1, rank }) => {
   // try {
-  const { scene } = useGLTF('/website-assets/shrine.glb')
+  const { scene } = useGLTF('/website-assets/shrine01.glb')
   const clonedScene = useMemo(() => {
-    return scene.clone()
+    const cloned = scene.clone()
+    // 遍历所有子对象，确保阴影设置应用到所有网格
+    cloned.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        // 确保材质支持阴影
+        if (child.material) {
+          child.material.needsUpdate = true
+        }
+      }
+    })
+    return cloned
   }, [scene])
 
   // ランクに応じてスケールを調整
   const rankScale = rank === 'major' ? 1.2 : rank === 'medium' ? 1.0 : 0.8
-  const finalScale = scale * rankScale * 8.0 // 基準スケール
+  // shrine.glb -> 8.0; shrine01.glb -> 0.01
+  const finalScale = scale * rankScale * 0.01 // 基準スケール
 
   return (
     <group position={position}>
@@ -205,7 +339,7 @@ const CocoonTower3DModel: React.FC<{
           castShadow
           receiveShadow
         />
-        
+
         {/* Cocoon Tower周囲の光効果 */}
         <pointLight
           position={[0, 50, 0]}
@@ -217,6 +351,62 @@ const CocoonTower3DModel: React.FC<{
     )
   } catch (error) {
     console.error('❌ Cocoon Tower loading error:', error)
+    return null
+  }
+}
+
+/**
+ * Skyscraper 3Dモデルコンポーネント (Central Park Tower)
+ */
+const Skyscraper3DModel: React.FC<{
+  position: [number, number, number]
+  scale?: number
+}> = ({ position, scale = 1 }) => {
+  try {
+    const { scene } = useGLTF('/website-assets/central_park_tower.glb')
+    const clonedScene = useMemo(() => {
+      const cloned = scene.clone()
+      // モデル内のすべてのメッシュを表示設定
+      cloned.traverse((child: any) => {
+        if (child.isMesh) {
+          child.visible = true
+          child.castShadow = true
+          child.receiveShadow = true
+          if (child.material) {
+            child.material.side = THREE.DoubleSide
+            child.material.transparent = false
+            child.material.opacity = 1.0
+            child.material.needsUpdate = true
+          }
+        }
+      })
+      return cloned
+    }, [scene])
+
+    // Central Park Towerの基準スケール（高さ472mを考慮）
+    const finalScale = scale * 0.5
+
+    return (
+      <group position={position}>
+        {/* 実際のモデル */}
+        <primitive
+          object={clonedScene}
+          scale={[finalScale, finalScale, finalScale]}
+          castShadow
+          receiveShadow
+        />
+
+        {/* Skyscraper周囲の光効果 */}
+        <pointLight
+          position={[0, 100, 0]}
+          intensity={0.8}
+          color="#00ddff"
+          distance={150}
+        />
+      </group>
+    )
+  } catch (error) {
+    console.error('❌ Skyscraper loading error:', error)
     return null
   }
 }
@@ -263,6 +453,166 @@ const GroundPlane: React.FC<{ size: number }> = ({ size }) => {
         />
       )}
     </mesh>
+  )
+}
+
+/**
+ * 全息广告屏组件 (Hologram Billboard)
+ * 使用 shader 创建赛博朋克风格的动态广告效果
+ */
+const HologramBillboard: React.FC<{
+  position: [number, number, number]
+  size?: [number, number]
+  color?: string
+}> = ({ position, size = [12, 8], color = '#00ffff' }) => {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null)
+
+  useFrame(({ clock }) => {
+    if (shaderMaterialRef.current) {
+      shaderMaterialRef.current.uniforms.uTime.value = clock.getElapsedTime()
+    }
+  })
+
+  // 全息 Shader
+  const hologramShader = useMemo(() => ({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(color) },
+      uOpacity: { value: 0.7 }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      
+      void main() {
+        vUv = uv;
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uColor;
+      uniform float uOpacity;
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      
+      // 扫描线效果
+      float scanline(vec2 uv, float time) {
+        return sin(uv.y * 100.0 + time * 5.0) * 0.5 + 0.5;
+      }
+      
+      // 闪烁效果
+      float flicker(float time) {
+        return sin(time * 10.0) * 0.05 + 0.95;
+      }
+      
+      // 网格效果
+      float grid(vec2 uv) {
+        vec2 grid = fract(uv * 20.0);
+        float lineX = step(0.95, grid.x);
+        float lineY = step(0.95, grid.y);
+        return max(lineX, lineY);
+      }
+      
+      // 文字区域（简化的矩形）
+      float textArea(vec2 uv) {
+        vec2 center = uv - 0.5;
+        float rect = step(abs(center.x), 0.4) * step(abs(center.y), 0.15);
+        return rect;
+      }
+      
+      void main() {
+        vec2 uv = vUv;
+        
+        // 组合效果
+        float scan = scanline(uv, uTime) * 0.3;
+        float flick = flicker(uTime);
+        float gridEffect = grid(uv) * 0.2;
+        float textEffect = textArea(uv);
+        
+        // 边缘发光
+        float edgeGlow = 1.0 - length(uv - 0.5) * 0.8;
+        
+        // 最终颜色
+        vec3 finalColor = uColor;
+        float intensity = (0.5 + scan + gridEffect + textEffect * 0.5) * flick * edgeGlow;
+        
+        gl_FragColor = vec4(finalColor * intensity, uOpacity * intensity);
+      }
+    `
+  }), [color])
+
+  return (
+    <group position={position}>
+      {/* 主广告屏 */}
+      <mesh ref={meshRef}>
+        <planeGeometry args={[size[0], size[1]]} />
+        <shaderMaterial
+          ref={shaderMaterialRef}
+          {...hologramShader}
+          transparent
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* 边框光效 */}
+      <lineSegments>
+        <edgesGeometry args={[new THREE.PlaneGeometry(size[0], size[1])]} />
+        <lineBasicMaterial color={color} transparent opacity={0.8} />
+      </lineSegments>
+
+      {/* 背后点光源 */}
+      <pointLight
+        position={[0, 0, -1]}
+        color={color}
+        intensity={15}
+        distance={20}
+      />
+    </group>
+  )
+}
+
+/**
+ * 全息广告屏集合
+ */
+const HologramBillboards: React.FC<{ buildings: Landmark[] }> = ({ buildings }) => {
+  // 选择几个建筑物位置放置广告屏
+  const billboardPositions = useMemo(() => {
+    return buildings.slice(0, 4).map((building, idx) => {
+      if (!building.position) return null
+
+      const [x, , z] = building.position
+      const height = (building.height / 30) * 0.5 * 11
+      const colors = ['#00ffff', '#ff00ff', '#00ff00', '#ffaa00']
+
+      return {
+        // 放置在建筑物正上方
+        position: [x, height + 3, z] as [number, number, number],
+        color: colors[idx % colors.length],
+        rotation: [0, 0, 0] as [number, number, number] // 水平放置
+      }
+    }).filter(Boolean)
+  }, [buildings])
+
+  return (
+    <>
+      {billboardPositions.map((billboard, i) => {
+        if (!billboard) return null
+        return (
+          <group key={`billboard-${i}`} rotation={billboard.rotation}>
+            <HologramBillboard
+              position={billboard.position}
+              color={billboard.color}
+              size={[10, 6]}
+            />
+          </group>
+        )
+      })}
+    </>
   )
 }
 
@@ -421,6 +771,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
   const [shrines, setShrines] = useState<Landmark[]>([])
   const [skytrees, setSkytrees] = useState<Landmark[]>([])
   const [cocoontowers, setCocoontowers] = useState<Landmark[]>([])
+  const [skyscrapers, setSkyscrapers] = useState<Landmark[]>([])
 
   // ルートデータを読み込み
   useEffect(() => {
@@ -433,7 +784,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
       .catch(err => console.error('ルートデータの読み込みに失敗:', err))
   }, [onRouteDataLoaded])
 
-  // ランドマークデータを読み込み（建築物、神社、スカイツリー、コクーンタワーを統合）
+  // ランドマークデータを読み込み（建築物、神社、スカイツリー、コクーンタワー、摩天楼を統合）
   useEffect(() => {
     fetch('/website-assets/kyoto_landmarks.json')
       .then(res => res.json())
@@ -444,19 +795,23 @@ export const CityGround: React.FC<CityGroundProps> = ({
         const shrinesData = landmarks.filter((l: Landmark) => l.type === 'shrine')
         const skytreesData = landmarks.filter((l: Landmark) => l.type === 'skytree')
         const cocoontowersData = landmarks.filter((l: Landmark) => l.type === 'cocoontower')
-        
+        const skyscrapersData = landmarks.filter((l: Landmark) => l.type === 'skyscraper')
+
         console.log('📍 Landmarks loaded:', {
           buildings: buildings.length,
           shrines: shrinesData.length,
           skytrees: skytreesData.length,
-          cocoontowers: cocoontowersData.length
+          cocoontowers: cocoontowersData.length,
+          skyscrapers: skyscrapersData.length
         })
         console.log('🏢 Cocoon Towers data:', cocoontowersData)
-        
+        console.log('🏙️ Skyscrapers data:', skyscrapersData)
+
         setCityBuildings(buildings)
         setShrines(shrinesData)
         setSkytrees(skytreesData)
         setCocoontowers(cocoontowersData)
+        setSkyscrapers(skyscrapersData)
       })
       .catch(err => console.error('ランドマークデータの読み込みに失敗:', err))
   }, [])
@@ -476,7 +831,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
 
   // 建築物座標を変換
   const convertedBuildings = useMemo(() => {
-    const buildingScale = 10.0 // 渲染时使用的scale
+    const buildingScale = 1.0 // 渲染时使用的scale
     // const buildingHeight =  120// 統一高度120m
 
     const buildings = cityBuildings.map(building => {
@@ -543,7 +898,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
         position
       }
     })
-    
+
     if (converted.length > 0) {
       console.log('🏢 Cocoon Tower positions:', converted.map(t => ({
         name: t.name,
@@ -551,9 +906,35 @@ export const CityGround: React.FC<CityGroundProps> = ({
         position: t.position
       })))
     }
-    
+
     return converted
   }, [cocoontowers])
+
+  // Skyscraper座標を変換
+  const convertedSkyscrapers = useMemo(() => {
+    const converted = skyscrapers.map(tower => {
+      const pos3d = latLngToPosition3D(tower.coordinates)
+
+      // Skyscraperは地面レベルに配置
+      const yPosition = 0
+      const position = [pos3d.x, yPosition, pos3d.z] as [number, number, number]
+
+      return {
+        ...tower,
+        position
+      }
+    })
+
+    if (converted.length > 0) {
+      console.log('🏙️ Skyscraper positions:', converted.map(t => ({
+        name: t.name,
+        coords: t.coordinates,
+        position: t.position
+      })))
+    }
+
+    return converted
+  }, [skyscrapers])
 
   // ルートを生成 - 車両と同じロジックでパスを生成
   const routes = useMemo(() => {
@@ -564,11 +945,6 @@ export const CityGround: React.FC<CityGroundProps> = ({
     const nodeEdgeTypes = analyzeNodeEdgeTypes(routeData.edges)
     return generateRoutes(routeData.edges, convertedNodes, nodeEdgeTypes, routeData)
   }, [routeData, convertedNodes])
-
-  // 特定の建物位置を検索
-  const buildingPosition = useMemo(() => {
-    return convertedNodes.find(n => n.id === 'D2')?.position || [-60, 60, -60]
-  }, [convertedNodes])
 
   return (
     <group>
@@ -693,28 +1069,17 @@ export const CityGround: React.FC<CityGroundProps> = ({
         )
       })}
 
-      {/* 3D建築物モデル */}
+      {/* 3D建築物モデル (InstancedMesh最適化) */}
       <Suspense fallback={null}>
-        {convertedBuildings.map((building) => (
-          <Building3DModel
-            key={building.id}
-            position={building.position}
-            scale={building.scale}
-            height={building.height}
-          />
-        ))}
+        <Building3DModelInstanced buildings={convertedBuildings} />
       </Suspense>
 
-      {/* 神社3Dモデル */}
+      {/* 全息广告屏 */}
+      <HologramBillboards buildings={convertedBuildings} />
+
+      {/* 神社3Dモデル (InstancedMesh最適化) */}
       <Suspense fallback={null}>
-        {convertedShrines.map((shrine) => (
-          <Shrine3DModel
-            key={shrine.id}
-            position={shrine.position!}
-            rank={shrine.rank as 'major' | 'medium' | 'small'}
-            name={shrine.name}
-          />
-        ))}
+        <Shrine3DModelInstanced shrines={convertedShrines} />
       </Suspense>
 
       {/* スカイツリー3Dモデル */}
@@ -737,12 +1102,15 @@ export const CityGround: React.FC<CityGroundProps> = ({
         ))}
       </Suspense>
 
-      {/* 建物（旧ビルボード） */}
-      <BillboardBuilding
-        position={buildingPosition as [number, number, number]}
-        texturePath="/website-assets/build_kiomizu.png"
-        scale={30}
-      />
+      {/* Skyscraper 3Dモデル (Central Park Tower) */}
+      <Suspense fallback={null}>
+        {convertedSkyscrapers.map((tower) => (
+          <Skyscraper3DModel
+            key={tower.id}
+            position={tower.position!}
+          />
+        ))}
+      </Suspense>
     </group>
   )
 }
