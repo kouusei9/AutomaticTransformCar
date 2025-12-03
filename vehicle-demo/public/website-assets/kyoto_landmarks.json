@@ -169,6 +169,246 @@
       "rank": "medium"
     },
     {
+      "id": "B16",
+      "name": "京都タワービル",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.988,
+        "lng": 135.759
+      },
+      "height": 55,
+      "description": "京都駅前のランドマークタワー",
+      "rank": "large"
+    },
+    {
+      "id": "B17",
+      "name": "京都フューチャープラザ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.03,
+        "lng": 135.765
+      },
+      "height": 45,
+      "description": "北部商業複合施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B18",
+      "name": "京都テクノセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.055,
+        "lng": 135.775
+      },
+      "height": 42,
+      "description": "最北部のハイテク研究ビル",
+      "rank": "medium"
+    },
+    {
+      "id": "B19",
+      "name": "京都西部ゲートウェイ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.005,
+        "lng": 135.73
+      },
+      "height": 38,
+      "description": "西部エリアの交通ハブ",
+      "rank": "medium"
+    },
+    {
+      "id": "B20",
+      "name": "京都イーストタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.995,
+        "lng": 135.785
+      },
+      "height": 50,
+      "description": "東部エリアのオフィスタワー",
+      "rank": "large"
+    },
+    {
+      "id": "B21",
+      "name": "京都サウスプラザ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.972,
+        "lng": 135.76
+      },
+      "height": 35,
+      "description": "南部商業施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B22",
+      "name": "京都クリエイティブハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.04,
+        "lng": 135.755
+      },
+      "height": 40,
+      "description": "クリエイティブ産業の拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B23",
+      "name": "京都メディカルタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.018,
+        "lng": 135.745
+      },
+      "height": 48,
+      "description": "医療研究複合施設",
+      "rank": "large"
+    },
+    {
+      "id": "B24",
+      "name": "京都グリーンビル",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.98,
+        "lng": 135.77
+      },
+      "height": 36,
+      "description": "エコロジー設計の環境ビル",
+      "rank": "medium"
+    },
+    {
+      "id": "B25",
+      "name": "京都アーバンコンプレックス",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.008,
+        "lng": 135.752
+      },
+      "height": 52,
+      "description": "都市型複合施設",
+      "rank": "large"
+    },
+    {
+      "id": "B26",
+      "name": "京都ネオタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.07,
+        "lng": 135.78
+      },
+      "height": 58,
+      "description": "東北部の近未来型オフィスビル",
+      "rank": "large"
+    },
+    {
+      "id": "B27",
+      "name": "京都サイバーパーク",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.975,
+        "lng": 135.73
+      },
+      "height": 44,
+      "description": "IT企業集積地",
+      "rank": "medium"
+    },
+    {
+      "id": "B28",
+      "name": "京都スマートシティビル",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.08,
+        "lng": 135.74
+      },
+      "height": 46,
+      "description": "スマートシティ実証施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B29",
+      "name": "京都ロボティクスセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.98,
+        "lng": 135.715
+      },
+      "height": 40,
+      "description": "ロボット研究開発拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B30",
+      "name": "京都量子コンピューティング研究所",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.09,
+        "lng": 135.76
+      },
+      "height": 50,
+      "description": "量子技術研究の最先端施設",
+      "rank": "large"
+    },
+    {
+      "id": "B31",
+      "name": "京都エネルギーハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.02,
+        "lng": 135.705
+      },
+      "height": 38,
+      "description": "次世代エネルギー管理センター",
+      "rank": "medium"
+    },
+    {
+      "id": "B32",
+      "name": "京都バイオテックタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.975,
+        "lng": 135.785
+      },
+      "height": 54,
+      "description": "バイオテクノロジー研究施設",
+      "rank": "large"
+    },
+    {
+      "id": "B33",
+      "name": "京都デジタルアートミュージアム",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.085,
+        "lng": 135.775
+      },
+      "height": 42,
+      "description": "デジタルアート展示施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B34",
+      "name": "京都宇宙開発センター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.005,
+        "lng": 135.788
+      },
+      "height": 56,
+      "description": "宇宙技術研究開発施設",
+      "rank": "large"
+    },
+    {
+      "id": "B35",
+      "name": "京都AIラボラトリー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.97,
+        "lng": 135.695
+      },
+      "height": 48,
+      "description": "人工知能研究の中核施設",
+      "rank": "large"
+    },
+    {
       "id": "S01",
       "name": "伏見稲荷大社",
       "type": "shrine",
@@ -431,14 +671,51 @@
       "height": 204,
       "description": "新宿モード学園のシンボル的な繭型超高層ビル",
       "rank": "landmark"
+    },
+    {
+      "id": "SKY01",
+      "name": "京都セントラルパークタワー",
+      "type": "skyscraper",
+      "coordinates": {
+        "lat": 35.00,
+        "lng": 135.76
+      },
+      "height": 472,
+      "description": "京都未来都市の超高層複合施設",
+      "rank": "landmark"
+    },
+    {
+      "id": "SKY02",
+      "name": "京都フューチャータワー",
+      "type": "skyscraper",
+      "coordinates": {
+        "lat": 35.02,
+        "lng": 135.77
+      },
+      "height": 472,
+      "description": "未来都市のビジネス中枢摩天楼",
+      "rank": "landmark"
+    },
+    {
+      "id": "SKY03",
+      "name": "京都スカイプラザ",
+      "type": "skyscraper",
+      "coordinates": {
+        "lat": 34.99,
+        "lng": 135.75
+      },
+      "height": 472,
+      "description": "商業・住宅複合超高層ビル",
+      "rank": "landmark"
     }
   ],
   "metadata": {
-    "total_landmarks": 37,
-    "buildings": 15,
+    "total_landmarks": 60,
+    "buildings": 35,
     "shrines": 20,
     "skytrees": 1,
     "cocoontowers": 1,
+    "skyscrapers": 3,
     "map_bounds": {
       "north": 35.122778,
       "south": 34.967146,
@@ -446,6 +723,6 @@
       "west": 135.674167
     },
     "description": "京都市内の主要建築物と神社の統合リスト",
-    "last_updated": "2025-11-30"
+    "last_updated": "2025-12-03"
   }
 }
