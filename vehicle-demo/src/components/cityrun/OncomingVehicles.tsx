@@ -115,7 +115,7 @@ export default function OncomingVehicles({ isMoving, speed = 50, currentMode = 1
 
                 if (currentMode === 4) {
                     // 飞模式车辆位置更靠外
-                    vehicle.position.x = newLane === 1 ? -8 : 8;
+                    vehicle.position.x = (newLane === 1 ? -4 : 4) * Math.random() * 6;
                 } else {
                     vehicle.position.x = newLane === 1 ? -2 : 2;
                 }
