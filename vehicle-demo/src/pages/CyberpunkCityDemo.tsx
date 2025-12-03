@@ -8,7 +8,7 @@ import DistantCityscape from '../components/website/DistantCityscape'
 import Vehicle from '../components/website/Vehicle'
 import { CameraFollower } from '../components/website/CameraFollower'
 import { RouteMarkers } from '../components/website/RouteMarkers'
-import { FocusVignette } from '../components/website/FocusVignette'
+import { MultiLayerDustParticles } from '../components/website/DustParticles'
 import { useVehicleRoutes } from '../hooks/useVehicleRoutes'
 import { useRoutePaths } from '../hooks/useRoutePaths'
 import { useCameraFollow } from '../hooks/useCameraFollow'
@@ -16,6 +16,7 @@ import { useWebSocket } from '../hooks/useWebSocket'
 import { useAutoViewSwitch } from '../hooks/useAutoViewSwitch'
 import { INITIAL_VEHICLE_ROUTES } from '../config/vehicleRoutes'
 import { calculateTotalTime } from '../types/routeAPI'
+import { latLngToPosition3D } from '../utils/coordinateConverter'
 
 // 自动切换间隔时间（毫秒）
 const AUTO_SWITCH_INTERVAL = 10000 // 10 秒
@@ -31,6 +32,10 @@ export default function CyberpunkCityDemo() {
   const stickyVehicleIdRef = useRef<string | null>(null) // 粘性跟踪的车辆ID
   const routePathsRef = useRef<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 路径 ref
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false) // 全体情报展开状态
+  const [floatingLandmarks, setFloatingLandmarks] = useState<Array<{
+    position: [number, number, number]
+    name: string
+  }>>([]) // 浮动标记数据
 
   // 车辆路线管理
   const {
@@ -273,6 +278,7 @@ export default function CyberpunkCityDemo() {
           cameraRef={cameraRef}
           controlsRef={controlsRef}
           isAutoMode={isAutoMode}
+          followDistance={25}
         />
 
         <ambientLight intensity={0.4} />
@@ -292,6 +298,9 @@ export default function CyberpunkCityDemo() {
 
         <SkyEnvironment />
         {/* <DistantCityscape /> */}
+        
+        {/* 漂浮粒子系统 */}
+        <MultiLayerDustParticles />
         
         {/* 城市地面（集成建筑、神社和路线，包含全息网格地面） */}
         <CityGround
@@ -353,13 +362,15 @@ export default function CyberpunkCityDemo() {
         onClick={() => !selectedVehicleId && setIsOverviewExpanded(!isOverviewExpanded)}
         style={{
           position: 'absolute',
-          top: isOverviewExpanded ? 20 : 20,
+          top: 20,
           left: isOverviewExpanded ? '50%' : 20,
-          transform: isOverviewExpanded ? 'translateX(-50%)' : 'none',
+          transform: isOverviewExpanded ? 'translateX(-50%) scale(1)' : 'scale(1)',
           color: '#00ffff',
           fontFamily: 'monospace',
           fontSize: isOverviewExpanded ? '17px' : '16px',
-          background: 'rgba(0, 0, 0, 0.92)',
+          background: 'rgba(0, 0, 0, 0.2)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           padding: isOverviewExpanded ? '35px 45px' : '20px',
           borderRadius: isOverviewExpanded ? '12px' : '10px',
           border: `2px solid ${selectedVehicleId !== null ? '#ff00ff' : '#00ffff'}`,
@@ -370,11 +381,11 @@ export default function CyberpunkCityDemo() {
           maxWidth: isOverviewExpanded ? '1600px' : '420px',
           minWidth: isOverviewExpanded ? '950px' : '320px',
           cursor: selectedVehicleId ? 'default' : 'pointer',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'transform 0.3s ease-out, opacity 0.2s ease',
+          transformOrigin: isOverviewExpanded ? 'top center' : 'top left',
           boxShadow: isOverviewExpanded 
             ? '0 0 60px rgba(0, 255, 255, 0.6), inset 0 0 30px rgba(0, 255, 255, 0.1)' 
-            : '0 0 20px rgba(0, 255, 255, 0.3)',
-          backdropFilter: 'blur(15px)'
+            : '0 0 20px rgba(0, 255, 255, 0.3)'
         }}
       >
         {selectedVehicleId !== null && vehicleRoutes.find(r => r.id === selectedVehicleId) ? (
