@@ -220,10 +220,10 @@ export default function CityRunDemo() {
   const modePalette = (mode: VehicleMode | null) => {
     if (!mode) return { from: '#000', to: '#111', primary: '#00ffff' };
     switch (mode) {
-      case VehicleMode.NORMAL: return { from: '#FFD700', to: '#FFF4CC', primary: '#FFD700' };
-      case VehicleMode.HIGHWAY: return { from: '#C0C0C0', to: '#F0F0F0', primary: '#C0C0C0' };
-      case VehicleMode.DRONE: return { from: '#9C27B0', to: '#C0C0C0', primary: '#9C27B0' };
-      case VehicleMode.FLIGHT: return { from: '#FF0040', to: '#FFD700', primary: '#FF0040' };
+      case VehicleMode.NORMAL: return { from: '#F2D56A', to: '#FFF4CC', primary: '#F2D56A' };
+      case VehicleMode.HIGHWAY: return { from: '#E8BAA0', to: '#F0F0F0', primary: '#E8BAA0' };
+      case VehicleMode.DRONE: return { from: '#C1CB93', to: '#E8BAA0', primary: '#C1CB93' };
+      case VehicleMode.FLIGHT: return { from: '#ADC6D7', to: '#F2D56A', primary: '#ADC6D7' };
       default: return { from: '#000', to: '#111', primary: '#00ffff' };
     }
   };

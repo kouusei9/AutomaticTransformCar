@@ -389,6 +389,7 @@ export default function HUDPanel({
               : 'py-3 text-sm bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border border-cyan-500/50'
               }`}
             style={{
+              backgroundColor: 'rgba(31, 41, 55, 0.9)',
               textShadow: isMoving ? '0 0 5px rgba(220,38,38,0.5)' : '0 0 5px rgba(6,182,212,0.5)',
               boxShadow: isMoving
                 ? '0 0 15px rgba(220, 38, 38, 0.2)'
@@ -416,6 +417,7 @@ export default function HUDPanel({
               onClick={loadTestRoute}
               className="w-full py-2 rounded font-mono text-xs bg-purple-900/40 hover:bg-purple-900/60 active:bg-purple-900/80 text-purple-200 border border-purple-500/30 transition-all duration-300"
               style={{
+                backgroundColor: 'rgba(31, 41, 55, 0.7)',
                 minHeight: '44px',
                 WebkitTapHighlightColor: 'transparent'
               }}
