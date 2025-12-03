@@ -4,6 +4,7 @@ import { useTexture, useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { LocationMarker } from './LocationMarker'
 import { PathLine } from './PathLine'
+import { TypedFlowingTube } from './FlowingTubePath'
 import { latLngToPosition3D } from '../../utils/coordinateConverter'
 import { HolographicGroundFusion } from './HolographicGround'
 import { type RouteData, type RouteEdge, createRoutePathFromNodeIds } from '../../utils/routePathGenerator'
@@ -985,14 +986,23 @@ export const CityGround: React.FC<CityGroundProps> = ({
               (item.edge.from === nextNodeId && item.edge.to === nodeId)
           })
         return (
-          <PathLine
-            key={`ground-${index}`}
-            path={item.path}
-            color="#00ffff"
-            animated
-            lineWidth={6}
-            dimmed={highlightedRoute !== null && !isHighlighted}
-          />
+          <>
+            <PathLine
+              key={`ground-${index}`}
+              path={item.path}
+              color="#00ffff"
+              animated
+              lineWidth={6}
+              dimmed={highlightedRoute !== null && !isHighlighted}
+            />
+            {/* 流光管道 */}
+            <TypedFlowingTube
+              key={`ground-tube-${index}`}
+              path={item.path}
+              edgeType="road"
+              tubeRadius={0.25}
+            />
+          </>
         )
       })}
 
@@ -1006,14 +1016,23 @@ export const CityGround: React.FC<CityGroundProps> = ({
               (item.edge.from === nextNodeId && item.edge.to === nodeId)
           })
         return (
-          <PathLine
-            key={`highway-${index}`}
-            path={item.path}
-            color="#ffaa00"
-            animated
-            lineWidth={6}
-            dimmed={highlightedRoute !== null && !isHighlighted}
-          />
+          <>
+            <PathLine
+              key={`highway-${index}`}
+              path={item.path}
+              color="#ffaa00"
+              animated
+              lineWidth={6}
+              dimmed={highlightedRoute !== null && !isHighlighted}
+            />
+            {/* 流光管道 */}
+            <TypedFlowingTube
+              key={`highway-tube-${index}`}
+              path={item.path}
+              edgeType="highway"
+              tubeRadius={0.3}
+            />
+          </>
         )
       })}
 
@@ -1027,14 +1046,23 @@ export const CityGround: React.FC<CityGroundProps> = ({
               (item.edge.from === nextNodeId && item.edge.to === nodeId)
           })
         return (
-          <PathLine
-            key={`aerial-${index}`}
-            path={item.path}
-            color="#ff00ff"
-            animated
-            lineWidth={6}
-            dimmed={highlightedRoute !== null && !isHighlighted}
-          />
+          <>
+            <PathLine
+              key={`aerial-${index}`}
+              path={item.path}
+              color="#ff00ff"
+              animated
+              lineWidth={6}
+              dimmed={highlightedRoute !== null && !isHighlighted}
+            />
+            {/* 流光管道 */}
+            <TypedFlowingTube
+              key={`aerial-tube-${index}`}
+              path={item.path}
+              edgeType="drone"
+              tubeRadius={0.28}
+            />
+          </>
         )
       })}
 
@@ -1048,14 +1076,23 @@ export const CityGround: React.FC<CityGroundProps> = ({
               (item.edge.from === nextNodeId && item.edge.to === nodeId)
           })
         return (
-          <PathLine
-            key={`airplane-${index}`}
-            path={item.path}
-            color="#00ff00"
-            animated
-            lineWidth={2.5}
-            dimmed={highlightedRoute !== null && !isHighlighted}
-          />
+          <>
+            <PathLine
+              key={`airplane-${index}`}
+              path={item.path}
+              color="#00ff00"
+              animated
+              lineWidth={2.5}
+              dimmed={highlightedRoute !== null && !isHighlighted}
+            />
+            {/* 流光管道 */}
+            <TypedFlowingTube
+              key={`airplane-tube-${index}`}
+              path={item.path}
+              edgeType="sky"
+              tubeRadius={0.2}
+            />
+          </>
         )
       })}
 
