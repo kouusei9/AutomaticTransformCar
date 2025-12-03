@@ -34,7 +34,7 @@ export default function FirstPersonView({ isTransitioning = false, isEntering = 
     if (isTransitioning) {
       animationProgress.current = 0;
       initialOpacity.current = isEntering ? 0 : 1;
-      
+
       // 立即设置初始透明度
       if (meshRef.current) {
         const material = meshRef.current.material as THREE.MeshBasicMaterial;
@@ -50,11 +50,11 @@ export default function FirstPersonView({ isTransitioning = false, isEntering = 
     if (isTransitioning) {
       // 更新动画进度
       animationProgress.current = Math.min(1, animationProgress.current + delta / ANIMATION_DURATION);
-      
+
       const progress = animationProgress.current;
       // 使用缓动函数（ease-in-out）
-      const easeProgress = progress < 0.5 
-        ? 2 * progress * progress 
+      const easeProgress = progress < 0.5
+        ? 2 * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
       if (isEntering) {
@@ -66,7 +66,7 @@ export default function FirstPersonView({ isTransitioning = false, isEntering = 
         const offsetY = EXIT_OFFSET * easeProgress;
         meshRef.current.position.y = camera.position.y + 0.5 + offsetY;
       }
-      
+
       // 根据动画进度调整透明度，避免闪现
       const material = meshRef.current.material as THREE.MeshBasicMaterial;
       if (isEntering) {
@@ -101,9 +101,9 @@ export default function FirstPersonView({ isTransitioning = false, isEntering = 
         rotation={[0, 0, 0]}
       >
         <planeGeometry args={[dashboardWidth, dashboardHeight]} />
-        <meshBasicMaterial 
-          map={dashboardTexture} 
-          transparent 
+        <meshBasicMaterial
+          map={dashboardTexture}
+          transparent
           opacity={isTransitioning && !isEntering ? 0 : (isTransitioning && isEntering ? 0 : 1.0)}
         />
       </mesh>

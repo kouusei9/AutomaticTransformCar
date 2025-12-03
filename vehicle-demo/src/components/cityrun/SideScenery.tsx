@@ -14,16 +14,16 @@ function createShadowTexture() {
     canvas.width = 128;
     canvas.height = 128;
     const ctx = canvas.getContext('2d')!;
-    
+
     const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
     gradient.addColorStop(0, 'rgba(0, 0, 0, 0.5)');      // 中心较暗
     gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.25)');   // 中间过渡
     gradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.05)');   // 边缘很淡
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');        // 完全透明
-    
+
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 128, 128);
-    
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
     return texture;
@@ -260,8 +260,8 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
             {/* 左侧地面 */}
             <mesh position={[-15, currentMode === 3 ? -13 : -6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <planeGeometry args={[20, 400]} />
-                <meshBasicMaterial 
-                    map={asphaltTexture} 
+                <meshBasicMaterial
+                    map={asphaltTexture}
                     side={THREE.DoubleSide}
                 />
             </mesh>
@@ -269,8 +269,8 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
             {/* 右侧地面 */}
             <mesh position={[15, currentMode === 3 ? -13 : -6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <planeGeometry args={[20, 400]} />
-                <meshBasicMaterial 
-                    map={asphaltTexture} 
+                <meshBasicMaterial
+                    map={asphaltTexture}
                     side={THREE.DoubleSide}
                 />
             </mesh>
@@ -311,13 +311,13 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
 
                             {/* 建筑的影子（只有建筑有影子） */}
                             {isBuilding && (
-                                <mesh 
-                                    position={[tree.x, groundY + 0.01, tree.z]} 
+                                <mesh
+                                    position={[tree.x, groundY + 0.01, tree.z]}
                                     rotation={[-Math.PI / 2, 0, 0]}
                                     scale={[width * 0.5, width * 0.3, 1]}
                                 >
                                     <planeGeometry args={[2, 2]} />
-                                    <meshBasicMaterial 
+                                    <meshBasicMaterial
                                         map={shadowTexture}
                                         transparent
                                         opacity={Math.min(0.8, 0.4 + height * 0.03) * fadeOpacity}
@@ -363,13 +363,13 @@ export default function SideScenery({ isMoving, speed = 50, currentMode = 1 }: S
 
                             {/* 建筑的影子（只有建筑有影子） */}
                             {isBuilding && (
-                                <mesh 
-                                    position={[tree.x, groundY + 0.01, tree.z]} 
+                                <mesh
+                                    position={[tree.x, groundY + 0.01, tree.z]}
                                     rotation={[-Math.PI / 2, 0, 0]}
                                     scale={[width * 0.5, width * 0.3, 1]}
                                 >
                                     <planeGeometry args={[2, 2]} />
-                                    <meshBasicMaterial 
+                                    <meshBasicMaterial
                                         map={shadowTexture}
                                         transparent
                                         opacity={Math.min(0.8, 0.4 + height * 0.03) * fadeOpacity}

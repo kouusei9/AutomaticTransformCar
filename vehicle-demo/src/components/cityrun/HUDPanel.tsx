@@ -3,10 +3,10 @@ import type { RouteResponse } from '../../types/routeAPI';
 import { getAllModesRoute } from '../../api/completeRouteExample';
 import MiniRouteMap from './MiniRouteMap';
 import { generateRoute, getAvailableLocations, type KyotoNode } from '../../utils/kyotoRouteUtils';
-import { 
-  calculateTotalDistance, 
-  calculateTotalTime, 
-  formatDistance, 
+import {
+  calculateTotalDistance,
+  calculateTotalTime,
+  formatDistance,
   formatTime,
   getModeById
 } from '../../types/routeAPI';
@@ -50,6 +50,23 @@ export default function HUDPanel({
   const [startLocationId, setStartLocationId] = useState('A1'); // 京都駅のID
   const [destinationId, setDestinationId] = useState('D2'); // 清水寺のID
   const [availableLocations, setAvailableLocations] = useState<KyotoNode[]>([]);
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // 监听窗口尺寸变化(处理横竖屏切换)
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      console.log('📐 窗口尺寸变化:', window.innerWidth, 'x', window.innerHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   // 加载可用地点列表
   useEffect(() => {
@@ -143,14 +160,51 @@ export default function HUDPanel({
     position: { top: 0, left: 0 }
   };
 
+  // iPad 响应式样式调整
+  const getResponsiveStyles = () => {
+    if (typeof window === 'undefined') return styleConfig;
+
+    const isIPad = /iPad/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+    const width = windowSize.width;
+    const height = windowSize.height;
+    const isPortrait = height > width;
+
+    // 计算安全的最大宽度
+    const safeMaxWidth = Math.min(width * 0.95, isMoving ? 340 : 600);
+
+    if (isIPad || (width >= 768 && width <= 1024)) {
+      if (isMoving) {
+        return {
+          ...styleConfig,
+          width: isPortrait ? `${Math.min(280, safeMaxWidth)}px` : `${Math.min(340, safeMaxWidth)}px`,
+          position: { top: isPortrait ? 16 : 20, left: isPortrait ? 16 : 20 },
+          padding: 'p-2.5',
+          titleSize: 'text-xs tracking-wider'
+        };
+      } else {
+        return {
+          ...styleConfig,
+          width: isPortrait ? '90vw' : `${Math.min(520, safeMaxWidth)}px`,
+          padding: isPortrait ? 'p-4' : 'p-5',
+          titleSize: isPortrait ? 'text-lg tracking-wide' : 'text-xl tracking-widest'
+        };
+      }
+    }
+
+    return styleConfig;
+  };
+
+  const responsiveConfig = getResponsiveStyles();
+
   return (
     <div
       className={`fixed z-50 transition-all duration-1000 ease-in-out pointer-events-none ${isMoving ? '' : 'flex items-center justify-center'
         }`}
       style={{
         // 动态定位
-        top: isMoving ? styleConfig.position.top : 0,
-        left: isMoving ? styleConfig.position.left : 0,
+        top: isMoving ? responsiveConfig.position.top : 0,
+        left: isMoving ? responsiveConfig.position.left : 0,
         right: isMoving ? 'auto' : 0,
         bottom: isMoving ? 'auto' : 0,
         perspective: '1000px',
@@ -158,20 +212,24 @@ export default function HUDPanel({
     >
       {/* 主面板容器 */}
       <div
-        className={`bg-gradient-to-br from-gray-900/95 to-black/95 border-2 border-cyan-500/50 pointer-events-auto backdrop-blur-md transition-all duration-1000 ${styleConfig.padding}`}
+        className={`bg-gradient-to-br from-gray-900/95 to-black/95 border-2 border-cyan-500/50 pointer-events-auto backdrop-blur-md transition-all duration-1000 ${responsiveConfig.padding}`}
         style={{
-          width: styleConfig.width,
-          transform: styleConfig.transform,
-          boxShadow: styleConfig.shadow,
+          width: responsiveConfig.width,
+          transform: responsiveConfig.transform,
+          boxShadow: responsiveConfig.shadow,
           borderRadius: '20px',
           borderBottomWidth: '3px',
           borderTopWidth: '1px',
+          maxWidth: isMoving ? 'none' : '95vw', // iPad 适配
+          maxHeight: isMoving ? 'calc(100vh - 48px)' : '95vh', // 防止溢出
+          overflowY: 'auto', // 内容过多时可滚动
+          WebkitOverflowScrolling: 'touch' // iOS平滑滚动
         }}
       >
         {/* 顶部标题 */}
         <div className="text-center mb-3">
           <h2
-            className={`font-mono font-bold text-cyan-400 mb-1 transition-all duration-1000 ${styleConfig.titleSize}`}
+            className={`font-mono font-bold text-cyan-400 mb-1 transition-all duration-1000 ${responsiveConfig.titleSize}`}
             style={{ textShadow: '0 0 10px rgba(6, 182, 212, 0.8)' }}
           >
             {isMoving ? 'SYSTEM MONITOR' : 'MISSION CONTROL'}
@@ -270,6 +328,7 @@ export default function HUDPanel({
                       onStartLocationSet?.(newLocation);
                     }}
                     className="w-full px-3 py-2 bg-gray-900/80 border border-cyan-500/30 rounded text-cyan-300 text-sm focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer hover:bg-gray-800"
+                    style={{ fontSize: '16px' }} // 防止 iPad 自动缩放
                   >
                     {locationOptions}
                   </select>
@@ -287,6 +346,7 @@ export default function HUDPanel({
                       onDestinationSet?.(newDestination);
                     }}
                     className="w-full px-3 py-2 bg-gray-900/80 border border-green-500/30 rounded text-green-300 text-sm focus:outline-none focus:border-green-500 transition-colors cursor-pointer hover:bg-gray-800"
+                    style={{ fontSize: '16px' }} // 防止 iPad 自动缩放
                   >
                     {locationOptions}
                   </select>
@@ -325,14 +385,16 @@ export default function HUDPanel({
           <button
             onClick={handleStartToggle}
             className={`w-full rounded font-bold font-mono tracking-wider transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isMoving
-              ? 'py-2 text-xs bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-500/50'
-              : 'py-3 text-sm bg-cyan-900/80 hover:bg-cyan-800 text-cyan-100 border border-cyan-500/50'
+              ? 'py-2 text-xs bg-red-900/80 hover:bg-red-800 active:bg-red-700 text-red-100 border border-red-500/50'
+              : 'py-3 text-sm bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border border-cyan-500/50'
               }`}
             style={{
               textShadow: isMoving ? '0 0 5px rgba(220,38,38,0.5)' : '0 0 5px rgba(6,182,212,0.5)',
               boxShadow: isMoving
                 ? '0 0 15px rgba(220, 38, 38, 0.2)'
-                : '0 0 15px rgba(6, 182, 212, 0.2)'
+                : '0 0 15px rgba(6, 182, 212, 0.2)',
+              minHeight: '48px', // iPad 触摸优化
+              WebkitTapHighlightColor: 'transparent'
             }}
           >
             {isMoving ? (
@@ -352,7 +414,11 @@ export default function HUDPanel({
           {!isMoving && (
             <button
               onClick={loadTestRoute}
-              className="w-full py-2 rounded font-mono text-xs bg-purple-900/40 hover:bg-purple-900/60 text-purple-200 border border-purple-500/30 transition-all duration-300"
+              className="w-full py-2 rounded font-mono text-xs bg-purple-900/40 hover:bg-purple-900/60 active:bg-purple-900/80 text-purple-200 border border-purple-500/30 transition-all duration-300"
+              style={{
+                minHeight: '44px',
+                WebkitTapHighlightColor: 'transparent'
+              }}
             >
               [ 走行シミュレーション ]
             </button>
