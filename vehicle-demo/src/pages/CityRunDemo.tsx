@@ -99,10 +99,12 @@ const SPEED_MULTIPLIERS: Record<VehicleMode, number> = {
 
 // 视频路径配置
 const TRANSFORM_VIDEOS: Record<string, string> = {
-  TO_HIGHWAY: '/assets/car_highway.mp4',
-  TO_DRONE: '/assets/car_drone.mp4',
-  TO_FLIGHT: '/assets/car_fly.mp4',
-  FROM_FLIGHT: '/assets/fly_car.mp4',
+  TO_HIGHWAY: '/assets/car_to_highway.mp4',
+  TO_DRONE: '/assets/car_to_drone.mp4',
+  TO_FLIGHT: '/assets/car_to_fly.mp4',
+  FROM_FLIGHT: '/assets/fly_to_car.mp4',
+  FROM_DRONE: '/assets/drone_to_car.mp4',
+  FROM_HIGHWAY: '/assets/highway_to_car.mp4'
 };
 
 // ===== Context =====
@@ -172,21 +174,27 @@ export default function CityRunDemo() {
 
   const getTransformVideo = useCallback((fromMode: VehicleMode, toMode: VehicleMode): string | null => {
     if (toMode === VehicleMode.NORMAL) {
-      if (fromMode === VehicleMode.FLIGHT) {
-        return TRANSFORM_VIDEOS.FROM_FLIGHT;
+      switch (fromMode) {
+        case VehicleMode.HIGHWAY:
+          return TRANSFORM_VIDEOS.FROM_HIGHWAY;
+        case VehicleMode.DRONE:
+          return TRANSFORM_VIDEOS.FROM_DRONE;
+        case VehicleMode.FLIGHT:
+          return TRANSFORM_VIDEOS.FROM_FLIGHT;
+        default:
+          return null;
       }
-      return null;
-    }
-
-    switch (toMode) {
-      case VehicleMode.HIGHWAY:
-        return TRANSFORM_VIDEOS.TO_HIGHWAY;
-      case VehicleMode.DRONE:
-        return TRANSFORM_VIDEOS.TO_DRONE;
-      case VehicleMode.FLIGHT:
-        return TRANSFORM_VIDEOS.TO_FLIGHT;
-      default:
-        return null;
+    } else {
+      switch (toMode) {
+        case VehicleMode.HIGHWAY:
+          return TRANSFORM_VIDEOS.TO_HIGHWAY;
+        case VehicleMode.DRONE:
+          return TRANSFORM_VIDEOS.TO_DRONE;
+        case VehicleMode.FLIGHT:
+          return TRANSFORM_VIDEOS.TO_FLIGHT;
+        default:
+          return null;
+      }
     }
   }, []);
 
