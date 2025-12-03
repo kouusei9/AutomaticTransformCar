@@ -7,6 +7,7 @@ import { useVehicleAppearance } from '../../hooks/useVehicleAppearance'
 import { useOcclusionDetection } from '../../hooks/useOcclusionDetection'
 import { WindParticles } from './WindParticles'
 import { FlameParticles } from './FlameParticles'
+import { EnhancedVehicleTrail } from './VehicleTrail'
 import { calculateTextureAspect } from '../../utils/vehicleTextureConfig'
 import type { VehicleTextures, TextureAspects } from '../../types/vehicleTypes'
 
@@ -314,12 +315,19 @@ export const Vehicle: React.FC<VehicleProps> = ({
         tangent={getPositionAndTangent().tangent}
       />
 
-      {/* 炎パーティクルシステム（飛行時のみ） */}
+      {/* 炒パーティクルシステム（飛行時のみ） */}
       <FlameParticles
         visible={getCurrentSegmentInfo().edgeType === 'drone'}
         position={meshRef.current?.position || new THREE.Vector3()}
         tangent={getPositionAndTangent().tangent}
         vehicleScale={VEHICLE_SCALE}
+      />
+
+      {/* 车辆光尾粒子系统 */}
+      <EnhancedVehicleTrail
+        vehiclePosition={meshRef.current?.position || new THREE.Vector3()}
+        vehicleForward={getPositionAndTangent().tangent}
+        edgeType={getCurrentSegmentInfo().edgeType as 'road' | 'highway' | 'drone' | 'sky'}
       />
     </group>
   )
