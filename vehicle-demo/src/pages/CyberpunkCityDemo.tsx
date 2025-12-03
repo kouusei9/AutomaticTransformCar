@@ -353,7 +353,8 @@ export default function CyberpunkCityDemo() {
           );
         })}
 
-        <gridHelper args={[200, 20, '#444', '#222']} position={[0, 0.1, 0]} />
+        {/* 黑色格子线（已注释） */}
+        {/* <gridHelper args={[200, 20, '#444', '#222']} position={[0, 0.1, 0]} /> */}
         <fog attach="fog" args={['#000', 100, 400]} />
       </Canvas>
 
@@ -409,7 +410,7 @@ export default function CyberpunkCityDemo() {
                   <div style={{ fontSize: '17px', marginBottom: '12px' }}>⏱️ 実際時間: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{totalTime} 分</span></div>
                   <div style={{ fontSize: '17px', marginBottom: '12px' }}>🎮 デモ時間: <span style={{ color: '#ff00ff', fontWeight: 'bold' }}>{demoTime} 秒</span></div>
                   <div style={{ fontSize: '17px', marginBottom: '12px' }}>🔄 モード: <span style={{ fontWeight: 'bold' }}>{selectedRoute.isCycle ? '循環ルート' : '片道ルート'}</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>🎨 カラー: <span style={{ color: selectedRoute.color, fontSize: '20px' }}>■■■</span> {selectedRoute.color}</div>
+                  {/* <div style={{ fontSize: '17px', marginBottom: '12px' }}>🎨 カラー: <span style={{ color: selectedRoute.color, fontSize: '20px' }}>■■■</span> {selectedRoute.color}</div> */}
                   <div style={{ marginTop: '20px', fontSize: '15px', color: '#888', padding: '12px', background: 'rgba(255, 0, 255, 0.1)', borderRadius: '6px', border: '1px solid rgba(255, 0, 255, 0.3)' }}>
                     💡 再クリックで追跡解除
                   </div>
@@ -422,7 +423,7 @@ export default function CyberpunkCityDemo() {
           <>
             <h2 style={{ 
               margin: '0 0 18px 0', 
-              color: '#ff00ff', 
+              color: '#00ffff', 
               textAlign: 'left',
               fontSize: isOverviewExpanded ? '28px' : '20px',
               fontWeight: 'bold',
@@ -436,7 +437,7 @@ export default function CyberpunkCityDemo() {
               // 缩略版
               <div style={{ lineHeight: '2', textAlign: 'left' }}>
                 {vehicleRoutes.filter(r => activeVehicles.has(r.id)).slice(0, 3).map((route, idx) => (
-                  <div key={route.id} style={{ fontSize: '16px', marginBottom: '8px' }}>🚗 車両{idx + 1}: {route.name}</div>
+                  <div key={route.id} style={{ fontSize: '16px', marginBottom: '8px' }}>• 車両{idx + 1}: {route.name}</div>
                 ))}
                 {vehicleRoutes.filter(r => activeVehicles.has(r.id)).length > 3 && (
                   <div style={{ fontSize: '16px', color: '#888', marginBottom: '8px' }}>
