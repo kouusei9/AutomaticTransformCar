@@ -39,7 +39,7 @@ export default function OncomingVehicles({ isMoving, speed = 50, currentMode = 1
             // 随机选择车道（左或右）
             const lane = Math.random() > 0.5 ? 1 : 2;
             // 左车道 x=-2，右车道 x=2
-            const x = lane === 1 ? -2 : 2;
+            let x = lane === 1 ? -2 : 2;
 
             let vehicleType = 1; // 默认金模式
 
@@ -64,6 +64,7 @@ export default function OncomingVehicles({ isMoving, speed = 50, currentMode = 1
             } else if (currentMode === 4) {
                 // 飞模式时: 仅出现飞模式车辆
                 vehicleType = 4; // 飞模式
+                x = x * 4; // 飞模式车辆位置更靠外
             }
 
             vehicleList.push({
@@ -111,7 +112,13 @@ export default function OncomingVehicles({ isMoving, speed = 50, currentMode = 1
                 vehicle.position.z = -SPAWN_DISTANCE - Math.random() * 50;
                 // 随机切换车道
                 const newLane = Math.random() > 0.5 ? 1 : 2;
-                vehicle.position.x = newLane === 1 ? -2 : 2;
+
+                if (currentMode === 4) {
+                    // 飞模式车辆位置更靠外
+                    vehicle.position.x = newLane === 1 ? -8 : 8;
+                } else {
+                    vehicle.position.x = newLane === 1 ? -2 : 2;
+                }
             }
         });
     });
