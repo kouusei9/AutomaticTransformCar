@@ -175,7 +175,13 @@ export default function CyberpunkCityDemo() {
 
   // 从 VehicleRoute 中提取 nodeIds
   const extractNodeIdsFromRoute = (route: any): string[] => {
+    // VehicleRoute 继承自 RouteResponse，包含 nodes 数组
+    if (route.nodes && Array.isArray(route.nodes)) {
+      return route.nodes.map((node: any) => node.id)
+    }
+    // 备用：如果有 nodeIds 字段
     if (route.nodeIds) return route.nodeIds
+    // 备用：如果有 path 字段
     if (route.path) {
       return route.path.map((segment: any) => 
         typeof segment === 'string' ? segment : segment.nodeId
@@ -231,6 +237,26 @@ export default function CyberpunkCityDemo() {
           50% {
             opacity: 0.6;
           }
+        }
+        
+        /* 自定义滚动条样式 */
+        .vehicle-list-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .vehicle-list-scroll::-webkit-scrollbar-track {
+          background: rgba(0, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+        
+        .vehicle-list-scroll::-webkit-scrollbar-thumb {
+          background: rgba(0, 255, 255, 0.2);
+          border-radius: 3px;
+          transition: background 0.2s;
+        }
+        
+        .vehicle-list-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 255, 255, 0.4);
         }
       `}</style>
       
@@ -405,11 +431,11 @@ export default function CyberpunkCityDemo() {
                   <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffffff', marginBottom: '15px' }}>
                     {selectedRoute.name}
                   </div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>📍 ルート: {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}</div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>📏 総距離: <span style={{ color: '#00ffff', fontWeight: 'bold' }}>{(totalDistance / 1000).toFixed(2)} km</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>⏱️ 実際時間: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{totalTime} 分</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>🎮 デモ時間: <span style={{ color: '#ff00ff', fontWeight: 'bold' }}>{demoTime} 秒</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>🔄 モード: <span style={{ fontWeight: 'bold' }}>{selectedRoute.isCycle ? '循環ルート' : '片道ルート'}</span></div>
+                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>ルート: {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}</div>
+                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>総距離: <span style={{ color: '#00ffff', fontWeight: 'bold' }}>{(totalDistance / 1000).toFixed(2)} km</span></div>
+                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>実際時間: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{totalTime} 分</span></div>
+                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>デモ時間: <span style={{ color: '#ff00ff', fontWeight: 'bold' }}>{demoTime} 秒</span></div>
+                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>モード: <span style={{ fontWeight: 'bold' }}>{selectedRoute.isCycle ? '循環ルート' : '片道ルート'}</span></div>
                   {/* <div style={{ fontSize: '17px', marginBottom: '12px' }}>🎨 カラー: <span style={{ color: selectedRoute.color, fontSize: '20px' }}>■■■</span> {selectedRoute.color}</div> */}
                   <div style={{ marginTop: '20px', fontSize: '15px', color: '#888', padding: '12px', background: 'rgba(255, 0, 255, 0.1)', borderRadius: '6px', border: '1px solid rgba(255, 0, 255, 0.3)' }}>
                     💡 再クリックで追跡解除
@@ -482,25 +508,28 @@ export default function CyberpunkCityDemo() {
                       {routeData?.nodes?.length || 0} / {routeData?.edges?.length || 0}
                     </div>
                   </div>
-                  <div style={{ width: '2px', background: 'rgba(0, 255, 255, 0.3)' }} />
-                  <div style={{ flex: 1 }}>
+                  {/* <div style={{ width: '2px', background: 'rgba(0, 255, 255, 0.3)' }} /> */}
+                  {/* <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px' }}>制御モード</div>
                     <div style={{ fontSize: '32px', color: isAutoMode ? '#00ff00' : '#ffaa00', fontWeight: 'bold' }}>
                       {isAutoMode ? '自動' : '手動'}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* 车辆详细信息 - 3列网格布局 */}
-                <div style={{ 
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '25px',
-                  maxHeight: '450px',
-                  overflowY: 'auto',
-                  paddingRight: '15px',
-                  marginBottom: '25px'
-                }}>
+                <div 
+                  className="vehicle-list-scroll"
+                  style={{ 
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '25px',
+                    maxHeight: '450px',
+                    overflowY: 'auto',
+                    paddingRight: '10px',
+                    marginBottom: '25px'
+                  }}
+                >
                   {vehicleRoutes.filter(r => activeVehicles.has(r.id)).map((route, idx) => {
                     const path = routePaths.get(route.id)
                     const totalTime = calculateTotalTime(route.edges)
@@ -540,7 +569,7 @@ export default function CyberpunkCityDemo() {
                             fontWeight: 'bold', 
                             color: route.color
                           }}>
-                            🚗 車両 {idx + 1}
+                            車両 {idx + 1}
                           </div>
                           <div style={{
                             padding: '6px 16px',
@@ -557,7 +586,7 @@ export default function CyberpunkCityDemo() {
 
                         {/* 路线名称 */}
                         <div style={{ fontSize: '19px', color: '#fff', marginBottom: '15px', fontWeight: '600' }}>
-                          📌 {route.name}
+                          {route.name}
                         </div>
 
                         {/* 详细统计 - 两列布局 */}
@@ -569,25 +598,25 @@ export default function CyberpunkCityDemo() {
                           marginBottom: '15px'
                         }}>
                           <div style={{ color: '#aaa' }}>
-                            📍 ノード: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{route.nodes?.length || 0}</span>
+                          ノード: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{route.nodes?.length || 0}</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                            🔗 エッジ: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{route.edges?.length || 0}</span>
+                          エッジ: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{route.edges?.length || 0}</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                            📏 距離: <span style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '17px' }}>{(totalDistance / 1000).toFixed(2)} km</span>
+                            距離: <span style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '17px' }}>{(totalDistance / 1000).toFixed(2)} km</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                            ⏱️ 実際: <span style={{ color: '#ffaa00', fontWeight: 'bold', fontSize: '17px' }}>{totalTime} 分</span>
+                            実際: <span style={{ color: '#ffaa00', fontWeight: 'bold', fontSize: '17px' }}>{totalTime} 分</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                            🎮 デモ: <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '17px' }}>{demoTime} 秒</span>
+                            デモ: <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '17px' }}>{demoTime} 秒</span>
                           </div>
-                          {path && (
+                          {/* {path && (
                             <div style={{ color: '#aaa' }}>
-                              📐 Path: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{path.getLength().toFixed(1)} u</span>
+                              Path: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{path.getLength().toFixed(1)} u</span>
                             </div>
-                          )}
+                          )} */}
                         </div>
 
                         {/* 模式统计 */}
@@ -596,7 +625,7 @@ export default function CyberpunkCityDemo() {
                           paddingTop: '15px',
                           borderTop: `2px dashed ${route.color}30`
                         }}>
-                          <div style={{ fontSize: '15px', color: '#888', marginBottom: '10px', fontWeight: '500' }}>🚦 移動モード分布:</div>
+                          <div style={{ fontSize: '15px', color: '#888', marginBottom: '10px', fontWeight: '500' }}>移動モード分布:</div>
                           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             {modeCounts.road && (
                               <div style={{ 
@@ -659,7 +688,7 @@ export default function CyberpunkCityDemo() {
                           paddingTop: '15px',
                           borderTop: `2px dashed ${route.color}30`
                         }}>
-                          <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px', fontWeight: '500' }}>📍 経由ルート:</div>
+                          <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px', fontWeight: '500' }}>経由ルート:</div>
                           <div style={{ fontSize: '15px', color: '#ccc', lineHeight: '2' }}>
                             {route.nodes?.slice(0, 6).map((node, i) => {
                               // 获取当前节点到下一个节点的边类型
@@ -705,7 +734,7 @@ export default function CyberpunkCityDemo() {
                   fontSize: '16px'
                 }}>
                   <div style={{ color: '#888' }}>
-                    💡 ヒント: 車両をクリックで追跡 | マウスで視点操作
+                    ヒント: 車両をクリックで追跡 | マウスで視点操作
                   </div>
                   <div style={{ 
                     fontSize: '16px', 
