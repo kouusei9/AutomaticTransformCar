@@ -292,6 +292,8 @@ export default function CyberpunkCityDemo() {
 
         <SkyEnvironment />
         {/* <DistantCityscape /> */}
+        
+        {/* 城市地面（集成建筑、神社和路线，包含全息网格地面） */}
         <CityGround
           onRouteDataLoaded={setRouteData}
           highlightedRoute={selectedVehicleId !== null ? (() => {

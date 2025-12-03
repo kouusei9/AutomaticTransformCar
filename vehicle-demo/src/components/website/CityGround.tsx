@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { LocationMarker } from './LocationMarker'
 import { PathLine } from './PathLine'
 import { latLngToPosition3D } from '../../utils/coordinateConverter'
+import { HolographicGroundFusion } from './HolographicGround'
 import { type RouteData, type RouteEdge, createRoutePathFromNodeIds } from '../../utils/routePathGenerator'
 
 /**
@@ -966,8 +967,13 @@ export const CityGround: React.FC<CityGroundProps> = ({
         color={0xffffff}
       />
 
+      {/* 全息网格地面 */}
+      <HolographicGroundFusion
+        size={size}
+        textureUrl="/website-assets/routes_map.png" />
+
       {/* 地面平面 */}
-      <GroundPlane size={size} />
+      {/* <GroundPlane size={size} /> */}
 
       {/* 地上ルート（車両と同じパスを使用） */}
       {routes.ground.map((item, index) => {
