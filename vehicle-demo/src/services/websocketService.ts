@@ -29,13 +29,31 @@ class WebSocketService {
   /**
    * 连接到WebSocket服务器
    */
-  // 10.192.114.167
-  connect(url: string = `ws://${window.location.hostname}:8080`): Promise<void> {
+  connect(url?: string): Promise<void> {
     // 如果已经连接，直接返回
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       console.log('ℹ️ WebSocket 已连接');
       return Promise.resolve();
     }
+
+    // 动态获取 WebSocket URL
+    if (!url) {
+      // 优先使用环境变量，否则使用当前页面的 hostname
+      const wsHost = (import.meta as any).env?.VITE_WS_HOST || window.location.hostname;
+      const wsPort = (import.meta as any).env?.VITE_WS_PORT || '8080';
+      
+      // 自动检测协议：https 使用 wss，http 使用 ws
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      
+      // 如果环境变量明确指定了协议，使用环境变量
+      const envProtocol = (import.meta as any).env?.VITE_WS_PROTOCOL;
+      const protocol = envProtocol || wsProtocol;
+      
+      url = `${protocol}//${wsHost}:${wsPort}`;
+      console.log('🔗 WebSocket 连接地址:', url);
+      console.log('🔐 协议:', protocol === 'wss:' ? 'WSS (安全连接)' : 'WS (普通连接)');
+    }
+
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(url);
