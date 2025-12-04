@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0",
     "ws": "node websocket-server.js"
   },
   "dependencies": {
