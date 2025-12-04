@@ -151,6 +151,7 @@ export default function CityRunDemo() {
   const [isPausedForVideo, setIsPausedForVideo] = useState(false);
   const [isTestRoute, setIsTestRoute] = useState(false); // 是否显示DebugPanel(仅测试路线行驶时)
   const isTestRouteRef = useRef(false); // 标记当前路线是否为测试路线
+  const [isPaused, setIsPaused] = useState(false); // 用户手动暂停状态
 
   const exitAnimationModeRef = useRef<VehicleMode>(VehicleMode.NORMAL);
   const timersRef = useRef<number[]>([]);
@@ -370,6 +371,7 @@ export default function CityRunDemo() {
     setElapsedTime(0);
     setProgressPercent(0);
     setCurrentSegmentIndex(0);
+    setIsPaused(false); // 重置暂停状态
 
     // 检查是否为测试路线(通过ID判断,测试路线ID包含THREE-MODE或ALL-MODES)
     const isTest = newRouteData?.id?.includes('THREE-MODE') ||
@@ -381,7 +383,20 @@ export default function CityRunDemo() {
     console.log('📍 ルートデータ更新:', newRouteData, isTest ? '(テストルート)' : '');
   }, []);
 
-  // ===== isMoving变化时控制DebugPanel显示 =====
+  // ===== 暂停/恢复处理 =====
+  const handlePauseToggle = useCallback(() => {
+    setIsPaused(prev => {
+      const newPaused = !prev;
+      console.log(newPaused ? '⏸️ 一時停止' : '▶️ 再開');
+      if (!newPaused) {
+        // 恢复时重置lastTime，防止时间跳跃
+        lastTimeRef.current = Date.now();
+      }
+      return newPaused;
+    });
+  }, []);
+
+  // ===== isMoving变化时控制DebugPanel显示和重置暂停状态 =====
   useEffect(() => {
     console.log('🔍 DebugPanel状态检查:', {
       isMoving,
@@ -397,6 +412,11 @@ export default function CityRunDemo() {
       // 停止行驶时隐藏DebugPanel
       console.log('❌ 隐藏DebugPanel');
       setIsTestRoute(false);
+    }
+
+    // 停止行驶时重置暂停状态
+    if (!isMoving) {
+      setIsPaused(false);
     }
   }, [isMoving]);
 
@@ -424,7 +444,7 @@ export default function CityRunDemo() {
     lastTimeRef.current = Date.now();
 
     const updateProgress = () => {
-      if (isPausedForVideo) {
+      if (isPausedForVideo || isPaused) {
         lastTimeRef.current = Date.now();
         animationFrameRef.current = requestAnimationFrame(updateProgress);
         return;
@@ -517,7 +537,7 @@ export default function CityRunDemo() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isMoving, routeData, isPausedForVideo, currentMode, getTransformVideo, handleAutoStop]);
+  }, [isMoving, routeData, isPausedForVideo, isPaused, currentMode, getTransformVideo, handleAutoStop]);
 
   // ===== 初期モード設定 =====
   useEffect(() => {
@@ -563,7 +583,7 @@ export default function CityRunDemo() {
 
   // ===== 計算値 =====
   const currentSpeed = getSpeedMultiplier(currentMode);
-  const isActivelyMoving = isMoving && !isPausedForVideo;
+  const isActivelyMoving = isMoving && !isPausedForVideo && !isPaused;
 
   const simulationContextValue: SimulationContextType = {
     isMoving,
@@ -716,6 +736,52 @@ export default function CityRunDemo() {
           )}
 
         </ThreeScene>
+
+        {/* 暂停按钮 (仅在第三人称视角行驶时显示) */}
+        {isMoving && !isFirstPerson && (
+          <button
+            onClick={handlePauseToggle}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '20px',
+              zIndex: 20,
+              padding: '12px 24px',
+              fontSize: '18px',
+              fontFamily: 'monospace',
+              fontWeight: 'bold',
+              color: isPaused ? '#000' : '#fff',
+              background: isPaused 
+                ? 'linear-gradient(135deg, #00ff00 0%, #00ff88 100%)' 
+                : 'rgba(0, 0, 0, 0.7)',
+              border: `2px solid ${isPaused ? '#00ff00' : '#ff00ff'}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: isPaused 
+                ? '0 0 20px rgba(0, 255, 0, 0.6)' 
+                : '0 0 10px rgba(255, 0, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = isPaused 
+                ? '0 0 30px rgba(0, 255, 0, 0.8)' 
+                : '0 0 30px rgba(255, 0, 255, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = isPaused 
+                ? '0 0 20px rgba(0, 255, 0, 0.6)' 
+                : '0 0 10px rgba(255, 0, 255, 0.3)';
+            }}
+          >
+            {isPaused ? '▶️ 再開' : '⏸️ 一時停止'}
+          </button>
+        )}
 
         {/* Debug面板 (测试路线行驶时显示) */}
         {isTestRoute && <DebugPanel />}
