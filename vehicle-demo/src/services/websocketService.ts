@@ -39,19 +39,15 @@ class WebSocketService {
     // 动态获取 WebSocket URL
     if (!url) {
       // 优先使用环境变量，否则使用当前页面的 hostname
-      const wsHost = (import.meta as any).env?.VITE_WS_HOST || window.location.hostname;
-      const wsPort = (import.meta as any).env?.VITE_WS_PORT || '8080';
-      
-      // 自动检测协议：https 使用 wss，http 使用 ws
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.hostname;
+      const wsPort = '8080';
       
       // 如果环境变量明确指定了协议，使用环境变量
-      const envProtocol = (import.meta as any).env?.VITE_WS_PROTOCOL;
-      const protocol = envProtocol || wsProtocol;
+      const protocol = 'ws:';
       
       url = `${protocol}//${wsHost}:${wsPort}`;
       console.log('🔗 WebSocket 连接地址:', url);
-      console.log('🔐 协议:', protocol === 'wss:' ? 'WSS (安全连接)' : 'WS (普通连接)');
+      console.log('🔐 协议:', 'WS (普通连接)');
     }
 
     return new Promise((resolve, reject) => {
