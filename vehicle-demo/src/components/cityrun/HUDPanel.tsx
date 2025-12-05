@@ -246,17 +246,26 @@ interface ProgressBarProps {
 
 function ProgressBar({ percent }: ProgressBarProps) {
   const clampedPercent = Math.min(100, Math.max(0, percent));
+  
+  // iPad优化: 精度控制,减少子像素抖动
+  const displayPercent = Number(clampedPercent.toFixed(1));
+  const integerPercent = Math.round(clampedPercent);
 
   return (
     <div className="mt-2">
-      <div className="flex justify-between text-[8px] text-gray-500 mb-0.5">
+      <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
         <span>進捗</span>
-        <span>{clampedPercent.toFixed(0)}%</span>
+        <span className="font-mono font-bold">{integerPercent}%</span>
       </div>
-      <div className="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
         <div
-          className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-300 relative"
-          style={{ width: `${clampedPercent}%` }}
+          className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full relative"
+          style={{ 
+            width: `${displayPercent}%`,
+            // iPad优化: 只过渡width,线性缓动,强制GPU加速
+            transition: 'width 0.1s linear',
+            transform: 'translateZ(0)'
+          }}
         >
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/50 shadow-[0_0_5px_#fff]" />
         </div>
