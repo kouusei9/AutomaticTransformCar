@@ -699,13 +699,11 @@ export default function CityRunDemo() {
           <FarScenery isMoving={isMoving} speed={0} />
           <MiddleScenery isMoving={isMoving} speed={0} currentMode={currentMode} />
 
-          {currentMode !== VehicleMode.FLIGHT && (
-            <SideScenery
-              isMoving={isActivelyMoving}
-              speed={50 * currentSpeed}
-              currentMode={currentMode}
-            />
-          )}
+          <SideScenery
+            isMoving={isActivelyMoving}
+            speed={50 * currentSpeed}
+            currentMode={currentMode}
+          />
 
           <RoadSystem
             isMoving={isActivelyMoving}
@@ -751,15 +749,15 @@ export default function CityRunDemo() {
               fontFamily: 'monospace',
               fontWeight: 'bold',
               color: isPaused ? '#000' : '#fff',
-              background: isPaused 
-                ? 'linear-gradient(135deg, #00ff00 0%, #00ff88 100%)' 
+              background: isPaused
+                ? 'linear-gradient(135deg, #00ff00 0%, #00ff88 100%)'
                 : 'rgba(0, 0, 0, 0.7)',
               border: `2px solid ${isPaused ? '#00ff00' : '#ff00ff'}`,
               borderRadius: '8px',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              boxShadow: isPaused 
-                ? '0 0 20px rgba(0, 255, 0, 0.6)' 
+              boxShadow: isPaused
+                ? '0 0 20px rgba(0, 255, 0, 0.6)'
                 : '0 0 10px rgba(255, 0, 255, 0.3)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
@@ -768,14 +766,14 @@ export default function CityRunDemo() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = isPaused 
-                ? '0 0 30px rgba(0, 255, 0, 0.8)' 
+              e.currentTarget.style.boxShadow = isPaused
+                ? '0 0 30px rgba(0, 255, 0, 0.8)'
                 : '0 0 30px rgba(255, 0, 255, 0.6)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = isPaused 
-                ? '0 0 20px rgba(0, 255, 0, 0.6)' 
+              e.currentTarget.style.boxShadow = isPaused
+                ? '0 0 20px rgba(0, 255, 0, 0.6)'
                 : '0 0 10px rgba(255, 0, 255, 0.3)';
             }}
           >

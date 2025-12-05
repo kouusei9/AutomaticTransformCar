@@ -9,6 +9,11 @@ interface RoadSystemProps {
 }
 
 export default function RoadSystem({ isMoving, speed = 1, currentMode = 1 }: RoadSystemProps) {
+  // fly 模式下不显示道路系统
+  if (currentMode === 4) {
+    return null;
+  }
+
   const roadGroupRef = useRef<THREE.Group>(null);
   const offsetRef = useRef(0);
 

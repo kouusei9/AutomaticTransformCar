@@ -9,19 +9,17 @@ interface MiddleSceneryProps {
 }
 
 export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }: MiddleSceneryProps) {
-  // fly 模式下不显示中景
-  const isFlyMode = currentMode === 4;
-
-  if (isFlyMode) {
-    return null;
-  }
   const timeRef = useRef(0);
   const [isDay, setIsDay] = useState(true);
   const transitionRef = useRef(0); // 0=完全夜晚, 1=完全白天
 
-  // 加载两种中景纹理
+  // fly 模式下使用天空视角纹理
+  const isFlyMode = currentMode === 4;
+
+  // 加载三种中景纹理
   const dayTexture = useLoader(THREE.TextureLoader, '/assets/view_middle02.png');
   const nightTexture = useLoader(THREE.TextureLoader, '/assets/view_middle01.png');
+  const skyTexture = useLoader(THREE.TextureLoader, '/assets/view_middle03.png');
 
   // 配置纹理
   useMemo(() => {
@@ -32,7 +30,11 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
     nightTexture.wrapS = THREE.RepeatWrapping;
     nightTexture.wrapT = THREE.RepeatWrapping;
     nightTexture.repeat.set(3, 1);
-  }, [dayTexture, nightTexture]);
+
+    skyTexture.wrapS = THREE.RepeatWrapping;
+    skyTexture.wrapT = THREE.RepeatWrapping;
+    skyTexture.repeat.set(3, 1);
+  }, [dayTexture, nightTexture, skyTexture]);
 
   const offsetRef = useRef(0);
 
@@ -103,14 +105,41 @@ export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }:
     [nightTexture]
   );
 
+  // 天空材质 (用于飞机模式)
+  const skyMaterial = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        map: skyTexture,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide,
+      }),
+    [skyTexture]
+  );
+
   // 在useFrame中更新材质透明度实现交叉淡化
   useFrame(() => {
-    dayMaterial.opacity = 0.8 * transitionRef.current;
-    nightMaterial.opacity = 0.8 * (1 - transitionRef.current);
+    if (!isFlyMode) {
+      dayMaterial.opacity = 0.8 * transitionRef.current;
+      nightMaterial.opacity = 0.8 * (1 - transitionRef.current);
+    }
   });
 
-  // drone 模式下位置下移
+  // drone 模式下位置下移，airplane 模式下使用默认位置
   const yPosition = currentMode === 3 ? -5 : 5;
+
+  // airplane 模式下只显示天空视角
+  if (isFlyMode) {
+    return (
+      <mesh
+        geometry={geometry}
+        material={skyMaterial}
+        position={[0, -5, -85]}
+        rotation={[0, 0, 0]}
+        scale={4}
+      />
+    );
+  }
 
   return (
     <>
