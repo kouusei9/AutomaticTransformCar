@@ -771,13 +771,11 @@ export default function CityRunDemo() {
           <FarScenery isMoving={isMoving} speed={0} />
           <MiddleScenery isMoving={isMoving} speed={0} currentMode={currentMode} />
 
-          {currentMode !== VehicleMode.FLIGHT && (
-            <SideScenery
-              isMoving={isActivelyMoving}
-              speed={SCENERY_BASE_SPEED * currentSpeed}
-              currentMode={currentMode}
-            />
-          )}
+          <SideScenery
+            isMoving={isActivelyMoving}
+            speed={SCENERY_BASE_SPEED * currentSpeed}
+            currentMode={currentMode}
+          />
 
           <RoadSystem
             isMoving={isActivelyMoving}
