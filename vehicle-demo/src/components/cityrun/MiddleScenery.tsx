@@ -1,163 +1,171 @@
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
+import { VehicleMode } from '../../types/vehicleMode';
 
+// ===== 类型定义 =====
 interface MiddleSceneryProps {
   isMoving: boolean;
   speed?: number;
-  currentMode?: number;
+  currentMode?: VehicleMode;
 }
 
-export default function MiddleScenery({ isMoving, speed = 50, currentMode = 1 }: MiddleSceneryProps) {
+// ===== 常量定义 =====
+const TEXTURE_PATHS = {
+  day: '../assets/view_middle02.png',
+  night: '../assets/view_middle01.png',
+  sky: '../assets/view_middle03.png'
+} as const;
+
+const TEXTURE_REPEAT = { x: 3, y: 1 };
+const PARALLAX_DIVISOR = 200;
+const CYCLE_DURATION = 30; // 秒
+const TRANSITION_DURATION = 2; // 秒
+const BASE_OPACITY = 0.8;
+const GEOMETRY_SIZE = { width: 200, height: 40 };
+const Z_POSITION = -85;
+const SCALE = {
+  normal: 1.5,
+  flight: 4
+};
+
+// Y位置配置
+const Y_POSITIONS: Record<VehicleMode, number> = {
+  [VehicleMode.NORMAL]: 5,
+  [VehicleMode.HIGHWAY]: 5,
+  [VehicleMode.DRONE]: -5,
+  [VehicleMode.FLIGHT]: -5
+};
+
+// ===== 主组件 =====
+export default function MiddleScenery({
+  isMoving,
+  speed = 50,
+  currentMode = VehicleMode.NORMAL
+}: MiddleSceneryProps) {
+  // Refs
   const timeRef = useRef(0);
-  const [isDay, setIsDay] = useState(true);
-  const transitionRef = useRef(0); // 0=完全夜晚, 1=完全白天
-
-  // fly 模式下使用天空视角纹理
-  const isFlyMode = currentMode === 4;
-
-  // 加载三种中景纹理
-  const dayTexture = useLoader(THREE.TextureLoader, '/assets/view_middle02.png');
-  const nightTexture = useLoader(THREE.TextureLoader, '/assets/view_middle01.png');
-  const skyTexture = useLoader(THREE.TextureLoader, '/assets/view_middle03.png');
-
-  // 配置纹理
-  useMemo(() => {
-    dayTexture.wrapS = THREE.RepeatWrapping;
-    dayTexture.wrapT = THREE.RepeatWrapping;
-    dayTexture.repeat.set(3, 1); // 横向重复3次
-
-    nightTexture.wrapS = THREE.RepeatWrapping;
-    nightTexture.wrapT = THREE.RepeatWrapping;
-    nightTexture.repeat.set(3, 1);
-
-    skyTexture.wrapS = THREE.RepeatWrapping;
-    skyTexture.wrapT = THREE.RepeatWrapping;
-    skyTexture.repeat.set(3, 1);
-  }, [dayTexture, nightTexture, skyTexture]);
-
+  const transitionRef = useRef(1); // 0=夜晚, 1=白天
   const offsetRef = useRef(0);
 
-  useFrame((_state, delta) => {
-    // 时间循环：每30秒切换一次早晚（与远景同步）
-    timeRef.current += delta;
-    const cycleTime = 30;
-    const halfCycle = cycleTime / 2;
-    const currentPhase = timeRef.current % cycleTime;
-    const shouldBeDay = currentPhase < halfCycle;
+  const isFlyMode = currentMode === VehicleMode.FLIGHT;
 
-    // 计算过渡进度（0-1之间）
-    const transitionDuration = 2; // 2秒过渡时间
-    if (shouldBeDay) {
-      // 白天阶段
-      if (currentPhase < transitionDuration) {
-        transitionRef.current = currentPhase / transitionDuration;
-      } else {
-        transitionRef.current = 1;
-      }
-    } else {
-      // 夜晚阶段
-      const nightPhase = currentPhase - halfCycle;
-      if (nightPhase < transitionDuration) {
-        transitionRef.current = 1 - (nightPhase / transitionDuration);
-      } else {
-        transitionRef.current = 0;
-      }
-    }
+  // 加载纹理
+  const dayTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS.day);
+  const nightTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS.night);
+  const skyTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS.sky);
 
-    if (shouldBeDay !== isDay) {
-      setIsDay(shouldBeDay);
-    }
+  // 配置纹理（副作用应该用useEffect）
+  useEffect(() => {
+    const textures = [dayTexture, nightTexture, skyTexture];
+    textures.forEach(texture => {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(TEXTURE_REPEAT.x, TEXTURE_REPEAT.y);
+    });
+  }, [dayTexture, nightTexture, skyTexture]);
 
-    if (!isMoving) return;
+  // 几何体（只创建一次）
+  const geometry = useMemo(
+    () => new THREE.PlaneGeometry(GEOMETRY_SIZE.width, GEOMETRY_SIZE.height),
+    []
+  );
 
-    // 中景移动速度是近景的一半（视差效果）
-    offsetRef.current += delta * (speed / 200);
-    // 更新两个纹理的偏移，保持同步
-    dayTexture.offset.x = -offsetRef.current;
-    nightTexture.offset.x = -offsetRef.current;
-  });
-
-  // 中景几何体和材质
-  const geometry = useMemo(() => new THREE.PlaneGeometry(200, 40), []);
-
-  // 白天材质
+  // 材质
   const dayMaterial = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        map: dayTexture,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide,
-      }),
+    () => new THREE.MeshBasicMaterial({
+      map: dayTexture,
+      transparent: true,
+      opacity: BASE_OPACITY,
+      side: THREE.DoubleSide
+    }),
     [dayTexture]
   );
 
-  // 夜晚材质
   const nightMaterial = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        map: nightTexture,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide,
-      }),
+    () => new THREE.MeshBasicMaterial({
+      map: nightTexture,
+      transparent: true,
+      opacity: BASE_OPACITY,
+      side: THREE.DoubleSide
+    }),
     [nightTexture]
   );
 
-  // 天空材质 (用于飞机模式)
   const skyMaterial = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        map: skyTexture,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide,
-      }),
+    () => new THREE.MeshBasicMaterial({
+      map: skyTexture,
+      transparent: true,
+      opacity: BASE_OPACITY,
+      side: THREE.DoubleSide
+    }),
     [skyTexture]
   );
 
-  // 在useFrame中更新材质透明度实现交叉淡化
-  useFrame(() => {
-    if (!isFlyMode) {
-      dayMaterial.opacity = 0.8 * transitionRef.current;
-      nightMaterial.opacity = 0.8 * (1 - transitionRef.current);
+  // 动画帧更新（合并所有useFrame逻辑）
+  useFrame((_state, delta) => {
+    // 1. 时间循环和过渡计算
+    timeRef.current += delta;
+    const halfCycle = CYCLE_DURATION / 2;
+    const currentPhase = timeRef.current % CYCLE_DURATION;
+    const isInDayPhase = currentPhase < halfCycle;
+
+    // 计算过渡进度
+    if (isInDayPhase) {
+      transitionRef.current = currentPhase < TRANSITION_DURATION
+        ? currentPhase / TRANSITION_DURATION
+        : 1;
+    } else {
+      const nightPhase = currentPhase - halfCycle;
+      transitionRef.current = nightPhase < TRANSITION_DURATION
+        ? 1 - (nightPhase / TRANSITION_DURATION)
+        : 0;
     }
+
+    // 2. 更新材质透明度（非飞行模式）
+    if (!isFlyMode) {
+      dayMaterial.opacity = BASE_OPACITY * transitionRef.current;
+      nightMaterial.opacity = BASE_OPACITY * (1 - transitionRef.current);
+    }
+
+    // 3. 移动更新
+    if (!isMoving) return;
+
+    offsetRef.current += delta * (speed / PARALLAX_DIVISOR);
+    dayTexture.offset.x = -offsetRef.current;
+    nightTexture.offset.x = -offsetRef.current;
+    skyTexture.offset.x = -offsetRef.current;
   });
 
-  // drone 模式下位置下移，airplane 模式下使用默认位置
-  const yPosition = currentMode === 3 ? -5 : 5;
+  // 计算位置
+  const yPosition = Y_POSITIONS[currentMode] ?? 5;
 
-  // airplane 模式下只显示天空视角
+  // 飞行模式：只显示天空视角
   if (isFlyMode) {
     return (
       <mesh
         geometry={geometry}
         material={skyMaterial}
-        position={[0, -5, -85]}
-        rotation={[0, 0, 0]}
-        scale={4}
+        position={[0, Y_POSITIONS[VehicleMode.FLIGHT], Z_POSITION]}
+        scale={SCALE.flight}
       />
     );
   }
 
+  // 普通模式：日夜交替
   return (
     <>
-      {/* 夜晚层 */}
       <mesh
         geometry={geometry}
         material={nightMaterial}
-        position={[0, yPosition, -85]}
-        rotation={[0, 0, 0]}
-        scale={1.5}
+        position={[0, yPosition, Z_POSITION]}
+        scale={SCALE.normal}
       />
-      {/* 白天层（在上面） */}
       <mesh
         geometry={geometry}
         material={dayMaterial}
-        position={[0, yPosition, -84.99]}
-        rotation={[0, 0, 0]}
-        scale={1.5}
+        position={[0, yPosition, Z_POSITION + 0.01]}
+        scale={SCALE.normal}
       />
     </>
   );

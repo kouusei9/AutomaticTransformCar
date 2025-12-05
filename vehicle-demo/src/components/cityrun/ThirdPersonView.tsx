@@ -1,18 +1,94 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
+import { VehicleMode, MODE_CONFIG } from '../../types/vehicleMode';
 
-// 粒子系统常量 - iPad优化版本
+// ===== 类型定义 =====
+interface ThirdPersonViewProps {
+  isMoving: boolean;
+  currentMode: VehicleMode;
+  isTransitioning?: boolean;
+  isEntering?: boolean;
+}
+
+interface ModeVisualConfig {
+  text: string;
+  color: string;
+  outerColor: string;
+  particleColor: number;
+  particleSize: number;
+  baseY: number;
+}
+
+// ===== 常量定义 =====
+const TEXTURE_PATHS = {
+  [VehicleMode.NORMAL]: '../assets/car_back.png',
+  [VehicleMode.HIGHWAY]: '../assets/high_car_back.png',
+  [VehicleMode.DRONE]: '../assets/drone_back.png',
+  [VehicleMode.FLIGHT]: '../assets/airplane_back.png'
+} as const;
+
+// 模式视觉配置
+const MODE_VISUAL_CONFIG: Record<VehicleMode, ModeVisualConfig> = {
+  [VehicleMode.NORMAL]: {
+    text: '金',
+    color: '#A5821D',
+    outerColor: '#F2D56A',
+    particleColor: 0x00ffff,
+    particleSize: 0.05,
+    baseY: -2.5
+  },
+  [VehicleMode.HIGHWAY]: {
+    text: '香',
+    color: '#F24B90',
+    outerColor: '#EFD6D5',
+    particleColor: 0xffffff,
+    particleSize: 0.06,
+    baseY: -1.5
+  },
+  [VehicleMode.DRONE]: {
+    text: '桂',
+    color: '#64673E',
+    outerColor: '#B1C075',
+    particleColor: 0x00ffff,
+    particleSize: 0.08,
+    baseY: 0.5
+  },
+  [VehicleMode.FLIGHT]: {
+    text: '飛',
+    color: '#396177',
+    outerColor: '#98B5C2',
+    particleColor: 0xff3300,
+    particleSize: 0.12,
+    baseY: -2.5
+  }
+};
+
+// 粒子配置
 const isIPad = typeof navigator !== 'undefined' && (
   /iPad/.test(navigator.userAgent) ||
   (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
 );
 
-const SPEED_PARTICLE_COUNT = isIPad ? 30 : 60; // iPad减半粒子数量
-const PARTICLE_SPEED = 2.0; // 粒子移动速度
+const PARTICLE_COUNT = isIPad ? 30 : 60;
+const PARTICLE_SPEED = 2.0;
 
-// 创建圆形纹理用于粒子
-function createCircleTexture() {
+// 动画配置
+const ANIMATION = {
+  duration: 1.0,
+  enterOffsetZ: 10,
+  exitOffsetZ: 10,
+  minScale: 0.3
+} as const;
+
+const CAR_HEIGHT = 2;
+const SIGN_SIZE = 1.5;
+
+// ===== 工具函数 =====
+/**
+ * 创建圆形纹理用于粒子
+ */
+function createCircleTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 32;
   canvas.height = 32;
@@ -31,408 +107,269 @@ function createCircleTexture() {
   return texture;
 }
 
-// 创建将棋形状的赛博朋克风格指示牌纹理
-function createShogiSignTexture(modeText: string, color: string, outerColor?: string) {
+/**
+ * 创建将棋形状指示牌纹理
+ */
+function createShogiSignTexture(config: ModeVisualConfig): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 256;
-
   const ctx = canvas.getContext('2d')!;
 
-  // 透明背景
   ctx.clearRect(0, 0, 256, 256);
 
-  // 绘制将棋形状（扁平五角形，左右更宽）
   const centerX = 128;
   const centerY = 128;
-  const width = 80; // 水平方向更长
-  const height = 100; // 垂直方向较短
+  const width = 80;
+  const height = 100;
 
   const drawPentagon = (w: number, h: number) => {
     ctx.beginPath();
-    // 顶点
     ctx.moveTo(centerX, centerY - h);
-    // 右上
     ctx.lineTo(centerX + w * 0.7, centerY - h * 0.8);
-    // 右下
     ctx.lineTo(centerX + w, centerY + h);
-    // 左下
     ctx.lineTo(centerX - w, centerY + h);
-    // 左上
     ctx.lineTo(centerX - w * 0.7, centerY - h * 0.8);
     ctx.closePath();
   };
 
-  // 如果有外层颜色，先绘制外层（浅色）
-  if (outerColor) {
-    drawPentagon(width + 6, height + 5);
-    ctx.strokeStyle = outerColor;
-    ctx.lineWidth = 6;
-    ctx.shadowColor = outerColor;
-    ctx.shadowBlur = 25;
-    ctx.stroke();
-  }
-
-  // 绘制主边框
-  drawPentagon(width, height);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 4;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 20;
-  ctx.stroke();
-
-  // 半透明填充
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
-  ctx.fillStyle = hexToRgba(color, 0.35);
+
+  // 外层边框
+  drawPentagon(width + 6, height + 5);
+  ctx.strokeStyle = config.outerColor;
+  ctx.lineWidth = 6;
+  ctx.shadowColor = config.outerColor;
+  ctx.shadowBlur = 25;
+  ctx.stroke();
+
+  // 主边框
+  drawPentagon(width, height);
+  ctx.strokeStyle = config.color;
+  ctx.lineWidth = 4;
+  ctx.shadowColor = config.color;
+  ctx.shadowBlur = 20;
+  ctx.stroke();
+
+  // 半透明填充
+  ctx.fillStyle = hexToRgba(config.color, 0.35);
   ctx.shadowBlur = 0;
   ctx.fill();
 
   // 内层边框
-  const innerWidth = width - 15;
-  const innerHeight = height - 12;
-
-  drawPentagon(innerWidth, innerHeight);
-  ctx.strokeStyle = color;
+  drawPentagon(width - 15, height - 12);
+  ctx.strokeStyle = config.color;
   ctx.lineWidth = 2;
-  ctx.shadowColor = color;
+  ctx.shadowColor = config.color;
   ctx.shadowBlur = 10;
   ctx.stroke();
 
-  // 绘制中心文字
+  // 文字
   ctx.font = 'bold 64px Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
-  // 如果有外层颜色（香模式），使用浅色字体+深色阴影
-  if (outerColor) {
-    ctx.fillStyle = outerColor; // 浅色字体
-    ctx.shadowColor = color; // 深色阴影
-    ctx.shadowBlur = 25;
-  } else {
-    ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 15;
-  }
-
-  ctx.fillText(modeText, centerX, centerY + 10);
+  ctx.fillStyle = config.outerColor;
+  ctx.shadowColor = config.color;
+  ctx.shadowBlur = 25;
+  ctx.fillText(config.text, centerX, centerY + 10);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
 }
 
-interface ThirdPersonViewProps {
-  isMoving: boolean;
-  currentMode: number; // 当前车辆模式：1=金将, 2=香車, 3=桂馬, 4=飛車
-  isTransitioning?: boolean; // 是否正在播放过渡动画
-  isEntering?: boolean; // 是否正在进入第三视角（true=进入，false=退出）
+/**
+ * 缓动函数 (ease-in-out)
+ */
+function easeInOutQuad(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
+/**
+ * 创建粒子系统
+ */
+function createParticleSystem() {
+  const positions = new Float32Array(PARTICLE_COUNT * 3);
+  const lifetimes = new Float32Array(PARTICLE_COUNT);
+  const velocities = new Float32Array(PARTICLE_COUNT * 3);
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 2;
+    positions[i * 3 + 1] = -3.5 + (Math.random() - 0.5) * 1.5;
+    positions[i * 3 + 2] = Math.random() * 5;
+    lifetimes[i] = Math.random();
+    velocities[i * 3] = 0;
+    velocities[i * 3 + 1] = 0;
+    velocities[i * 3 + 2] = 0;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('lifetime', new THREE.BufferAttribute(lifetimes, 1));
+  geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+
+  const material = new THREE.PointsMaterial({
+    color: 0x00ffff,
+    size: 0.05,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+    map: createCircleTexture()
+  });
+
+  return { geometry, material };
+}
+
+// ===== 主组件 =====
 export default function ThirdPersonView({
   isMoving,
   currentMode,
   isTransitioning = false,
   isEntering = true
 }: ThirdPersonViewProps) {
+  // Refs
   const carRef = useRef<THREE.Sprite>(null);
-  const speedParticlesRef = useRef<THREE.Points>(null); // 速度粒子参照
-  const signRef = useRef<THREE.Mesh>(null); // 指示牌参照（改为Mesh）
-  const signRotation = useRef(0); // 跟踪旋转角度
+  const speedParticlesRef = useRef<THREE.Points>(null);
+  const signRef = useRef<THREE.Mesh>(null);
+  const signRotation = useRef(0);
   const animationProgress = useRef(0);
-  const initialOpacity = useRef(isEntering ? 0 : 1); // 初始透明度
+  const initialOpacity = useRef(isEntering ? 0 : 1);
 
-  // 根据模式获取将棋文字
-  const getModeText = (mode: number): string => {
-    switch (mode) {
-      case 1:
-        return '金'; // 金将
-      case 2:
-        return '香'; // 香車
-      case 3:
-        return '桂'; // 桂馬
-      case 4:
-        return '飛'; // 飛車
-      default:
-        return '金';
-    }
-  };
+  // 获取当前模式配置
+  const modeConfig = MODE_VISUAL_CONFIG[currentMode];
+  const baseY = modeConfig.baseY;
 
-  // 根据模式获取颜色
-  const getModeColor = (mode: number): string => {
-    switch (mode) {
-      case 1:
-        return '#A5821D'; // 金将
-      case 2:
-        return '#F24B90'; // 香車
-      case 3:
-        return '#64673E'; // 桂馬
-      case 4:
-        return '#396177'; // 飛車
-      default:
-        return '#A5821D';
-    }
-  };
+  // 创建指示牌纹理
+  const signTexture = useMemo(
+    () => createShogiSignTexture(modeConfig),
+    [currentMode] // modeConfig会随currentMode变化
+  );
 
-  // 根据模式获取外层颜色
-  const getModeOuterColor = (mode: number): string | undefined => {
-    switch (mode) {
-      case 1:
-        return '#F2D56A'; // 金将
-      case 2:
-        return '#EFD6D5'; // 香車
-      case 3:
-        return '#B1C075'; // 桂馬
-      case 4:
-        return '#98B5C2'; // 飛車
-      default:
-        return undefined;
-    }
-  };
+  // 创建粒子系统
+  const speedParticles = useMemo(() => createParticleSystem(), []);
 
-  // 创建指示牌纹理（每次模式变化时重新创建）
-  const signTexture = useMemo(() => {
-    return createShogiSignTexture(getModeText(currentMode), getModeColor(currentMode), getModeOuterColor(currentMode));
-  }, [currentMode]);
+  // 加载纹理
+  const carTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS[VehicleMode.NORMAL]);
+  const highCarTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS[VehicleMode.HIGHWAY]);
+  const droneTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS[VehicleMode.DRONE]);
+  const airplaneTexture = useLoader(THREE.TextureLoader, TEXTURE_PATHS[VehicleMode.FLIGHT]);
 
-  // 创建速度粒子系统（在普通模式下显示向后飞散的粒子）
-  const speedParticles = useMemo(() => {
-    const positions = new Float32Array(SPEED_PARTICLE_COUNT * 3);
-    const lifetimes = new Float32Array(SPEED_PARTICLE_COUNT);
-    const velocities = new Float32Array(SPEED_PARTICLE_COUNT * 3);
+  // 纹理映射
+  const textureMap = useMemo(() => ({
+    [VehicleMode.NORMAL]: carTexture,
+    [VehicleMode.HIGHWAY]: highCarTexture,
+    [VehicleMode.DRONE]: droneTexture,
+    [VehicleMode.FLIGHT]: airplaneTexture
+  }), [carTexture, highCarTexture, droneTexture, airplaneTexture]);
 
-    for (let i = 0; i < SPEED_PARTICLE_COUNT; i++) {
-      // 初始位置在车辆周围
-      positions[i * 3] = (Math.random() - 0.5) * 2;
-      positions[i * 3 + 1] = -3.5 + (Math.random() - 0.5) * 1.5;
-      positions[i * 3 + 2] = Math.random() * 5;
+  const currentTexture = textureMap[currentMode];
 
-      // 随机生命周期
-      lifetimes[i] = Math.random();
-
-      // 初始速度
-      velocities[i * 3] = 0;
-      velocities[i * 3 + 1] = 0;
-      velocities[i * 3 + 2] = 0;
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('lifetime', new THREE.BufferAttribute(lifetimes, 1));
-    geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-
-    const material = new THREE.PointsMaterial({
-      color: 0x00ffff, // 默认青色，会根据模式动态更新
-      size: 0.05,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      sizeAttenuation: true, // 启用透视缩放
-      map: createCircleTexture(), // 使用圆形纹理
-    });
-
-    return { geometry, material };
-  }, []);
-
-  // 加载所有车辆纹理
-  const carTexture = useLoader(THREE.TextureLoader, '/assets/car_back.png');          // 通常モード (金将)
-  const highCarTexture = useLoader(THREE.TextureLoader, '/assets/high_car_back.png'); // 高速モード (香車)
-  const droneTexture = useLoader(THREE.TextureLoader, '/assets/drone_back.png');      // 短距離飛行モード (桂馬)
-  const airplaneTexture = useLoader(THREE.TextureLoader, '/assets/airplane_back.png'); // 長距離飛行モード (飛車)
-
-  // 根据当前模式选择纹理
-  const getCurrentTexture = () => {
-    switch (currentMode) {
-      case 2: // 香車 (高速モード)
-        return highCarTexture;
-      case 3: // 桂馬 (短距離飛行モード)
-        return droneTexture;
-      case 4: // 飛車 (長距離飛行モード)
-        return airplaneTexture;
-      default: // 1 = 金将 (通常モード)
-        return carTexture;
-    }
-  };
-
-  const currentTexture = getCurrentTexture();
-
-  // 根据纹理图片的实际尺寸计算宽高比
+  // 计算车辆尺寸
   const textureAspectRatio = currentTexture.image
     ? currentTexture.image.width / currentTexture.image.height
-    : 1.5; // 默认比例
+    : 1.5;
+  const carWidth = CAR_HEIGHT * textureAspectRatio;
 
-  // 设置车辆高度，宽度根据比例自动计算
-  const carHeight = 2;
-  const carWidth = carHeight * textureAspectRatio;
-
-  // 动画参数
-  const ANIMATION_DURATION = 1.0; // 1秒动画时长
-  const ENTER_OFFSET_Z = 10; // 进入时从远处开始的距离（Z轴）
-  const EXIT_OFFSET_Z = 10; // 退出时向远方移动的距离（Z轴）
-
-  // 根据模式设置车辆高度
-  const getBaseYByMode = () => {
-    switch (currentMode) {
-      case 1 && 4: return -2.5; // 金模式（地面） 飞模式（高空）
-      case 2: return -1.5; // 香模式（低空）
-      case 3: return 0.5; // 桂模式（中空）
-      default: return -2.5;
-    }
-  };
-
-  const BASE_Y = getBaseYByMode(); // 车辆的基础Y位置
-  const BASE_Z = 0; // 车辆的基础Z位置
-  const MIN_SCALE = 0.3; // 远处时的最小缩放比例
-
-  // 重置动画进度
+  // 重置动画
   useEffect(() => {
     if (isTransitioning) {
       animationProgress.current = 0;
       initialOpacity.current = isEntering ? 0 : 1;
 
-      // 立即设置初始透明度
-      if (carRef.current && carRef.current.material) {
+      if (carRef.current?.material) {
         (carRef.current.material as THREE.SpriteMaterial).opacity = initialOpacity.current;
       }
     }
   }, [isTransitioning, isEntering]);
 
-  // 车辆摇晃动画和过渡动画
+  // 动画帧更新
   useFrame((state, delta) => {
     if (!carRef.current) return;
 
-    let baseY = BASE_Y;
-    let baseZ = BASE_Z;
+    let posY = baseY;
+    let posZ = 0;
     let scale = 1.0;
     let opacity = 1.0;
 
-    // 处理过渡动画
+    // 过渡动画
     if (isTransitioning) {
-      animationProgress.current = Math.min(1, animationProgress.current + delta / ANIMATION_DURATION);
-
-      const progress = animationProgress.current;
-      // 使用缓动函数（ease-in-out）
-      const easeProgress = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      animationProgress.current = Math.min(1, animationProgress.current + delta / ANIMATION.duration);
+      const progress = easeInOutQuad(animationProgress.current);
 
       if (isEntering) {
-        // 进入动画：从远处（正Z轴）驶来，逐渐变大
-        baseZ = ENTER_OFFSET_Z * (1 - easeProgress);
-        scale = MIN_SCALE + (1.0 - MIN_SCALE) * easeProgress;
-        opacity = easeProgress;
+        posZ = ANIMATION.enterOffsetZ * (1 - progress);
+        scale = ANIMATION.minScale + (1.0 - ANIMATION.minScale) * progress;
+        opacity = progress;
       } else {
-        // 退出动画：向远方（正Z轴）驶去，逐渐变小
-        baseZ = EXIT_OFFSET_Z * easeProgress;
-        scale = 1.0 - (1.0 - MIN_SCALE) * easeProgress;
-        opacity = 1 - easeProgress;
+        posZ = ANIMATION.exitOffsetZ * progress;
+        scale = 1.0 - (1.0 - ANIMATION.minScale) * progress;
+        opacity = 1 - progress;
       }
     }
 
-    // 添加摇晃效果（只在行驶时）
+    // 摇晃效果
     if (isMoving && !isTransitioning) {
-      carRef.current.position.y = baseY + Math.sin(state.clock.elapsedTime * 3) * 0.05;
+      carRef.current.position.y = posY + Math.sin(state.clock.elapsedTime * 3) * 0.05;
       carRef.current.position.x = Math.sin(state.clock.elapsedTime * 2) * 0.03;
-      carRef.current.position.z = baseZ;
     } else {
-      carRef.current.position.y = baseY;
+      carRef.current.position.y = posY;
       carRef.current.position.x = 0;
-      carRef.current.position.z = baseZ;
     }
+    carRef.current.position.z = posZ;
+    carRef.current.scale.set(carWidth * scale, CAR_HEIGHT * scale, 1);
 
-    // 更新缩放比例
-    carRef.current.scale.set(carWidth * scale, carHeight * scale, 1);
-
-    // 更新透明度
     if (carRef.current.material) {
       (carRef.current.material as THREE.SpriteMaterial).opacity = opacity;
     }
 
-    // 更新速度粒子（所有模式下显示不同效果）
+    // 粒子系统更新
     if (speedParticlesRef.current) {
-      const shouldShowParticles = isMoving && !isTransitioning && currentMode >= 1 && currentMode <= 4;
+      const shouldShowParticles = isMoving && !isTransitioning;
       speedParticlesRef.current.visible = shouldShowParticles;
 
       if (shouldShowParticles) {
-        // 根据模式更新粒子颜色和大小
         const material = speedParticlesRef.current.material as THREE.PointsMaterial;
-        if (currentMode === 4) {
-          // Airplane模式：红色喷火效果
-          material.color.setHex(0xff3300);
-          material.size = 0.12;
-        } else if (currentMode === 3) {
-          // Drone模式：青色
-          material.color.setHex(0x00ffff);
-          material.size = 0.08;
-        } else if (currentMode === 2) {
-          // Highway模式：白色
-          material.color.setHex(0xffffff);
-          material.size = 0.06;
-        } else {
-          // 普通模式：青色
-          material.color.setHex(0x00ffff);
-          material.size = 0.05;
-        }
+        material.color.setHex(modeConfig.particleColor);
+        material.size = modeConfig.particleSize;
 
         const positions = speedParticles.geometry.attributes.position.array as Float32Array;
         const lifetimes = speedParticles.geometry.attributes.lifetime.array as Float32Array;
 
-        for (let i = 0; i < SPEED_PARTICLE_COUNT; i++) {
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
           const i3 = i * 3;
-
-          // 更新生命周期
           lifetimes[i] -= delta * 2.5;
 
-          // 重置粒子
           if (lifetimes[i] <= 0) {
-            if (currentMode === 1) {
-              // 普通模式：从车辆前方中央生成
-              positions[i3] = (Math.random() - 0.5) * 2.5; // X轴散布
-              positions[i3 + 1] = BASE_Y - 1.0 + (Math.random() - 0.5) * 1.5; // Y轴（车辆高度附近）
-              positions[i3 + 2] = -3 + Math.random() * 2; // 从车辆前方开始
-            } else if (currentMode === 2) {
-              // 高速模式：从车辆两侧生成（左侧或右侧）
-              const side = Math.random() > 0.5 ? 1 : -1; // 随机选择左侧或右侧
-              positions[i3] = side * (0.5 + Math.random() * 0.5); // X轴：在两侧
-              positions[i3 + 1] = BASE_Y - 0.5 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
-              positions[i3 + 2] = -2 + Math.random() * 1; // 从车辆侧面开始
-            } else if (currentMode === 3) {
-              // Drone模式：从车辆两侧生成（左侧或右侧）
-              const side = Math.random() > 0.5 ? 1 : -1; // 随机选择左侧或右侧
-              positions[i3] = side * (1.0 + Math.random() * 0.5); // X轴：在两侧
-              positions[i3 + 1] = BASE_Y - 0.5 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
-              positions[i3 + 2] = -2 + Math.random() * 1; // 从车辆侧面开始 
+            // 重生粒子
+            const side = Math.random() > 0.5 ? 1 : -1;
+            if (currentMode === VehicleMode.NORMAL) {
+              positions[i3] = (Math.random() - 0.5) * 2.5;
+              positions[i3 + 1] = baseY - 1.0 + (Math.random() - 0.5) * 1.5;
+              positions[i3 + 2] = -3 + Math.random() * 2;
+            } else {
+              positions[i3] = side * (0.5 + Math.random() * 0.5);
+              positions[i3 + 1] = baseY - 0.5 + (Math.random() - 0.5) * 1.0;
+              positions[i3 + 2] = -2 + Math.random() * 1;
             }
-            else if (currentMode === 4) {
-              // Airplane模式：从车辆后方中央生成
-              const side = Math.random() > 0.5 ? 1 : -1; // 随机选择左侧或右侧
-              positions[i3] = side * (0.5 + Math.random() * 0.5); // X轴：在两侧
-              positions[i3 + 1] = BASE_Y - 0.5 + (Math.random() - 0.5) * 1.0; // Y轴（车辆高度附近）
-              positions[i3 + 2] = -2 + Math.random() * 1; // 从车辆侧面开始
-            }
-
             lifetimes[i] = 0.4 + Math.random() * 0.3;
           } else {
-            // 粒子向后飞散（正Z轴方向）
-            const speedMultiplier = currentMode === 4 ? 15 : 10; // Airplane更快
+            // 移动粒子
+            const speedMultiplier = currentMode === VehicleMode.FLIGHT ? 15 : 10;
             positions[i3 + 2] += PARTICLE_SPEED * delta * speedMultiplier;
 
-            if (currentMode === 1) {
-              // 普通模式：添加左右散开效果
+            if (currentMode === VehicleMode.NORMAL) {
               positions[i3] += (Math.random() - 0.5) * delta * 2;
-            } else if (currentMode === 2 || currentMode === 3 || currentMode === 4) {
-              // 高速/Drone/Airplane模式：向外侧散开（远离车辆中心）
-              const currentX = positions[i3];
-              const expandDirection = currentX > 0 ? 1 : -1;
-              const expandSpeed = currentMode === 4 ? 2.5 : 1.5; // Airplane扩散更快
+            } else {
+              const expandDirection = positions[i3] > 0 ? 1 : -1;
+              const expandSpeed = currentMode === VehicleMode.FLIGHT ? 2.5 : 1.5;
               positions[i3] += expandDirection * delta * expandSpeed;
             }
-
-            // 轻微下降
             positions[i3 + 1] -= delta * 0.5;
           }
         }
@@ -442,27 +379,27 @@ export default function ThirdPersonView({
       }
     }
 
-    // 更新指示牌旋转（绕Y轴旋转，3D空间旋转）
+    // 指示牌旋转
     if (signRef.current) {
-      signRotation.current += delta * 2; // 每秒旋转2弧度
+      signRotation.current += delta * 2;
       signRef.current.rotation.y = signRotation.current;
     }
   });
 
   return (
     <group>
-      {/* 车辆精灵 */}
-      <sprite ref={carRef} position={[0, -2.5, 0]} scale={[carWidth, carHeight, 1]}>
+      {/* 车辆 */}
+      <sprite ref={carRef} position={[0, baseY, 0]} scale={[carWidth, CAR_HEIGHT, 1]}>
         <spriteMaterial
           map={currentTexture}
           transparent
-          opacity={isTransitioning && !isEntering ? 0 : (isTransitioning && isEntering ? 0 : 1.0)}
+          opacity={isTransitioning ? (isEntering ? 0 : 1) : 1.0}
         />
       </sprite>
 
-      {/* 将棋形状指示牌（车顶上方） */}
-      <mesh ref={signRef} position={[0, BASE_Y + 1.3, 0]}>
-        <planeGeometry args={[1.5, 1.5]} />
+      {/* 指示牌 */}
+      <mesh ref={signRef} position={[0, baseY + 1.3, 0]}>
+        <planeGeometry args={[SIGN_SIZE, SIGN_SIZE]} />
         <meshBasicMaterial
           map={signTexture}
           transparent
@@ -472,10 +409,14 @@ export default function ThirdPersonView({
         />
       </mesh>
 
-      {/* 速度粒子系统（普通模式下的向后飞散效果） */}
-      <points ref={speedParticlesRef} geometry={speedParticles.geometry} material={speedParticles.material} />
+      {/* 粒子系统 */}
+      <points
+        ref={speedParticlesRef}
+        geometry={speedParticles.geometry}
+        material={speedParticles.material}
+      />
 
-      {/* 车辆周围的霓虹光晕 */}
+      {/* 光效 */}
       <pointLight position={[0, -3, 0]} color={0x00d4ff} intensity={1} distance={5} />
       <pointLight position={[-1, -3.5, 0]} color={0xff00ff} intensity={0.5} distance={3} />
       <pointLight position={[1, -3.5, 0]} color={0xff00ff} intensity={0.5} distance={3} />
