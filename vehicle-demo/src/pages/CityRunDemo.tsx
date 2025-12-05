@@ -473,7 +473,7 @@ export default function CityRunDemo() {
         const startNode = routeData.nodes[0];
         const destNode = routeData.nodes[routeData.nodes.length - 1];
 
-        fetch('/website-assets/kyoto_routes.json')
+        fetch('../website-assets/kyoto_routes.json')
           .then(res => res.json())
           .then(data => {
             const startKyotoNode = data.nodes.find((n: { id: string }) => n.id === startNode.id);
