@@ -117,8 +117,8 @@ export default function HUDPanel({
     const testRoute = getAllModesRoute();
     setRouteData(testRoute);
     onRouteDataChange?.(testRoute);
-    setStartLocation('テストルート（3モード）');
-    setDestination('全機能デモ');
+    setStartLocation('京都駅');
+    setDestination('東京駅');
   };
 
   // ===== 4. 简化的控制逻辑 =====
