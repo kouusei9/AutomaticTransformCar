@@ -11,6 +11,7 @@ import { CameraFollower } from '../components/website/CameraFollower'
 import { RouteMarkers } from '../components/website/RouteMarkers'
 import { MultiLayerDustParticles } from '../components/website/DustParticles'
 import { VolumetricFog, GodRays, AtmosphericParticles } from '../components/website/VolumetricFog'
+import { FloatingInfoBoards } from '../components/website/FloatingInfoBoard'
 import { useVehicleRoutes } from '../hooks/useVehicleRoutes'
 import { useRoutePaths } from '../hooks/useRoutePaths'
 import { useCameraFollow } from '../hooks/useCameraFollow'
@@ -346,6 +347,9 @@ export default function CyberpunkCityDemo() {
         
         {/* 漂浮粒子系统 */}
         <MultiLayerDustParticles />
+        
+        {/* 悬浮信息公告板 */}
+        <FloatingInfoBoards />
         
         {/* 城市地面（集成建筑、神社和路线，包含全息网格地面） */}
         <CityGround
