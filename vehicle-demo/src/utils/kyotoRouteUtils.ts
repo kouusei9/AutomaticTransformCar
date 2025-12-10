@@ -226,5 +226,5 @@ export async function generateRoute(
 export async function getAvailableLocations(): Promise<KyotoNode[]> {
   const data = await loadKyotoRoutes();
   // 过滤掉 "outside" 类型的节点
-  return data.nodes.filter(node => node.type !== 'outside');
+  return data.nodes;//.filter(node => node.type !== 'outside');
 }
