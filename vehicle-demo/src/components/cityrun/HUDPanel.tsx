@@ -24,6 +24,7 @@ interface HUDPanelProps {
   currentSegmentIndex?: number;
   progressPercent?: number;
   remainingTime?: number;
+  useSimulationMode?: boolean; // 是否为模拟模式（true时不显示走行シミュレーション按钮）
 }
 
 interface WindowSize {
@@ -246,7 +247,7 @@ interface ProgressBarProps {
 
 function ProgressBar({ percent }: ProgressBarProps) {
   const clampedPercent = Math.min(100, Math.max(0, percent));
-  
+
   // iPad优化: 精度控制,减少子像素抖动
   // const displayPercent = Number(clampedPercent.toFixed(1));
   const integerPercent = Math.round(clampedPercent);
@@ -260,7 +261,7 @@ function ProgressBar({ percent }: ProgressBarProps) {
       <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
         <div
           className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full relative"
-          style={{ 
+          style={{
             width: `${integerPercent}%`,
             // iPad优化: 只过渡width,线性缓动,强制GPU加速
             transition: 'width 0.1s linear',
@@ -356,7 +357,8 @@ export default function HUDPanel({
   currentMode = 1,
   currentSegmentIndex = 0,
   progressPercent = 0,
-  remainingTime = 0
+  remainingTime = 0,
+  useSimulationMode = false
 }: HUDPanelProps) {
   // 状态：只存储ID，名称通过派生获取
   const [startLocationId, setStartLocationId] = useState(DEFAULT_START_ID);
@@ -405,14 +407,14 @@ export default function HUDPanel({
     }
   }, [startLocationId, destinationId, onRouteDataChange]);
 
-  // 位置变化时获取路线（仅在停止状态）
-  useEffect(() => {
-    if (!isMoving && startLocationId && destinationId) {
-      fetchRouteData();
-    }
-  }, [startLocationId, destinationId, isMoving, fetchRouteData]);
-
   // 事件处理
+  const loadTestRoute = useCallback(() => {
+    const testRoute = getAllModesRoute();
+    setRouteData(testRoute);
+    onRouteDataChange?.(testRoute);
+    console.log('🎮 テストルート読み込み完了');
+  }, [onRouteDataChange]);
+
   const handleStartToggle = useCallback(() => {
     const newIsMoving = !isMoving;
     onStartStop(newIsMoving);
@@ -431,12 +433,20 @@ export default function HUDPanel({
     onDestinationSet?.(name);
   }, [availableLocations, onDestinationSet]);
 
-  const loadTestRoute = useCallback(() => {
-    const testRoute = getAllModesRoute();
-    setRouteData(testRoute);
-    onRouteDataChange?.(testRoute);
-    // 测试路线不更新位置选择
-  }, [onRouteDataChange]);
+  // 位置变化时获取路线（仅在停止状态）
+  useEffect(() => {
+    if (!isMoving && startLocationId && destinationId && !useSimulationMode) {
+      fetchRouteData();
+    }
+  }, [startLocationId, destinationId, isMoving, fetchRouteData, useSimulationMode]);
+
+  // 模拟模式下自动加载测试路线
+  useEffect(() => {
+    if (useSimulationMode && !routeData) {
+      console.log('🎮 シミュレーションモード: テストルート自動読み込み');
+      loadTestRoute();
+    }
+  }, [useSimulationMode, routeData, loadTestRoute]);
 
   return (
     <div
@@ -489,12 +499,14 @@ export default function HUDPanel({
               progressPercent={progressPercent}
             />
           ) : (
-            <div className="space-y-4 py-1">
+            <div className="space-y-4 py-1">              
               {isLoadingRoute && (
                 <div className="text-center text-cyan-400 text-xs animate-pulse">
                   📡 UPLOADING NAVIGATION DATA...
                 </div>
               )}
+
+              {/* 非模拟模式时显示位置选择器 */}
 
               <div className="grid grid-cols-1 gap-4">
                 <LocationSelect
@@ -513,6 +525,7 @@ export default function HUDPanel({
                 />
               </div>
 
+
               {routeData && !isLoadingRoute && (
                 <RoutePreview routeData={routeData} />
               )}
@@ -525,8 +538,8 @@ export default function HUDPanel({
           <button
             onClick={handleStartToggle}
             className={`w-full rounded font-bold font-mono tracking-wider transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isMoving
-                ? 'py-2 text-xs bg-red-900/80 hover:bg-red-800 active:bg-red-700 text-red-100 border border-red-500/50'
-                : 'py-3 text-sm bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border border-cyan-500/50'
+              ? 'py-2 text-xs bg-red-900/80 hover:bg-red-800 active:bg-red-700 text-red-100 border border-red-500/50'
+              : 'py-3 text-sm bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border border-cyan-500/50'
               }`}
             style={{
               backgroundColor: 'rgba(31, 41, 55, 0.9)',
@@ -551,7 +564,8 @@ export default function HUDPanel({
             )}
           </button>
 
-          {!isMoving && (
+          {/* 走行シミュレーション按钮：仅在非移动且非模拟模式时显示 */}
+          {/* {!isMoving && !useSimulationMode && (
             <button
               onClick={loadTestRoute}
               className="w-full py-2 rounded font-mono text-xs bg-purple-900/40 hover:bg-purple-900/60 active:bg-purple-900/80 text-purple-200 border border-purple-500/30 transition-all duration-300"
@@ -563,7 +577,7 @@ export default function HUDPanel({
             >
               [ 走行シミュレーション ]
             </button>
-          )}
+          )} */}
         </div>
 
         {/* 装饰元素 */}

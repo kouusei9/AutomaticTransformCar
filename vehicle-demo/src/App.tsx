@@ -3,6 +3,7 @@ import './App.css'
 import HomePage from './pages/HomePage'
 import CyberpunkCityDemo from './pages/CyberpunkCityDemo'
 import CityRunDemo from './pages/CityRunDemo'
+import CityRunSimulation from './pages/CityRunSimulation'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/cyberpunk" element={<CyberpunkCityDemo />} />
         <Route path="/cityrun" element={<CityRunDemo />} />
+        <Route path="/cityrun/simulation" element={<CityRunSimulation />} />
       </Routes>
     </BrowserRouter>
   )
