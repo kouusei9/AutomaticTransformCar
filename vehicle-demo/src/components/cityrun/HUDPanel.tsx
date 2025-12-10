@@ -248,7 +248,7 @@ function ProgressBar({ percent }: ProgressBarProps) {
   const clampedPercent = Math.min(100, Math.max(0, percent));
   
   // iPad优化: 精度控制,减少子像素抖动
-  const displayPercent = Number(clampedPercent.toFixed(1));
+  // const displayPercent = Number(clampedPercent.toFixed(1));
   const integerPercent = Math.round(clampedPercent);
 
   return (
@@ -261,7 +261,7 @@ function ProgressBar({ percent }: ProgressBarProps) {
         <div
           className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full relative"
           style={{ 
-            width: `${displayPercent}%`,
+            width: `${integerPercent}%`,
             // iPad优化: 只过渡width,线性缓动,强制GPU加速
             transition: 'width 0.1s linear',
             transform: 'translateZ(0)'
