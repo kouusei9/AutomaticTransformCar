@@ -8,7 +8,7 @@
         "lat": 35.026111,
         "lng": 135.781944
       },
-      "height": 35,
+      "height": 80,
       "description": "京都大學標誌性建築時計台",
       "rank": "medium"
     },
@@ -20,7 +20,7 @@
         "lat": 35.062222,
         "lng": 135.782778
       },
-      "height": 40,
+      "height": 95,
       "description": "京都國際會議中心",
       "rank": "medium"
     },
@@ -32,7 +32,7 @@
         "lat": 34.977778,
         "lng": 135.746111
       },
-      "height": 30,
+      "height": 65,
       "description": "大型購物中心AEON MALL",
       "rank": "medium"
     },
@@ -44,7 +44,7 @@
         "lat": 35.011944,
         "lng": 135.768889
       },
-      "height": 60,
+      "height": 145,
       "description": "京都大倉飯店高層建築",
       "rank": "large"
     },
@@ -56,7 +56,7 @@
         "lat": 34.985278,
         "lng": 135.758611
       },
-      "height": 55,
+      "height": 130,
       "description": "伊勢丹百貨京都店",
       "rank": "large"
     },
@@ -68,7 +68,7 @@
         "lat": 35.012222,
         "lng": 135.768333
       },
-      "height": 45,
+      "height": 105,
       "description": "京都市政府本庁舎",
       "rank": "medium"
     },
@@ -80,7 +80,7 @@
         "lat": 35.048333,
         "lng": 135.760556
       },
-      "height": 38,
+      "height": 88,
       "description": "京都音楽堂、クラシック音楽の殿堂",
       "rank": "medium"
     },
@@ -92,7 +92,7 @@
         "lat": 34.985849,
         "lng": 135.758767
       },
-      "height": 60,
+      "height": 145,
       "description": "京都駅複合ビル、原広司設計の現代建築",
       "rank": "large"
     },
@@ -104,7 +104,7 @@
         "lat": 35.015278,
         "lng": 135.782222
       },
-      "height": 28,
+      "height": 60,
       "description": "京都府立圖書館、岡崎公園内",
       "rank": "small"
     },
@@ -116,7 +116,7 @@
         "lat": 35.014722,
         "lng": 135.781667
       },
-      "height": 32,
+      "height": 72,
       "description": "京都會館改修後的現代劇場",
       "rank": "medium"
     },
@@ -128,7 +128,7 @@
         "lat": 34.987778,
         "lng": 135.773333
       },
-      "height": 35,
+      "height": 80,
       "description": "日本国立博物館之一、収蔵文化財寶庫",
       "rank": "medium"
     },
@@ -140,7 +140,7 @@
         "lat": 35.013889,
         "lng": 135.782500
       },
-      "height": 30,
+      "height": 65,
       "description": "京都市立美術館（京セラ美術館）",
       "rank": "medium"
     },
@@ -152,7 +152,7 @@
         "lat": 35.020833,
         "lng": 135.764444
       },
-      "height": 52,
+      "height": 125,
       "description": "高級ホテル、御所近くに位置",
       "rank": "large"
     },
@@ -164,7 +164,7 @@
         "lat": 34.993333,
         "lng": 135.748889
       },
-      "height": 48,
+      "height": 115,
       "description": "日本最大級の民間研究開発施設",
       "rank": "medium"
     },
@@ -176,7 +176,7 @@
         "lat": 34.988,
         "lng": 135.759
       },
-      "height": 55,
+      "height": 130,
       "description": "京都駅前のランドマークタワー",
       "rank": "large"
     },
@@ -188,7 +188,7 @@
         "lat": 35.03,
         "lng": 135.765
       },
-      "height": 45,
+      "height": 105,
       "description": "北部商業複合施設",
       "rank": "medium"
     },
@@ -200,7 +200,7 @@
         "lat": 35.055,
         "lng": 135.775
       },
-      "height": 42,
+      "height": 98,
       "description": "最北部のハイテク研究ビル",
       "rank": "medium"
     },
@@ -212,7 +212,7 @@
         "lat": 35.005,
         "lng": 135.73
       },
-      "height": 38,
+      "height": 88,
       "description": "西部エリアの交通ハブ",
       "rank": "medium"
     },
@@ -224,7 +224,7 @@
         "lat": 34.995,
         "lng": 135.785
       },
-      "height": 50,
+      "height": 120,
       "description": "東部エリアのオフィスタワー",
       "rank": "large"
     },
@@ -236,7 +236,7 @@
         "lat": 34.972,
         "lng": 135.76
       },
-      "height": 35,
+      "height": 80,
       "description": "南部商業施設",
       "rank": "medium"
     },
@@ -248,7 +248,7 @@
         "lat": 35.04,
         "lng": 135.755
       },
-      "height": 40,
+      "height": 95,
       "description": "クリエイティブ産業の拠点",
       "rank": "medium"
     },
@@ -260,7 +260,7 @@
         "lat": 35.018,
         "lng": 135.745
       },
-      "height": 48,
+      "height": 115,
       "description": "医療研究複合施設",
       "rank": "large"
     },
@@ -272,7 +272,7 @@
         "lat": 34.98,
         "lng": 135.77
       },
-      "height": 36,
+      "height": 82,
       "description": "エコロジー設計の環境ビル",
       "rank": "medium"
     },
@@ -284,7 +284,7 @@
         "lat": 35.008,
         "lng": 135.752
       },
-      "height": 52,
+      "height": 125,
       "description": "都市型複合施設",
       "rank": "large"
     },
@@ -296,7 +296,7 @@
         "lat": 35.07,
         "lng": 135.78
       },
-      "height": 58,
+      "height": 140,
       "description": "東北部の近未来型オフィスビル",
       "rank": "large"
     },
@@ -308,7 +308,7 @@
         "lat": 34.975,
         "lng": 135.73
       },
-      "height": 44,
+      "height": 102,
       "description": "IT企業集積地",
       "rank": "medium"
     },
@@ -320,7 +320,7 @@
         "lat": 35.08,
         "lng": 135.74
       },
-      "height": 46,
+      "height": 108,
       "description": "スマートシティ実証施設",
       "rank": "medium"
     },
@@ -332,7 +332,7 @@
         "lat": 34.98,
         "lng": 135.715
       },
-      "height": 40,
+      "height": 95,
       "description": "ロボット研究開発拠点",
       "rank": "medium"
     },
@@ -344,7 +344,7 @@
         "lat": 35.09,
         "lng": 135.76
       },
-      "height": 50,
+      "height": 120,
       "description": "量子技術研究の最先端施設",
       "rank": "large"
     },
@@ -356,7 +356,7 @@
         "lat": 35.02,
         "lng": 135.705
       },
-      "height": 38,
+      "height": 88,
       "description": "次世代エネルギー管理センター",
       "rank": "medium"
     },
@@ -368,7 +368,7 @@
         "lat": 34.975,
         "lng": 135.785
       },
-      "height": 54,
+      "height": 130,
       "description": "バイオテクノロジー研究施設",
       "rank": "large"
     },
@@ -380,7 +380,7 @@
         "lat": 35.085,
         "lng": 135.775
       },
-      "height": 42,
+      "height": 98,
       "description": "デジタルアート展示施設",
       "rank": "medium"
     },
@@ -392,7 +392,7 @@
         "lat": 35.005,
         "lng": 135.788
       },
-      "height": 56,
+      "height": 135,
       "description": "宇宙技術研究開発施設",
       "rank": "large"
     },
@@ -404,9 +404,489 @@
         "lat": 34.97,
         "lng": 135.695
       },
-      "height": 48,
+      "height": 115,
       "description": "人工知能研究の中核施設",
       "rank": "large"
+    },
+    {
+      "id": "B36",
+      "name": "京都ノースウェストタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.11,
+        "lng": 135.68
+      },
+      "height": 110,
+      "description": "北西端のビジネスタワー",
+      "rank": "medium"
+    },
+    {
+      "id": "B37",
+      "name": "京都ノースイーストプラザ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.115,
+        "lng": 135.785
+      },
+      "height": 105,
+      "description": "北東端の商業複合施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B38",
+      "name": "京都サウスウェストセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.97,
+        "lng": 135.68
+      },
+      "height": 92,
+      "description": "南西端のコミュニティセンター",
+      "rank": "medium"
+    },
+    {
+      "id": "B39",
+      "name": "京都サウスイーストビル",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.972,
+        "lng": 135.786
+      },
+      "height": 88,
+      "description": "南東端のオフィスビル",
+      "rank": "medium"
+    },
+    {
+      "id": "B40",
+      "name": "京都中央イノベーションハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.015,
+        "lng": 135.735
+      },
+      "height": 118,
+      "description": "中央西部のイノベーション拠点",
+      "rank": "large"
+    },
+    {
+      "id": "B41",
+      "name": "京都フィナンシャルタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.0,
+        "lng": 135.765
+      },
+      "height": 122,
+      "description": "金融街の中心タワー",
+      "rank": "large"
+    },
+    {
+      "id": "B42",
+      "name": "京都アクアリサーチセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.045,
+        "lng": 135.72
+      },
+      "height": 75,
+      "description": "水資源研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B43",
+      "name": "京都ミッドタウンプラザ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.025,
+        "lng": 135.755
+      },
+      "height": 128,
+      "description": "都心部の複合商業施設",
+      "rank": "large"
+    },
+    {
+      "id": "B44",
+      "name": "京都ナノテクノロジーセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.99,
+        "lng": 135.73
+      },
+      "height": 95,
+      "description": "ナノテクノロジー研究拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B45",
+      "name": "京都カルチャーハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.055,
+        "lng": 135.765
+      },
+      "height": 82,
+      "description": "文化芸術複合施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B46",
+      "name": "京都エコタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.982,
+        "lng": 135.755
+      },
+      "height": 100,
+      "description": "環境配慮型高層ビル",
+      "rank": "medium"
+    },
+    {
+      "id": "B47",
+      "name": "京都モビリティハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.035,
+        "lng": 135.745
+      },
+      "height": 90,
+      "description": "次世代交通研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B48",
+      "name": "京都ウェルネスセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.07,
+        "lng": 135.73
+      },
+      "height": 85,
+      "description": "健康・医療複合施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B49",
+      "name": "京都アグリテックビル",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.975,
+        "lng": 135.71
+      },
+      "height": 78,
+      "description": "農業技術研究開発施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B50",
+      "name": "京都サステナビリティタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.09,
+        "lng": 135.72
+      },
+      "height": 112,
+      "description": "持続可能性研究拠点",
+      "rank": "large"
+    },
+    {
+      "id": "B51",
+      "name": "京都マリンサイエンスラボ",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.005,
+        "lng": 135.69
+      },
+      "height": 70,
+      "description": "海洋科学研究所",
+      "rank": "medium"
+    },
+    {
+      "id": "B52",
+      "name": "京都アーバンデザインセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.05,
+        "lng": 135.78
+      },
+      "height": 98,
+      "description": "都市設計研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B53",
+      "name": "京都クラウドコンピューティングセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.968,
+        "lng": 135.725
+      },
+      "height": 102,
+      "description": "クラウド技術研究開発拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B54",
+      "name": "京都エアロスペースタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.1,
+        "lng": 135.75
+      },
+      "height": 125,
+      "description": "航空宇宙技術研究施設",
+      "rank": "large"
+    },
+    {
+      "id": "B55",
+      "name": "京都フォトニクスセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.985,
+        "lng": 135.72
+      },
+      "height": 88,
+      "description": "光学技術研究所",
+      "rank": "medium"
+    },
+    {
+      "id": "B56",
+      "name": "京都マテリアルサイエンスビル",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.06,
+        "lng": 135.71
+      },
+      "height": 95,
+      "description": "材料科学研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B57",
+      "name": "京都セキュリティオペレーションセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.03,
+        "lng": 135.72
+      },
+      "height": 80,
+      "description": "サイバーセキュリティ監視施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B58",
+      "name": "京都ブロックチェーンハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.995,
+        "lng": 135.74
+      },
+      "height": 92,
+      "description": "ブロックチェーン技術研究拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B59",
+      "name": "京都ゲノミクスセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 35.075,
+        "lng": 135.745
+      },
+      "height": 108,
+      "description": "ゲノム解析研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B60",
+      "name": "京都スマートグリッドタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.978,
+        "lng": 135.765
+      },
+      "height": 115,
+      "description": "スマートグリッド管理センター",
+      "rank": "large"
+    },
+    {
+      "id": "B61",
+      "name": "長岡京サイエンスパーク",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.923,
+        "lng": 135.698
+      },
+      "height": 85,
+      "description": "長岡京エリアの科学技術パーク",
+      "rank": "medium"
+    },
+    {
+      "id": "B62",
+      "name": "向日市テクノロジーセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.949,
+        "lng": 135.698
+      },
+      "height": 78,
+      "description": "向日町エリアの技術研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B63",
+      "name": "長岡京イノベーションタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.93,
+        "lng": 135.705
+      },
+      "height": 95,
+      "description": "長岡京駅近くのイノベーション拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B64",
+      "name": "長岡京リサーチラボ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.918,
+        "lng": 135.69
+      },
+      "height": 72,
+      "description": "長岡京南部の研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B65",
+      "name": "西山エコセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.94,
+        "lng": 135.683
+      },
+      "height": 68,
+      "description": "西山エリアの環境研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B66",
+      "name": "長岡京ビジネスプラザ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.925,
+        "lng": 135.71
+      },
+      "height": 88,
+      "description": "長岡京エリアのビジネス複合施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B67",
+      "name": "向日市メディカルタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.955,
+        "lng": 135.705
+      },
+      "height": 82,
+      "description": "向日市の医療複合施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B68",
+      "name": "南部サステナビリティセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.91,
+        "lng": 135.7
+      },
+      "height": 75,
+      "description": "京都南部の持続可能性研究拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B69",
+      "name": "西京エリアゲートウェイ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.935,
+        "lng": 135.715
+      },
+      "height": 92,
+      "description": "西京エリアの交通ハブ施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B70",
+      "name": "長岡京デジタルハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.928,
+        "lng": 135.688
+      },
+      "height": 80,
+      "description": "デジタル技術開発センター",
+      "rank": "medium"
+    },
+    {
+      "id": "B71",
+      "name": "桂川リバーサイドタワー",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.96,
+        "lng": 135.71
+      },
+      "height": 98,
+      "description": "桂川沿いの複合オフィスビル",
+      "rank": "medium"
+    },
+    {
+      "id": "B72",
+      "name": "長岡京エネルギーセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.915,
+        "lng": 135.705
+      },
+      "height": 70,
+      "description": "次世代エネルギー研究施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B73",
+      "name": "西部クリエイティブハブ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.945,
+        "lng": 135.69
+      },
+      "height": 85,
+      "description": "クリエイティブ産業の西部拠点",
+      "rank": "medium"
+    },
+    {
+      "id": "B74",
+      "name": "向日町コマースセンター",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.952,
+        "lng": 135.693
+      },
+      "height": 77,
+      "description": "商業研究開発施設",
+      "rank": "medium"
+    },
+    {
+      "id": "B75",
+      "name": "南西部モビリティラボ",
+      "type": "building",
+      "coordinates": {
+        "lat": 34.92,
+        "lng": 135.695
+      },
+      "height": 73,
+      "description": "交通技術研究所",
+      "rank": "medium"
     },
     {
       "id": "S01",
@@ -710,19 +1190,19 @@
     }
   ],
   "metadata": {
-    "total_landmarks": 60,
-    "buildings": 35,
+    "total_landmarks": 100,
+    "buildings": 75,
     "shrines": 20,
     "skytrees": 1,
     "cocoontowers": 1,
     "skyscrapers": 3,
     "map_bounds": {
       "north": 35.122778,
-      "south": 34.967146,
+      "south": 34.910000,
       "east": 135.788889,
       "west": 135.674167
     },
-    "description": "京都市内の主要建築物と神社の統合リスト",
-    "last_updated": "2025-12-03"
+    "description": "京都市内の主要建築物と神社の統合リスト（長岡京エリア拡充）",
+    "last_updated": "2025-12-10"
   }
 }
