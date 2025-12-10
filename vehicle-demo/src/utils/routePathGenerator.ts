@@ -45,7 +45,7 @@ export function createRoutePathFromNodeIds(
   }
 
   // 后面改成160000
-  const MOVIE_LENGTH = 80000 // 映画の総時間（ms）
+  const MOVIE_LENGTH = 160000 // 映画の総時間（ms）
 
   // 直接使用传入的节点序列（不使用 Dijkstra 算法）
   const pathNodes: RouteNode[] = []
