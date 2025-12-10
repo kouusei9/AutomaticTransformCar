@@ -12,9 +12,9 @@ interface MiddleSceneryProps {
 
 // ===== 常量定义 =====
 const TEXTURE_PATHS = {
-  day: '../assets/view_middle02.png',
-  night: '../assets/view_middle01.png',
-  sky: '../assets/view_middle03.png'
+  day: '/assets/view_middle02.png',
+  night: '/assets/view_middle01.png',
+  sky: '/assets/view_middle03.png'
 } as const;
 
 const TEXTURE_REPEAT = { x: 3, y: 1 };

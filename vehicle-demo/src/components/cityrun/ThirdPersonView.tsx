@@ -22,10 +22,10 @@ interface ModeVisualConfig {
 
 // ===== 常量定义 =====
 const TEXTURE_PATHS = {
-  [VehicleMode.NORMAL]: '../assets/car_back.png',
-  [VehicleMode.HIGHWAY]: '../assets/high_car_back.png',
-  [VehicleMode.DRONE]: '../assets/drone_back.png',
-  [VehicleMode.FLIGHT]: '../assets/airplane_back.png'
+  [VehicleMode.NORMAL]: '/assets/car_back.png',
+  [VehicleMode.HIGHWAY]: '/assets/high_car_back.png',
+  [VehicleMode.DRONE]: '/assets/drone_back.png',
+  [VehicleMode.FLIGHT]: '/assets/airplane_back.png'
 } as const;
 
 // 模式视觉配置
