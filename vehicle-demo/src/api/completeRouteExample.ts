@@ -292,7 +292,7 @@ export function getAllModesRoute(): RouteResponse {
         type: "road",
         mode: 1,
         length: 1000,
-        cost: calculateCost(1000, 40)  // 1,350,000ms
+        cost: calculateCost(5000, 40)  // 1,350,000ms
       },
       // 第2段：香車（高速モード）
       // 25km @ 100km/h = 15分钟 = 900,000ms
