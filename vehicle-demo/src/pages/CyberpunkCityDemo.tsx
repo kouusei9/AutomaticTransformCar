@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import * as THREE from 'three'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import CityGround from '../components/website/CityGround'
 import SkyEnvironment from '../components/website/SkyEnvironment'
 import DistantCityscape from '../components/website/DistantCityscape'
@@ -327,7 +328,22 @@ export default function CyberpunkCityDemo() {
         <SkyEnvironment />
         {/* <DistantCityscape /> */}
         
+        {/* 体积雾和神光效果 */}
         <VolumetricFog 
+          color="#0a1a2e" 
+          density={0.015} 
+          height={35} 
+        />
+        <GodRays 
+          count={12} 
+          color="#88ddff" 
+          intensity={0.25} 
+        />
+        <AtmosphericParticles 
+          count={600} 
+          size={0.25} 
+        />
+        
         {/* 漂浮粒子系统 */}
         <MultiLayerDustParticles />
         
@@ -385,6 +401,17 @@ export default function CyberpunkCityDemo() {
         {/* 黑色格子线（已注释） */}
         {/* <gridHelper args={[200, 20, '#444', '#222']} position={[0, 0.1, 0]} /> */}
         <fog attach="fog" args={['#000', 100, 400]} />
+
+        {/* Bloom 后处理效果 - 让霓虹边发光 */}
+        <EffectComposer>
+          <Bloom 
+            intensity={0.2}
+            luminanceThreshold={0.2}
+            luminanceSmoothing={0.1}
+            radius={0.9}
+            // mipmapBlur
+          />
+        </EffectComposer>
       </Canvas>
 
       {/* UIオーバーレイ */}
@@ -781,25 +808,247 @@ export default function CyberpunkCityDemo() {
         </h3>
         <div style={{ lineHeight: '1.8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#00ffff', fontSize: '16px' }}>━━</span>
-            <span>一般道路</span>
+            <span style={{ color: '#EBCF65', fontSize: '16px' }}>━━</span>
+            <span>一般道路（金将）</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#ffaa00', fontSize: '16px' }}>━━</span>
-            <span>高速道路</span>
+            <span style={{ color: '#F24B90', fontSize: '16px' }}>━━</span>
+            <span>高速道路（香車）</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#ff00ff', fontSize: '16px' }}>━━</span>
-            <span>ドローン</span>
+            <span style={{ color: '#B1C075', fontSize: '16px' }}>━━</span>
+            <span>ドローン（桂馬）</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#00ff00', fontSize: '16px' }}>━━</span>
-            <span>航空路線</span>
+            <span style={{ color: '#98B5C2', fontSize: '16px' }}>━━</span>
+            <span>航空路線（飛車）</span>
           </div>
         </div>
       </div>
 
       {/* 版本信息和技术栈按钮（右上角） */}
+      <div
+        onClick={() => setIsTechStackOpen(!isTechStackOpen)}
+        style={{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          padding: '12px 20px',
+          fontSize: '16px',
+          fontFamily: 'monospace',
+          fontWeight: 'bold',
+          color: '#00ffff',
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '2px solid #00ffff',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          zIndex: 10,
+          transition: 'all 0.3s ease',
+          boxShadow: '0 0 15px rgba(0, 255, 255, 0.3)',
+          textTransform: 'uppercase',
+          letterSpacing: '2px'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)'
+          e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 255, 255, 0.6)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)'
+          e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.3)'
+        }}
+      >
+        v1.0 Beta
+      </div>
+
+      {/* 技术栈展示面板 */}
+      {isTechStackOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 80,
+            right: 20,
+            width: '450px',
+            maxHeight: 'calc(100vh - 120px)',
+            overflowY: 'auto',
+            color: '#00ffff',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            padding: '25px',
+            borderRadius: '12px',
+            border: '2px solid #00ffff',
+            zIndex: 9,
+            boxShadow: '0 0 40px rgba(0, 255, 255, 0.4)',
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+          className="tech-stack-scroll"
+        >
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(-10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .tech-stack-scroll::-webkit-scrollbar {
+              width: 8px;
+            }
+            .tech-stack-scroll::-webkit-scrollbar-track {
+              background: rgba(0, 255, 255, 0.1);
+              border-radius: 4px;
+            }
+            .tech-stack-scroll::-webkit-scrollbar-thumb {
+              background: rgba(0, 255, 255, 0.3);
+              border-radius: 4px;
+            }
+            .tech-stack-scroll::-webkit-scrollbar-thumb:hover {
+              background: rgba(0, 255, 255, 0.5);
+            }
+          `}</style>
+
+          <h2 style={{ 
+            margin: '0 0 20px 0', 
+            color: '#ff00ff', 
+            fontSize: '24px',
+            borderBottom: '2px solid #ff00ff',
+            paddingBottom: '12px',
+            textAlign: 'center'
+          }}>
+            技術スタック
+          </h2>
+
+          {/* 前端框架 */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: '#00ffff', fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+              フロントエンド
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/react.svg" alt="React" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>React</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>19.1.1</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/typescript.svg" alt="TypeScript" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>TypeScript</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>5.9.3</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/vite.svg" alt="Vite" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Vite</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>7.1.7</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/react.svg" alt="React Router" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Router</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>7.10.0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D 图形 */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: '#00ffff', fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+              3Dグラフィックス
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/threejs.svg" alt="Three.js" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Three.js</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>0.180.0</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/react.svg" alt="R3F" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>R3F</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>9.4.0</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/react.svg" alt="Drei" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Drei</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>10.7.6</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/gsap.svg" alt="GSAP" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>GSAP</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>3.13.0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 样式与通信 */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: '#00ffff', fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+              スタイル & 通信
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/tailwind.svg" alt="Tailwind" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Tailwind</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>4.1.14</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/websocket.svg" alt="WebSocket" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>WebSocket</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>8.18.0</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <img src="/tech-logos/nodejs.svg" alt="Node.js" style={{ width: '32px', height: '32px' }} />
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Node.js</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>20.19.0</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
+                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f97583', borderRadius: '6px', fontWeight: 'bold', fontSize: '18px', color: '#000' }}>L</div>
+                <div>
+                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Lucide</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>0.548</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 底部信息 */}
+          <div style={{
+            marginTop: '25px',
+            paddingTop: '15px',
+            borderTop: '2px solid rgba(0, 255, 255, 0.3)',
+            textAlign: 'center',
+            fontSize: '12px',
+            color: '#888'
+          }}>
+            <div style={{ marginBottom: '8px' }}>
+              🏗️ Built with Modern Web Tech
+            </div>
+            <div style={{ color: '#00ffff' }}>
+              React • Three.js • TypeScript • Vite
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 自动/手动切换按钮（左下角） */}
       <div
         style={{
