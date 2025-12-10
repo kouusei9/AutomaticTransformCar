@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { RouteResponse } from '../../types/routeAPI';
 import { getAllModesRoute } from '../../api/completeRouteExample';
 import MiniRouteMap from './MiniRouteMap';
@@ -241,31 +241,70 @@ function RoutePreview({ routeData }: RoutePreviewProps) {
   );
 }
 
+//  进度条组件
 interface ProgressBarProps {
   percent: number;
 }
 
 function ProgressBar({ percent }: ProgressBarProps) {
-  const clampedPercent = Math.min(100, Math.max(0, percent));
+  const [displayPercent, setDisplayPercent] = useState(0);
+  const lastUpdateRef = useRef(0);
+  const rafRef = useRef<number | undefined>(undefined);
 
-  // iPad优化: 精度控制,减少子像素抖动
-  // const displayPercent = Number(clampedPercent.toFixed(1));
-  const integerPercent = Math.round(clampedPercent);
+  useEffect(() => {
+    const clampedPercent = Math.min(100, Math.max(0, percent));
+    const precisePercent = Number(clampedPercent.toFixed(1));
+
+    // 取消之前的更新
+    if (rafRef.current !== undefined) { // ✅ 类型安全检查
+      cancelAnimationFrame(rafRef.current);
+    }
+
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateRef.current;
+
+    const shouldUpdateImmediately =
+      precisePercent === 0 ||
+      precisePercent === 100 ||
+      timeSinceLastUpdate >= 100;
+
+    if (shouldUpdateImmediately) {
+      setDisplayPercent(precisePercent);
+      lastUpdateRef.current = now;
+    } else {
+      const delay = 100 - timeSinceLastUpdate;
+      rafRef.current = requestAnimationFrame(() => { // ✅ 赋值
+        setTimeout(() => {
+          setDisplayPercent(precisePercent);
+          lastUpdateRef.current = Date.now();
+        }, delay);
+      });
+    }
+
+    return () => {
+      if (rafRef.current !== undefined) { // ✅ 清理时检查
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [percent]);
+
+  // 页面展示时四舍五入取整
+  const displayInteger = Math.round(displayPercent);
 
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
         <span>進捗</span>
-        <span className="font-mono font-bold">{integerPercent}%</span>
+        <span className="font-mono font-bold">{displayInteger}%</span>
       </div>
       <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
         <div
           className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full relative"
           style={{
-            width: `${integerPercent}%`,
-            // iPad优化: 只过渡width,线性缓动,强制GPU加速
-            transition: 'width 0.1s linear',
-            transform: 'translateZ(0)'
+            width: `${displayPercent}%`,
+            transition: 'width 0.15s ease-out',
+            transform: 'translateZ(0)',
+            willChange: 'width'
           }}
         >
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/50 shadow-[0_0_5px_#fff]" />

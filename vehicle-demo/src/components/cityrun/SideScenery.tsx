@@ -63,27 +63,27 @@ const BASE_OPACITY = 0.95;
 const CLOUD_OPACITY = 0.7;
 
 const TEXTURE_PATHS = {
-    sakura01: '../assets/sakura01.png',
-    sakura02: '../assets/sakura02.png',
-    sakura03: '../assets/sakura03.png',
-    building03: '../assets/building03.png',
-    building04: '../assets/building04.png',
-    building05: '../assets/building05.png',
-    building06: '../assets/building06.png',
-    building07: '../assets/building07.png',
-    building08: '../assets/building08.png',
-    building09: '../assets/building09.png',
-    building10: '../assets/building10.png',
-    cloud01: '../assets/cloud/01.png',
-    cloud02: '../assets/cloud/02.png',
-    cloud03: '../assets/cloud/03.png',
-    cloud04: '../assets/cloud/04.png',
-    cloud05: '../assets/cloud/05.png',
-    cloud06: '../assets/cloud/06.png',
-    cloud07: '../assets/cloud/07.png',
-    cloud08: '../assets/cloud/08.png',
-    cloud09: '../assets/cloud/09.png',
-    asphalt: '../assets/asphalt_texture.jpg'
+    sakura01: '/assets/sakura01.png',
+    sakura02: '/assets/sakura02.png',
+    sakura03: '/assets/sakura03.png',
+    building03: '/assets/building03.png',
+    building04: '/assets/building04.png',
+    building05: '/assets/building05.png',
+    building06: '/assets/building06.png',
+    building07: '/assets/building07.png',
+    building08: '/assets/building08.png',
+    building09: '/assets/building09.png',
+    building10: '/assets/building10.png',
+    cloud01: '/assets/cloud/01.png',
+    cloud02: '/assets/cloud/02.png',
+    cloud03: '/assets/cloud/03.png',
+    cloud04: '/assets/cloud/04.png',
+    cloud05: '/assets/cloud/05.png',
+    cloud06: '/assets/cloud/06.png',
+    cloud07: '/assets/cloud/07.png',
+    cloud08: '/assets/cloud/08.png',
+    cloud09: '/assets/cloud/09.png',
+    asphalt: '/assets/asphalt_texture.jpg'
 } as const;
 
 const BUILDING_TYPES: TreeType[] = [

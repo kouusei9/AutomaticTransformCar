@@ -13,9 +13,9 @@ interface RoadSystemProps {
 // ===== 常量定义 =====
 // 道路纹理路径
 const ROAD_TEXTURE_PATHS = {
-  normal: '../assets/road_normal.jpeg',
-  highway: '../assets/road_highway03.png',
-  fly: '../assets/road_fly.png'
+  normal: '/assets/road_normal.jpeg',
+  highway: '/assets/road_highway03.png',
+  fly: '/assets/road_fly.png'
 } as const;
 
 // 绿化带纹理路径
