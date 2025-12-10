@@ -292,7 +292,7 @@ export function getAllModesRoute(): RouteResponse {
         type: "road",
         mode: 1,
         length: 1000,
-        cost: calculateCost(5000, 40)  // 1,350,000ms
+        cost: 500000  // 1,350,000ms
       },
       // 第2段：香車（高速モード）
       // 25km @ 100km/h = 15分钟 = 900,000ms
@@ -304,7 +304,7 @@ export function getAllModesRoute(): RouteResponse {
         type: "highway",
         mode: 2,
         length: 15000,
-        cost: calculateCost(15000, 100)  // 900,000ms
+        cost: 240000  // 900,000ms
       },
       // 第3段：桂馬（短距離飛行モード）
       // 20km @ 80km/h = 15分钟 = 900,000ms
@@ -316,7 +316,7 @@ export function getAllModesRoute(): RouteResponse {
         type: "sky",
         mode: 3,
         length: 10000,
-        cost: calculateCost(10000, 80)  // 900,000ms
+        cost: 200000  // 900,000ms
       },
       // 第4段：飛車（長距離飛行モード）
       // 60km @ 300km/h = 12分钟 = 720,000ms
