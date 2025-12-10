@@ -21,6 +21,9 @@ const VEHICLE_SCALE = 15.0
 // false = 追従モード（Billboard効果、常にカメラに向く）
 const SIDE_VIEW_FIXED_MODE = false
 
+// X-Ray透視効果を有効化（パフォーマンス節約のため無効化可能）
+const ENABLE_XRAY = true
+
 // デバッグモード：遮蔽検出を可視化
 const DEBUG_OCCLUSION = false
 
@@ -158,7 +161,8 @@ export const Vehicle: React.FC<VehicleProps> = ({
     windParticlesRef,
     flameParticlesRef,
     name,
-    debugMode: DEBUG_OCCLUSION
+    debugMode: DEBUG_OCCLUSION,
+    enabled: ENABLE_XRAY
   })
 
   // ==================== イベントハンドラー ====================
@@ -197,14 +201,16 @@ export const Vehicle: React.FC<VehicleProps> = ({
     mesh.position.copy(position)
 
     // 透視メッシュの位置も同期
-    if (xrayMeshRef.current) {
+    if (ENABLE_XRAY && xrayMeshRef.current) {
       xrayMeshRef.current.position.copy(position)
       const toCamera = new THREE.Vector3().subVectors(camera.position, position).normalize()
       xrayMeshRef.current.position.addScaledVector(toCamera, 0.01)
     }
 
     // 遮挡检测
-    checkOcclusion(position, camera, state.scene)
+    if (ENABLE_XRAY) {
+      checkOcclusion(position, camera, state.scene)
+    }
 
     // 更新外观
     const { scaleX, scaleY, isSideView } = updateAppearance(
@@ -241,7 +247,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
     }
 
     // 透視メッシュの回転も同期
-    if (xrayMeshRef.current) {
+    if (ENABLE_XRAY && xrayMeshRef.current) {
       xrayMeshRef.current.rotation.copy(mesh.rotation)
     }
 
@@ -279,7 +285,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
       </mesh>
 
       {/* 透視用メッシュ（遮蔽時のみレンダリング） */}
-      {isOccluded && (
+      {ENABLE_XRAY && isOccluded && (
         <mesh
           ref={xrayMeshRef}
           scale={currentScale}
@@ -324,11 +330,11 @@ export const Vehicle: React.FC<VehicleProps> = ({
       />
 
       {/* 车辆光尾粒子系统 */}
-      <EnhancedVehicleTrail
+      {/* <EnhancedVehicleTrail
         vehiclePosition={meshRef.current?.position || new THREE.Vector3()}
         vehicleForward={getPositionAndTangent().tangent}
         edgeType={getCurrentSegmentInfo().edgeType as 'road' | 'highway' | 'drone' | 'sky'}
-      />
+      /> */}
     </group>
   )
 }

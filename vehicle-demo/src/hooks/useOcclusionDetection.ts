@@ -13,6 +13,7 @@ interface UseOcclusionDetectionParams {
   flameParticlesRef: React.RefObject<THREE.Points | null>
   name?: string
   debugMode?: boolean
+  enabled?: boolean
 }
 
 interface UseOcclusionDetectionReturn {
@@ -33,7 +34,8 @@ export function useOcclusionDetection({
   windParticlesRef,
   flameParticlesRef,
   name,
-  debugMode = false
+  debugMode = false,
+  enabled = true
 }: UseOcclusionDetectionParams): UseOcclusionDetectionReturn {
   const [isOccluded, setIsOccluded] = useState(false)
   const raycasterRef = useRef(new THREE.Raycaster())
@@ -46,6 +48,12 @@ export function useOcclusionDetection({
     camera: THREE.Camera,
     scene: THREE.Scene
   ): boolean => {
+    // 如果禁用，直接返回 false
+    if (!enabled) {
+      if (isOccluded) setIsOccluded(false)
+      return false
+    }
+
     const mesh = meshRef.current
     if (!mesh) return false
 
@@ -96,7 +104,7 @@ export function useOcclusionDetection({
     })
 
     return occluded
-  }, [meshRef, xrayMeshRef, windParticlesRef, flameParticlesRef, name, debugMode])
+  }, [meshRef, xrayMeshRef, windParticlesRef, flameParticlesRef, name, debugMode, enabled, isOccluded])
 
   return {
     isOccluded,
