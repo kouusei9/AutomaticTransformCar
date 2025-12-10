@@ -32,6 +32,7 @@ export default function CyberpunkCityDemo() {
   const stickyVehicleIdRef = useRef<string | null>(null) // 粘性跟踪的车辆ID
   const routePathsRef = useRef<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 路径 ref
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false) // 全体情报展开状态
+  const [isTechStackOpen, setIsTechStackOpen] = useState(false) // 技术栈面板状态
   const [floatingLandmarks, setFloatingLandmarks] = useState<Array<{
     position: [number, number, number]
     name: string
@@ -796,6 +797,7 @@ export default function CyberpunkCityDemo() {
         </div>
       </div>
 
+      {/* 版本信息和技术栈按钮（右上角） */}
       {/* 自动/手动切换按钮（左下角） */}
       <div
         style={{
