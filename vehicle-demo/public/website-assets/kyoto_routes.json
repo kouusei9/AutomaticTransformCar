@@ -47,8 +47,8 @@
     {"id": "H3", "name": "出町柳", "coordinates": {"lat": 35.033333, "lng": 135.772255}, "type": "point"},
     {"id": "H4", "name": "鞍馬", "coordinates": {"lat": 35.120278, "lng": 135.769444}, "type": "airport"},
     
-    {"id": "OUT_H1", "name": "地図外（南）", "coordinates": {"lat": 34.800000, "lng": 135.799444}, "type": "outside"},
-    {"id": "OUT_H4", "name": "地図外（北）", "coordinates": {"lat": 35.200000, "lng": 135.769444}, "type": "outside"},
+    {"id": "OUT_H1", "name": "東京駅", "coordinates": {"lat": 34.800000, "lng": 135.799444}, "type": "outside"},
+    {"id": "OUT_H4", "name": "大阪駅", "coordinates": {"lat": 35.200000, "lng": 135.769444}, "type": "outside"},
     
     {"id": "I1", "name": "河原町五条", "coordinates": {"lat": 34.993889, "lng": 135.769444}, "type": "point"},
     {"id": "I2", "name": "河原町三条", "coordinates": {"lat": 35.009377, "lng": 135.769444}, "type": "point"},
@@ -104,8 +104,8 @@
     {"from": "B1", "to": "F1", "distance_km": 4.5, "type": "road"},
     
     {"from": "A1", "to": "C1", "distance_km": 1.7, "type": "road"},
-    {"from": "C1", "to": "D1", "distance_km": 1.2, "type": "road"},
-    {"from": "D1", "to": "H1", "distance_km": 11.0, "type": "highway"},
+    {"from": "C1", "to": "D1", "distance_km": 1.2, "type": "highway"},
+    {"from": "D1", "to": "H1", "distance_km": 11.0, "type": "drone"},
     
     {"from": "A2", "to": "C2", "distance_km": 1.9, "type": "road"},
     {"from": "C2", "to": "D2", "distance_km": 1.2, "type": "road"},
