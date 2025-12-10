@@ -33,14 +33,14 @@ export const HolographicGroundFusion: React.FC<{
         uGridSize: { value: 16.0 }, // 网格大小更贴合蓝紫地图
         uGridThickness: { value: 0.045 },
         uFlowSpeed: { value: 0.4 },
-        uScanlineSpeed: { value: 0.25 },
+        uScanlineSpeed: { value: 0.0 }, // 关闭扫描线
 
-        // 蓝紫色系主色调
-        uPrimaryColor: { value: new THREE.Color('#65e6ff') },   // 青蓝
-        uSecondaryColor: { value: new THREE.Color('#d600ff') }, // 紫粉
+        // 蓝紫色系主色调 - 降低饱和度
+        uPrimaryColor: { value: new THREE.Color('#4db3cc') },   // 降低饱和度的青蓝
+        uSecondaryColor: { value: new THREE.Color('#9966cc') }, // 降低饱和度的紫色
         uScanlineColor: { value: new THREE.Color('#00ffaa') },
 
-        uEmissionStrength: { value: 0.55 } // 柔和发光，不覆盖底图
+        uEmissionStrength: { value: 0.35 } // 降低发光强度
       },
       vertexShader: `
         varying vec2 vUv;
@@ -95,15 +95,15 @@ export const HolographicGroundFusion: React.FC<{
           float flow = smoothstep(0.0, 0.25, fp) * (1.0 - smoothstep(0.6, 1.0, fp));
           flow *= grid;
 
-          // ===== 4. 扫描线 =====
-          float scanCenter = uTime * uScanlineSpeed * 20.0;
-          float scan = smoothstep(4.0, 0.0, abs(vWorldPos.z - scanCenter));
+          // ===== 4. 扫描线 (已禁用) =====
+          // float scanCenter = uTime * uScanlineSpeed * 20.0;
+          // float scan = smoothstep(4.0, 0.0, abs(vWorldPos.z - scanCenter));
 
           // ===== 5. hologram 颜色组合 =====
           vec3 holo = vec3(0.0);
-          holo += uPrimaryColor * grid * 0.45;  // 柔和网格
-          holo += mix(uPrimaryColor, uSecondaryColor, flow) * flow * 1.3;
-          holo += uScanlineColor * scan * 1.8;
+          holo += uPrimaryColor * grid * 0.35;  // 降低网格强度
+          holo += mix(uPrimaryColor, uSecondaryColor, flow) * flow * 0.9; // 降低光流强度
+          // holo += uScanlineColor * scan * 1.8; // 扫描线已禁用
 
           // 提升整体亮度
           holo *= uEmissionStrength;
@@ -132,14 +132,72 @@ export const HolographicGroundFusion: React.FC<{
   })
 
   return (
-    <mesh
-      ref={meshRef}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0.05, 0]}
-      receiveShadow={false}
-    >
-      <planeGeometry args={[size, size]} />
-      <primitive object={shaderMaterial} ref={materialRef} attach="material" />
-    </mesh>
+    <group>
+      {/* 主地面 - 带圆角和厚度 */}
+      <mesh
+        ref={meshRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0, 0]}
+        receiveShadow={false}
+      >
+        {/* 使用圆角矩形几何体 */}
+        <RoundedBoxGeometry args={[size, size, 1.5, 8, 8]} />
+        <primitive object={shaderMaterial} ref={materialRef} attach="material" />
+      </mesh>
+
+      {/* 底部边缘发光 */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -0.8, 0]}
+      >
+        {/* <RoundedBoxGeometry args={[size + 0.5, size + 0.5, 0.2, 8, 8]} /> */}
+        <meshStandardMaterial
+          // color="#00ffff"
+          // emissive="#00ffff"
+          // emissiveIntensity={0.5}
+          transparent
+          opacity={0.3}
+        />
+      </mesh>
+    </group>
   )
+}
+
+/**
+ * 圆角矩形几何体
+ */
+function RoundedBoxGeometry({ args }: { args: [number, number, number, number, number] }) {
+  const [width, height, depth, radius, smoothness] = args
+  
+  const geometry = useMemo(() => {
+    const shape = new THREE.Shape()
+    const x = -width / 2
+    const y = -height / 2
+    const w = width
+    const h = height
+    const r = Math.min(radius, Math.min(w, h) / 2)
+
+    // 绘制圆角矩形路径
+    shape.moveTo(x + r, y)
+    shape.lineTo(x + w - r, y)
+    shape.quadraticCurveTo(x + w, y, x + w, y + r)
+    shape.lineTo(x + w, y + h - r)
+    shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+    shape.lineTo(x + r, y + h)
+    shape.quadraticCurveTo(x, y + h, x, y + h - r)
+    shape.lineTo(x, y + r)
+    shape.quadraticCurveTo(x, y, x + r, y)
+
+    const extrudeSettings = {
+      depth: depth,
+      bevelEnabled: true,
+      bevelThickness: 0.2,
+      bevelSize: 0.1,
+      bevelSegments: smoothness
+    }
+
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings)
+  }, [width, height, depth, radius, smoothness])
+
+  return <primitive object={geometry} />
 }

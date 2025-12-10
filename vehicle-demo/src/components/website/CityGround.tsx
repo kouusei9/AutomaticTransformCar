@@ -58,59 +58,222 @@ useGLTF.preload('/website-assets/shrine.glb', '/draco/')
 useGLTF.preload('/website-assets/tokyo_skytree_japan.glb', '/draco/')
 useGLTF.preload('/website-assets/cocoon_tower.glb', '/draco/')
 useGLTF.preload('/website-assets/central_park_tower.glb', '/draco/')
+// 建筑物模型 01-07
+for (let i = 1; i <= 7; i++) {
+  useGLTF.preload(`/website-assets/building/0${i}.glb`, '/draco/')
+}
 
 /**
- * 3D建築物モデルコンポーネント (InstancedMesh版)
+ * 单个建筑物组件 - 根据高度选择模型 (已注释)
  */
-const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildings }) => {
-  const { scene } = useGLTF('/website-assets/futuristic_city.glb', '/draco/')
-  const groupRef = useRef<THREE.Group>(null)
+// const Building3DModel: React.FC<{
+//   position: [number, number, number]
+//   height: number
+//   buildingId: string
+// }> = React.memo(({ position, height, buildingId }) => {
+//   // 根据高度选择模型编号 (01-07)
+//   // 高度范围: 60-145m
+//   const modelNumber = useMemo(() => {
+//     const clampedHeight = Math.max(60, Math.min(145, height))
+//     const normalized = (clampedHeight - 60) / (145 - 60) // 0-1
+//     const index = Math.min(7, Math.max(1, Math.floor(normalized * 7) + 1)) // 1-7
+//     return String(index).padStart(2, '0')
+//   }, [height, buildingId])
 
-  // 为每个建筑物创建独立的实例
-  const instances = useMemo(() => {
-    return buildings.map((building) => {
-      if (!building.position) return null
+//   var modelPath = `/website-assets/building/${modelNumber}.glb`
+//   if (modelNumber === '07') {
+//     modelPath = `/website-assets/central_park_tower.glb`
+//   }
+//   const { scene } = useGLTF(modelPath, '/draco/')
 
-      const [x, y, z] = building.position
-      const scale = 5
-      const adjustedScale = (building.height / 30) * scale
+//   const clonedScene = useMemo(() => {
+//     const cloned = scene.clone()
+//     cloned.traverse((child: any) => {
+//       if (child.isMesh) {
+//         child.castShadow = true
+//         child.receiveShadow = true
+//         child.material = new THREE.MeshStandardMaterial({
+//           color: new THREE.Color("#030d10ff"),     // 冷蓝色
+//         })
+//       }
+//     })
+//     return cloned
+//   }, [scene])
 
-      return {
-        position: [x, y, z] as [number, number, number],
-        scale: adjustedScale,
-        key: building.id
+//   const scale = useMemo(() => (height / 250) * 1, [height])
+
+//   // 添加霓虹边框线
+//   const edgeLines = useMemo(() => {
+//     const lines: React.ReactElement[] = []
+//     clonedScene.traverse((child: any) => {
+//       if (child.isMesh && child.geometry) {
+//         const edges = new THREE.EdgesGeometry(child.geometry, 15) // 15度阈值，只显示明显的边
+//         lines.push(
+//           <lineSegments
+//             key={`edge-${child.uuid}`}
+//             geometry={edges}
+//             matrix={child.matrixWorld.clone()}  // ← 使用最终世界矩阵
+//             matrixAutoUpdate={false}            // ← 禁止自更新 
+//           >
+//             <lineBasicMaterial
+//               color="#00d4ff"
+//               transparent
+//               opacity={0.8}
+//               linewidth={2}
+//             />
+//           </lineSegments>
+//         )
+//       }
+//     })
+//     return lines
+//   }, [clonedScene])
+
+//   return (
+//     <group position={position} scale={[scale, scale, scale]}>
+//       <primitive object={clonedScene} />
+//     </group>
+//   )
+// })
+
+// Building3DModel.displayName = 'Building3DModel'
+
+/**
+ * 3D建築物モデルコンポーネント (InstancedMesh版) - 已注释
+ */
+// const Building3DModelInstanced: React.FC<{ buildings: Landmark[] }> = ({ buildings }) => {
+//   return (
+//     <group>
+//       {buildings.map((building) => {
+//         if (!building.position) return null
+
+//         return (
+//           <Building3DModel
+//             key={building.id}
+//             position={building.position}
+//             height={building.height}
+//             buildingId={building.id}
+//           />
+//         )
+//       })}
+//     </group>
+//   )
+// }
+
+/**
+ * 程序化生成城市建筑
+ */
+const ProceduralCityBuildings: React.FC<{ routes: any }> = React.memo(({ routes }) => {
+  const buildings = useMemo(() => {
+    const list: React.ReactElement[] = []
+
+    const citySize = 200
+    const count = 500 // 建筑数量
+    const clearanceDistance = 5 // 与路径的最小距离（米）- 增加到10米
+
+    // 收集所有路径的采样点
+    const pathPoints: THREE.Vector3[] = []
+    const allRoutes = [
+      ...(routes.ground || []),
+      ...(routes.aerial || []),
+      ...(routes.highway || []),
+      ...(routes.airplane || [])
+    ]
+
+    allRoutes.forEach(({ path }) => {
+      if (path && path.getPoints) {
+        const points = path.getPoints(300) // 每条路径采样100个点 - 增加采样密度
+        pathPoints.push(...points)
       }
-    }).filter(Boolean)
-  }, [buildings])
+    })
 
-  return (
-    <group ref={groupRef}>
-      {instances.map((instance) => {
-        if (!instance) return null
+    // 检查建筑位置是否与路径冲突
+    const isNearPath = (x: number, z: number, width: number, depth: number): boolean => {
+      const buildingRadius = Math.sqrt(width * width + depth * depth) / 2
+      const checkDistance = clearanceDistance + buildingRadius
 
-        const clonedScene = scene.clone()
-        clonedScene.traverse((child: any) => {
-          if (child.isMesh) {
-            child.castShadow = true
-            child.receiveShadow = true
-            if (child.material) {
-              child.material.needsUpdate = true
-            }
-          }
-        })
+      for (const point of pathPoints) {
+        const dx = x - point.x
+        const dz = z - point.z
+        const distance = Math.sqrt(dx * dx + dz * dz)
+        
+        if (distance < checkDistance) {
+          return true // 距离太近，有冲突
+        }
+      }
+      return false // 无冲突
+    }
 
-        return (
-          <primitive
-            key={instance.key}
-            object={clonedScene}
-            position={instance.position}
-            scale={[instance.scale, instance.scale, instance.scale]}
+    let attempts = 0
+    const maxAttempts = count * 5 // 最多尝试次数 - 增加尝试次数
+
+    for (let i = 0; i < count && attempts < maxAttempts; attempts++) {
+      const x = (Math.random() - 0.5) * citySize
+      const z = (Math.random() - 0.5) * citySize
+
+      const width = 2 + Math.random() * 6  // 缩小宽度: 2-8m
+      const depth = 2 + Math.random() * 6  // 缩小深度: 2-8m
+      const height = 8 + Math.random() * 10 // 缩小高度: 8-68m
+
+      // 检查是否与路径冲突
+      if (isNearPath(x, z, width, depth)) {
+        continue // 跳过这个位置，重新尝试
+      }
+
+      const geometry = new THREE.BoxGeometry(width, height, depth)
+
+      // 玻璃材质
+      const material = new THREE.MeshPhysicalMaterial({
+        color: "#9966cc",
+        transparent: true,
+        opacity: 0.18,
+        transmission: 0.95,
+        thickness: 1.5,
+        roughness: 0.05,
+        metalness: 0,
+        emissive: new THREE.Color("#4fd3ff"),
+        emissiveIntensity: 0.15,
+      })
+
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.position.set(x, height / 2, z)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+
+      // 蓝色描边
+      const edges = new THREE.EdgesGeometry(geometry)
+      const edgeLines = (
+        <lineSegments
+          key={`edge-${i}`}
+          geometry={edges}
+          position={[x, height / 2, z]}
+        >
+          <lineBasicMaterial
+            color="#5fe0ff"
+            transparent
+            opacity={0.9}
           />
-        )
-      })}
-    </group>
-  )
-}
+        </lineSegments>
+      )
+
+      list.push(
+        <React.Fragment key={i}>
+          <primitive object={mesh} />
+          {edgeLines}
+        </React.Fragment>
+      )
+
+      i++ // 成功添加一个建筑
+    }
+
+    console.log(`✅ 生成了 ${list.length} 栋建筑，跳过了 ${attempts - list.length} 个与路径冲突的位置`)
+
+    return list
+  }, [routes])
+
+  return <>{buildings}</>
+})
+
+ProceduralCityBuildings.displayName = 'ProceduralCityBuildings'
 
 /**
  * 神社3Dモデルコンポーネント (InstancedMesh版)
@@ -160,54 +323,6 @@ const Shrine3DModelInstanced: React.FC<{ shrines: Landmark[] }> = ({ shrines }) 
           />
         )
       })}
-    </group>
-  )
-}
-
-/**
- * 3D建築物モデルコンポーネント
- */
-const Building3DModel: React.FC<{
-  position: [number, number, number]
-  scale?: number
-  height?: number
-}> = ({ position, scale = 1, height = 120 }) => {
-  const { scene } = useGLTF('/website-assets/futuristic_city.glb', '/draco/')
-  const clonedScene = useMemo(() => {
-    const cloned = scene.clone()
-    // 遍历所有子对象，确保阴影设置应用到所有网格
-    cloned.traverse((child: any) => {
-      if (child.isMesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        // 确保材质支持阴影
-        if (child.material) {
-          child.material.needsUpdate = true
-        }
-      }
-    })
-    return cloned
-  }, [scene])
-
-  // 统一高度120m，调整缩放使建筑物大小合适
-  // futuristic_city.glb -> 5
-  // central_park_tower.glb -> 0.7
-  scale = 5
-  const adjustedScale = (height / 30) * scale // 基准scale调整
-
-  return (
-    <group position={position}>
-      {/* <mesh>
-        <boxGeometry args={[10, 0.1, 10]} />
-        <meshStandardMaterial color={0x222244} />
-      </mesh> */}
-      <primitive
-        object={clonedScene}
-        // position={position}
-        scale={[adjustedScale, adjustedScale, adjustedScale]}
-        castShadow
-        receiveShadow
-      />
     </group>
   )
 }
@@ -322,6 +437,8 @@ const CocoonTower3DModel: React.FC<{
         child.castShadow = true
         child.receiveShadow = true
         if (child.material) {
+          child.material.metalness = 0.3
+          child.material.roughness = 0.1
           child.material.needsUpdate = true
         }
       }
@@ -365,7 +482,7 @@ const Skyscraper3DModel: React.FC<{
   scale?: number
 }> = ({ position, scale = 1 }) => {
   // try {
-  const { scene } = useGLTF('/website-assets/central_park_tower.glb', '/draco/')
+  const { scene } = useGLTF('/website-assets/building/07.glb', '/draco/')
   const clonedScene = useMemo(() => {
     const cloned = scene.clone()
     // モデル内のすべてのメッシュを表示設定
@@ -378,6 +495,8 @@ const Skyscraper3DModel: React.FC<{
           child.material.side = THREE.DoubleSide
           child.material.transparent = false
           child.material.opacity = 1.0
+          child.material.metalness = 0.3
+          child.material.roughness = 0.1
           child.material.needsUpdate = true
         }
       }
@@ -386,7 +505,7 @@ const Skyscraper3DModel: React.FC<{
   }, [scene])
 
   // Central Park Towerの基準スケール（高さ472mを考慮）
-  const finalScale = scale * 0.5
+  const finalScale = scale * 0.4
 
   return (
     <group position={position}>
@@ -847,7 +966,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
       return {
         ...building,
         position,
-        height: building.height * 2,
+        height: building.height,
         scale: buildingScale
       }
     })
@@ -953,20 +1072,20 @@ export const CityGround: React.FC<CityGroundProps> = ({
       {/* 照明 */}
       <ambientLight intensity={LIGHT_INTENSITY * 1.5} color={0xffffff} />
 
-      <directionalLight
+      {/* <directionalLight
         position={[50, 100, 50]}
         intensity={DIRECTIONAL_LIGHT_INTENSITY * 1.5}
         color={0xffffff}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-      />
+      /> */}
 
-      <directionalLight
+      {/* <directionalLight
         position={[-50, 80, -50]}
         intensity={DIRECTIONAL_LIGHT_INTENSITY * 0.8}
         color={0xffffff}
-      />
+      /> */}
 
       {/* 全息网格地面 */}
       <HolographicGroundFusion
@@ -977,6 +1096,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
       {/* <GroundPlane size={size} /> */}
 
       {/* 地上ルート（車両と同じパスを使用） */}
+      {/* 金 深A5821D 浅EBCF65 */}
       {routes.ground.map((item, index) => {
         const isHighlighted = highlightedRoute &&
           highlightedRoute.nodeIds.some((nodeId, i) => {
@@ -990,23 +1110,24 @@ export const CityGround: React.FC<CityGroundProps> = ({
             <PathLine
               key={`ground-${index}`}
               path={item.path}
-              color="#00ffff"
+              color="#EBCF65"
               animated
-              lineWidth={6}
+              lineWidth={2}
               dimmed={highlightedRoute !== null && !isHighlighted}
             />
             {/* 流光管道 */}
-            <TypedFlowingTube
+            {/* <TypedFlowingTube
               key={`ground-tube-${index}`}
               path={item.path}
               edgeType="road"
               tubeRadius={0.25}
-            />
+            /> */}
           </>
         )
       })}
 
       {/* ハイウェイルート（車両と同じパスを使用、幅広で曲線的） */}
+      {/* // 香  深F24B90 浅EFD6D5 */}
       {routes.highway.map((item, index) => {
         const isHighlighted = highlightedRoute &&
           highlightedRoute.nodeIds.some((nodeId, i) => {
@@ -1020,23 +1141,24 @@ export const CityGround: React.FC<CityGroundProps> = ({
             <PathLine
               key={`highway-${index}`}
               path={item.path}
-              color="#ffaa00"
+              color="#F24B90"
               animated
-              lineWidth={6}
+              lineWidth={2}
               dimmed={highlightedRoute !== null && !isHighlighted}
             />
             {/* 流光管道 */}
-            <TypedFlowingTube
+            {/* <TypedFlowingTube
               key={`highway-tube-${index}`}
               path={item.path}
               edgeType="highway"
               tubeRadius={0.3}
-            />
+            /> */}
           </>
         )
       })}
 
       {/* 空中飛行ルート（車両と同じパスを使用） */}
+      {/* 桂 深64673E　浅B1C075 */}
       {routes.aerial.map((item, index) => {
         const isHighlighted = highlightedRoute &&
           highlightedRoute.nodeIds.some((nodeId, i) => {
@@ -1050,23 +1172,24 @@ export const CityGround: React.FC<CityGroundProps> = ({
             <PathLine
               key={`aerial-${index}`}
               path={item.path}
-              color="#ff00ff"
+              color="#B1C075"
               animated
-              lineWidth={6}
+              lineWidth={2}
               dimmed={highlightedRoute !== null && !isHighlighted}
             />
             {/* 流光管道 */}
-            <TypedFlowingTube
+            {/* <TypedFlowingTube
               key={`aerial-tube-${index}`}
               path={item.path}
               edgeType="drone"
               tubeRadius={0.28}
-            />
+            /> */}
           </>
         )
       })}
 
       {/* 飛行機ルート（地図外への航空路線） */}
+      {/* 飞 深396177 浅98B5C2 */}
       {routes.airplane.map((item, index) => {
         const isHighlighted = highlightedRoute &&
           highlightedRoute.nodeIds.some((nodeId, i) => {
@@ -1080,24 +1203,24 @@ export const CityGround: React.FC<CityGroundProps> = ({
             <PathLine
               key={`airplane-${index}`}
               path={item.path}
-              color="#00ff00"
+              color="#98B5C2"
               animated
-              lineWidth={2.5}
+              lineWidth={2}
               dimmed={highlightedRoute !== null && !isHighlighted}
             />
             {/* 流光管道 */}
-            <TypedFlowingTube
+            {/* <TypedFlowingTube
               key={`airplane-tube-${index}`}
               path={item.path}
               edgeType="sky"
               tubeRadius={0.2}
-            />
+            /> */}
           </>
         )
       })}
 
       {/* 位置マーカー */}
-      {convertedNodes.map((node, index) => {
+      {/* {convertedNodes.map((node, index) => {
         const isHighlighted = highlightedRoute &&
           highlightedRoute.nodeIds.includes(node.id)
         return (
@@ -1110,20 +1233,23 @@ export const CityGround: React.FC<CityGroundProps> = ({
             dimmed={highlightedRoute !== null && !isHighlighted}
           />
         )
-      })}
+      })} */}
 
-      {/* 3D建築物モデル (InstancedMesh最適化) */}
-      <Suspense fallback={null}>
+      {/* 3D建築物モデル (InstancedMesh最適化) - 已注释 */}
+      {/* <Suspense fallback={null}>
         <Building3DModelInstanced buildings={convertedBuildings} />
-      </Suspense>
+      </Suspense> */}
 
-      {/* 全息广告屏 */}
-      <HologramBillboards buildings={convertedBuildings} />
+      {/* 程序化生成建筑 */}
+      <ProceduralCityBuildings routes={routes} />
+
+      {/* 全息广告屏 - 已注释（需要building位置） */}
+      {/* <HologramBillboards buildings={convertedBuildings} /> */}
 
       {/* 神社3Dモデル (InstancedMesh最適化) */}
-      <Suspense fallback={null}>
+      {/* <Suspense fallback={null}>
         <Shrine3DModelInstanced shrines={convertedShrines} />
-      </Suspense>
+      </Suspense> */}
 
       {/* スカイツリー3Dモデル */}
       <Suspense fallback={null}>
@@ -1146,14 +1272,14 @@ export const CityGround: React.FC<CityGroundProps> = ({
       </Suspense>
 
       {/* Skyscraper 3Dモデル (Central Park Tower) */}
-      <Suspense fallback={null}>
+      {/* <Suspense fallback={null}>
         {convertedSkyscrapers.map((tower) => (
           <Skyscraper3DModel
             key={tower.id}
             position={tower.position!}
           />
         ))}
-      </Suspense>
+      </Suspense> */}
     </group>
   )
 }
