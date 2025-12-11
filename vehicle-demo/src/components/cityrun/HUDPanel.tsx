@@ -604,7 +604,6 @@ export default function HUDPanel({
             ) : (
               <>
                 開始
-                <span className="text-xs">///</span>
               </>
             )}
           </button>
