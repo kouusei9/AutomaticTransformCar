@@ -216,6 +216,12 @@ interface RoutePreviewProps {
 function RoutePreview({ routeData }: RoutePreviewProps) {
   const totalDistance = useMemo(() => calculateTotalDistance(routeData.edges), [routeData.edges]);
   const totalTime = useMemo(() => calculateTotalTime(routeData.edges), [routeData.edges]);
+  
+  // 计算不同道路类型的数量
+  const roadTypeCount = useMemo(() => {
+    const types = new Set(routeData.edges.map(edge => edge.type));
+    return types.size;
+  }, [routeData.edges]);
 
   return (
     <div className="mt-4 p-3 bg-gray-800/40 rounded border border-cyan-500/10">
@@ -232,9 +238,9 @@ function RoutePreview({ routeData }: RoutePreviewProps) {
         </span>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-[14px] text-gray-400 font-mono">経路区間</span>
+        <span className="text-[14px] text-gray-400 font-mono">経路種類</span>
         <span className="text-sm text-blue-300 font-mono font-bold">
-          {routeData.edges.length} <span className="text-[12px] font-normal text-gray-500">区間</span>
+          {roadTypeCount} <span className="text-[12px] font-normal text-gray-500">種類</span>
         </span>
       </div>
     </div>
@@ -356,10 +362,10 @@ function DrivingStatus({
 
           <div className="grid grid-cols-2 gap-2 mt-2">
             <div className="bg-gray-800/50 p-1.5 rounded text-center">
-              <div className="text-[8px] text-gray-500 uppercase">経路区間</div>
+              <div className="text-[8px] text-gray-500 uppercase">経路種類</div>
               <div className="text-blue-400 text-sm font-mono font-bold leading-none">
-                {currentSegmentIndex + 1}
-                <span className="text-[10px] text-gray-600">/{routeData.edges.length}</span>
+                {new Set(routeData.edges.map(edge => edge.type)).size}
+                <span className="text-[10px] text-gray-600"> 種類</span>
               </div>
             </div>
             <div className="bg-gray-800/50 p-1.5 rounded text-center">
