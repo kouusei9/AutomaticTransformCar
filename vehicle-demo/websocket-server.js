@@ -4,7 +4,7 @@
 
 import { WebSocketServer } from 'ws';
 
-const PORT = 8080;
+const PORT = 9001;
 const HOST = '0.0.0.0'; // 监听所有网络接口，允许外部访问
 const HEARTBEAT_INTERVAL = 30000; // 30秒心跳检测
 const HEARTBEAT_TIMEOUT = 35000;  // 35秒超时

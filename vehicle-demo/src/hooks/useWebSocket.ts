@@ -19,7 +19,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const {
     onNewRoute,
     autoConnect = true,
-    wsUrl = 'ws://localhost:8080'
+    wsUrl = 'ws://localhost:9001'
   } = options
 
   const connect = useCallback(() => {

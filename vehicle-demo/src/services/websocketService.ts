@@ -39,8 +39,8 @@ class WebSocketService {
     // 动态获取 WebSocket URL
     if (!url) {
       // 优先使用环境变量，否则使用当前页面的 hostname
-      const wsHost = window.location.hostname;
-      const wsPort = '8080';
+      const wsHost = window.location.hostname || '10.0.0.249';
+      const wsPort = '9001';
       
       // 如果环境变量明确指定了协议，使用环境变量
       const protocol = 'ws:';
