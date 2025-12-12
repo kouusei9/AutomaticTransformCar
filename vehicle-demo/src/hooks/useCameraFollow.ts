@@ -19,7 +19,7 @@ export interface CameraFollowOptions {
 const DEFAULT_OPTIONS: CameraFollowOptions = {
   defaultPosition: new THREE.Vector3(100, 80, 100),
   defaultTarget: new THREE.Vector3(0, 0, 0),
-  followDistance: 16,
+  followDistance: 100,
   followHeight: 6,
   lookAheadDistance: 15,
   transitionDuration: 1.2
@@ -55,25 +55,25 @@ export function useCameraFollow(
     setVehiclePosition(position)
     setVehicleForward(forward)
 
-    const offset = forward.clone().multiplyScalar(-opts.followDistance)
-    offset.y += opts.followHeight
-    const followPos = position.clone().add(offset)
-    const lookAtPoint = position.clone().add(forward.clone().multiplyScalar(opts.lookAheadDistance))
+    // const offset = forward.clone().multiplyScalar(-opts.followDistance)
+    // offset.y += opts.followHeight
+    // const followPos = position.clone().add(offset)
+    // const lookAtPoint = position.clone().add(forward.clone().multiplyScalar(opts.lookAheadDistance))
 
-    gsap.to(cameraRef.current.position, {
-      x: followPos.x,
-      y: followPos.y,
-      z: followPos.z,
-      duration: opts.transitionDuration,
-      ease: 'power2.inOut'
-    })
-    gsap.to(controlsRef.current.target, {
-      x: lookAtPoint.x,
-      y: lookAtPoint.y,
-      z: lookAtPoint.z,
-      duration: opts.transitionDuration,
-      ease: 'power2.inOut'
-    })
+    // gsap.to(cameraRef.current.position, {
+    //   x: followPos.x,
+    //   y: followPos.y,
+    //   z: followPos.z,
+    //   duration: opts.transitionDuration,
+    //   ease: 'power2.inOut'
+    // })
+    // gsap.to(controlsRef.current.target, {
+    //   x: lookAtPoint.x,
+    //   y: lookAtPoint.y,
+    //   z: lookAtPoint.z,
+    //   duration: opts.transitionDuration,
+    //   ease: 'power2.inOut'
+    // })
   }, [cameraRef, controlsRef, opts])
 
   /**

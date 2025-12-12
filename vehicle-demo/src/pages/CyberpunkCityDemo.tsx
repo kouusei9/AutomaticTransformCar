@@ -308,7 +308,7 @@ export default function CyberpunkCityDemo() {
           cameraRef={cameraRef}
           controlsRef={controlsRef}
           isAutoMode={isAutoMode}
-          followDistance={25}
+          // followDistance={100}
         />
 
         <ambientLight intensity={0.4} />
