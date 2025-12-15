@@ -630,19 +630,19 @@ export default function CyberpunkCityDemo() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '10px',
-                  paddingBottom: '15px',
+                  marginBottom: '8px',
+                  paddingBottom: '8px',
                   borderBottom: '2px solid #ff00ff'
                 }}>
-                  <h2 style={{ margin: 0, color: '#ff00ff', fontSize: '24px', fontWeight: 'bold' }}>
+                  <h2 style={{ margin: 0, color: '#ff00ff', fontSize: '20px', fontWeight: 'bold' }}>
                     RYO-O K01
                   </h2>
                   <div style={{ 
-                    fontSize: '13px', 
-                    padding: '6px 14px', 
+                    fontSize: '12px', 
+                    padding: '4px 10px', 
                     background: vehicleStatus.isOnline ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 0, 0, 0.2)',
                     border: `1px solid ${vehicleStatus.isOnline ? '#00ff00' : '#ff0000'}`,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     color: vehicleStatus.isOnline ? '#00ff00' : '#ff0000',
                     fontWeight: 'bold'
                   }}>
@@ -650,42 +650,42 @@ export default function CyberpunkCityDemo() {
                   </div>
                 </div>
                 
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', marginBottom: '20px' }}>
+                <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#fff', marginBottom: '10px' }}>
                   {vehicleStatus.routeName}
                 </div>
                 
                 {/* 静态状态信息 */}
                 <div style={{ 
-                  marginBottom: '20px',
-                  padding: '15px',
+                  marginBottom: '10px',
+                  padding: '10px',
                   background: 'rgba(0, 255, 255, 0.08)',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: '2px solid rgba(0, 255, 255, 0.3)'
                 }}>
-                  <div style={{ fontSize: '14px', color: '#00ffff', marginBottom: '12px', fontWeight: 'bold' }}>
+                  <div style={{ fontSize: '13px', color: '#00ffff', marginBottom: '6px', fontWeight: 'bold' }}>
                     状態情報
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '15px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '14px' }}>
                     <div>
                       <span style={{ color: '#888' }}>ルート:</span>
-                      <div style={{ color: '#fff', fontWeight: 'bold', marginTop: '4px' }}>
+                      <div style={{ color: '#fff', fontWeight: 'bold', marginTop: '2px', fontSize: '13px' }}>
                         {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}
                       </div>
                     </div>
                     <div>
                       <span style={{ color: '#888' }}>総距離:</span>
-                      <div style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '18px', marginTop: '4px' }}>
+                      <div style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '16px', marginTop: '2px' }}>
                         {(vehicleStatus.totalDistance / 1000).toFixed(2)} km
                       </div>
                     </div>
                     <div>
                       <span style={{ color: '#888' }}>残りエネルギー:</span>
-                      <div style={{ marginTop: '6px' }}>
+                      <div style={{ marginTop: '3px' }}>
                         <div style={{ 
                           width: '100%', 
-                          height: '8px', 
+                          height: '6px', 
                           background: 'rgba(0, 0, 0, 0.3)', 
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           overflow: 'hidden',
                           border: '1px solid rgba(255, 255, 255, 0.2)'
                         }}>
@@ -702,9 +702,9 @@ export default function CyberpunkCityDemo() {
                         </div>
                         <div style={{ 
                           color: vehicleStatus.remainingEnergy > 50 ? '#00ff00' : vehicleStatus.remainingEnergy > 20 ? '#ffaa00' : '#ff0000',
-                          fontSize: '13px',
+                          fontSize: '12px',
                           fontWeight: 'bold',
-                          marginTop: '4px'
+                          marginTop: '2px'
                         }}>
                           {vehicleStatus.remainingEnergy.toFixed(0)}%
                         </div>
@@ -715,82 +715,81 @@ export default function CyberpunkCityDemo() {
                 
                 {/* 实时动态信息 */}
                 <div style={{ 
-                  marginBottom: '15px',
-                  padding: '15px',
+                  marginBottom: '10px',
+                  padding: '10px',
                   background: 'rgba(255, 0, 255, 0.08)',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: '2px solid rgba(255, 0, 255, 0.3)'
                 }}>
-                  <div style={{ fontSize: '14px', color: '#ff00ff', marginBottom: '12px', fontWeight: 'bold' }}>
+                  <div style={{ fontSize: '13px', color: '#ff00ff', marginBottom: '6px', fontWeight: 'bold' }}>
                     リアルタイム情報
                   </div>
                   
                   {/* 第一行：模式和速度 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                     {/* 当前模式 */}
                     <div style={{ 
-                      padding: '12px',
+                      padding: '8px',
                       background: `${modeDisplay.color}25`,
-                      borderRadius: '8px',
+                      borderRadius: '6px',
                       border: `2px solid ${modeDisplay.color}`,
                       textAlign: 'center',
                       boxShadow: `0 0 10px ${modeDisplay.color}40, inset 0 2px 8px ${modeDisplay.color}20`
                     }}>
-                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>現在のモード</div>
+                      <div style={{ fontSize: '10px', color: '#888', marginBottom: '2px' }}>現在のモード</div>
                       {/* <div style={{ fontSize: '24px', marginBottom: '2px' }}>{modeDisplay.icon}</div> */}
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: modeDisplay.color }}>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: modeDisplay.color }}>
                         {modeDisplay.name}
                       </div>
                     </div>
                     
                     {/* 当前速度 */}
                     <div style={{ 
-                      padding: '12px',
+                      padding: '8px',
                       background: 'rgba(0, 255, 255, 0.15)',
-                      borderRadius: '8px',
+                      borderRadius: '6px',
                       border: '2px solid #00ffff',
                       textAlign: 'center'
                     }}>
-                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>スピード</div>
-                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#00ffff', lineHeight: '1.2' }}>
+                      <div style={{ fontSize: '10px', color: '#888', marginBottom: '2px' }}>スピード</div>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#00ffff', lineHeight: '1.2' }}>
                         {vehicleStatus.currentSpeed.toFixed(0)}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#888' }}>km/h</div>
+                      <div style={{ fontSize: '11px', color: '#888' }}>km/h</div>
                     </div>
                   </div>
                   
                   {/* 第二行：距离和时间 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {/* 到目的地距离 */}
-                    <div>
-                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>目的地まで</div>
-                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#00ff88' }}>
-                        {(vehicleStatus.distanceToDestination / 1000).toFixed(2)} km
-                      </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {/* 到目的地距离 */}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>目的地まで</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00ff88' }}>
+                      {(vehicleStatus.distanceToDestination / 1000).toFixed(2)} km
                     </div>
-                    
-                    {/* 剩余时间 */}
-                    <div>
-                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>残り時間</div>
-                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffaa00' }}>
-                        {vehicleStatus.remainingTime.toFixed(1)} 分
+                  </div>
+                  
+                  {/* 剩余时间 */}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>残り時間</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffaa00' }}>
                       </div>
                     </div>
                   </div>
                   
                   {/* 进度条 */}
-                  <div style={{ marginTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', color: '#888' }}>進行状況</span>
-                      <span style={{ fontSize: '13px', color: '#ff00ff', fontWeight: 'bold' }}>
+                  <div style={{ marginTop: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                      <span style={{ fontSize: '11px', color: '#888' }}>進行状況</span>
+                      <span style={{ fontSize: '12px', color: '#ff00ff', fontWeight: 'bold' }}>
                         {displayInteger}%
                       </span>
                     </div>
                     <div style={{ 
                       width: '100%', 
-                      height: '10px', 
+                      height: '6px', 
                       background: 'rgba(0, 0, 0, 0.4)', 
-                      borderRadius: '5px',
+                      borderRadius: '3px',
                       overflow: 'hidden',
                       border: '1px solid rgba(255, 0, 255, 0.3)'
                     }}>
@@ -807,13 +806,13 @@ export default function CyberpunkCityDemo() {
                 
                 {/* 底部提示 */}
                 <div style={{ 
-                  marginTop: '15px', 
-                  fontSize: '13px', 
+                  marginTop: '8px', 
+                  fontSize: '11px', 
                   color: '#888', 
                   textAlign: 'center',
-                  padding: '10px',
+                  padding: '6px',
                   background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '6px'
+                  borderRadius: '4px'
                 }}>
                   💡 再クリックで追跡解除
                 </div>
