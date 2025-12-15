@@ -30,7 +30,7 @@ interface CloudData {
 }
 
 type TreeType = 'sakura01' | 'sakura02' | 'sakura03' |
-    'building03' | 'building04' | 'building05' | 'building06' |
+    'building01' | 'building02' | 'building03' | 'building04' | 'building05' | 'building06' |
     'building07' | 'building08' | 'building09' | 'building10';
 
 type CloudType = 'cloud01' | 'cloud02' | 'cloud03' | 'cloud04' | 'cloud05' |
@@ -42,6 +42,14 @@ type TextureKey = TreeType | CloudType;
 const TREE_CONFIG = {
     count: 100,
     spacing: 4,
+    randomOffset: 4,
+    buildingProbability: 0.6,
+    startZ: -200
+} as const;
+
+const DRONE_BUILDING_CONFIG = {
+    count: 50,
+    spacing: 5,
     randomOffset: 4,
     buildingProbability: 0.6,
     startZ: -200
@@ -66,6 +74,8 @@ const TEXTURE_PATHS = {
     sakura01: '/assets/sakura01.png',
     sakura02: '/assets/sakura02.png',
     sakura03: '/assets/sakura03.png',
+    building01: '/assets/building/01.png',
+    building02: '/assets/building/02.png',
     building03: '/assets/building03.png',
     building04: '/assets/building04.png',
     building05: '/assets/building05.png',
@@ -88,7 +98,7 @@ const TEXTURE_PATHS = {
 } as const;
 
 const BUILDING_TYPES: TreeType[] = [
-    'building03', 'building04', 'building05', 'building06',
+    'building01', 'building02', 'building03', 'building04', 'building05', 'building06',
     'building07', 'building08', 'building09', 'building10'
 ];
 
@@ -219,6 +229,38 @@ function generateClouds(): CloudData[] {
     return clouds;
 }
 
+/**
+ * 生成无人机模式专用建筑数据（只有建筑，无树木）
+ */
+function generateDroneBuildings(): TreeData[] {
+    const buildings: TreeData[] = [];
+    const { count, spacing, randomOffset, startZ } = DRONE_BUILDING_CONFIG;
+
+    for (let i = 0; i < count; i++) {
+        // 左侧 - 只生成建筑
+        buildings.push({
+            id: i,
+            side: 'left',
+            x: -25 - Math.random() * 10,
+            z: startZ + i * spacing + Math.random() * randomOffset,
+            scale: 2.5 + Math.random() * 1.5, // 更大的缩放
+            type: randomChoice(BUILDING_TYPES)
+        });
+
+        // 右侧 - 只生成建筑
+        buildings.push({
+            id: i + count,
+            side: 'right',
+            x: 25 + Math.random() * 10,
+            z: startZ + i * spacing + Math.random() * randomOffset,
+            scale: 2.5 + Math.random() * 1.5, // 更大的缩放
+            type: randomChoice(BUILDING_TYPES)
+        });
+    }
+
+    return buildings;
+}
+
 // ===== 子组件 =====
 interface SceneryItemProps {
     data: TreeData;
@@ -244,8 +286,9 @@ function SceneryItem({
     const height = baseHeight * data.scale;
     const width = height * aspectRatio;
 
+    // Drone mode: 下移建筑以只显示顶部
     const baseYPosition = isBuilding ? -1 : height / 2 - 5;
-    const yPosition = isDroneMode ? baseYPosition - (isBuilding ? 7 : 4) : baseYPosition;
+    const yPosition = isDroneMode ? baseYPosition - height * 0.6 : baseYPosition;
 
     return (
         <group>
@@ -326,6 +369,8 @@ export default function SideScenery({
     const sakura01 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.sakura01);
     const sakura02 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.sakura02);
     const sakura03 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.sakura03);
+    const building01 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.building01);
+    const building02 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.building02);
     const building03 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.building03);
     const building04 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.building04);
     const building05 = useLoader(THREE.TextureLoader, TEXTURE_PATHS.building05);
@@ -359,7 +404,7 @@ export default function SideScenery({
     const textureMap = useMemo(() => {
         const leftTextures: Record<TextureKey, THREE.Texture> = {
             sakura01, sakura02, sakura03,
-            building03, building04, building05, building06,
+            building01, building02, building03, building04, building05, building06,
             building07, building08, building09, building10,
             cloud01, cloud02, cloud03, cloud04, cloud05,
             cloud06, cloud07, cloud08, cloud09
@@ -373,7 +418,7 @@ export default function SideScenery({
         return { left: leftTextures, right: rightTextures };
     }, [
         sakura01, sakura02, sakura03,
-        building03, building04, building05, building06,
+        building01, building02, building03, building04, building05, building06,
         building07, building08, building09, building10,
         cloud01, cloud02, cloud03, cloud04, cloud05,
         cloud06, cloud07, cloud08, cloud09
@@ -383,7 +428,7 @@ export default function SideScenery({
     const aspectRatios = useMemo(() => {
         const textures = {
             sakura01, sakura02, sakura03,
-            building03, building04, building05, building06,
+            building01, building02, building03, building04, building05, building06,
             building07, building08, building09, building10,
             cloud01, cloud02, cloud03, cloud04, cloud05,
             cloud06, cloud07, cloud08, cloud09
@@ -396,7 +441,7 @@ export default function SideScenery({
         return ratios;
     }, [
         sakura01, sakura02, sakura03,
-        building03, building04, building05, building06,
+        building01, building02, building03, building04, building05, building06,
         building07, building08, building09, building10,
         cloud01, cloud02, cloud03, cloud04, cloud05,
         cloud06, cloud07, cloud08, cloud09
@@ -405,6 +450,7 @@ export default function SideScenery({
     // 生成数据（只生成一次）
     const trees = useMemo(() => generateTrees(), []);
     const clouds = useMemo(() => generateClouds(), []);
+    const droneBuildings = useMemo(() => generateDroneBuildings(), []);
 
     // 循环距离
     const loopDistance = TREE_CONFIG.count * TREE_CONFIG.spacing;
@@ -470,6 +516,24 @@ export default function SideScenery({
         </group>
     );
 
+    // 渲染无人机模式建筑组（只有建筑顶部）
+    const renderDroneBuildingGroup = (groupRef: React.RefObject<THREE.Group | null>, offset: number, keyPrefix: string) => (
+        <group ref={groupRef} position={[0, 0, offset]}>
+            {droneBuildings.map(building => (
+                <SceneryItem
+                    key={`${keyPrefix}-${building.id}`}
+                    data={building}
+                    texture={textureMap[building.side][building.type]}
+                    aspectRatio={aspectRatios[building.type]}
+                    shadowTexture={shadowTexture}
+                    groundY={groundY}
+                    opacity={currentOpacity}
+                    isDroneMode={true}
+                />
+            ))}
+        </group>
+    );
+
     // 渲染云组
     const renderCloudGroup = (groupRef: React.RefObject<THREE.Group | null>, offset: number, keyPrefix: string) => (
         <group ref={groupRef} position={[0, 0, offset]}>
@@ -495,7 +559,13 @@ export default function SideScenery({
     }
 
     if (isDroneMode) {
-        return null
+        return (
+            <>
+                {/* Drone mode: 只显示建筑顶部 */}
+                {renderDroneBuildingGroup(group1Ref, 0, 'drone-building1')}
+                {renderDroneBuildingGroup(group2Ref, -loopDistance, 'drone-building2')}
+            </>
+        );
     }
 
     return (
