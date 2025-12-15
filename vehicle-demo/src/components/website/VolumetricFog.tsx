@@ -54,13 +54,13 @@ export const VolumetricFog: React.FC<{
           return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
         }
         
-        // 分形噪声
+        // 分形噪声 (优化: 3→2 迭代)
         float fbm(vec3 p) {
           float value = 0.0;
           float amplitude = 0.5;
           float frequency = 1.0;
           
-          for(int i = 0; i < 3; i++) {
+          for(int i = 0; i < 2; i++) {
             value += amplitude * noise(p * frequency);
             frequency *= 2.0;
             amplitude *= 0.5;

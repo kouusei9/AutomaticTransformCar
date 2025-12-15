@@ -21,7 +21,7 @@ export const FlameParticles: React.FC<FlameParticlesProps> = ({
   position,
   tangent,
   vehicleScale,
-  particleCount = 50,
+  particleCount = 30,
   speed = 4.0
 }) => {
   const pointsRef = useRef<THREE.Points>(null)

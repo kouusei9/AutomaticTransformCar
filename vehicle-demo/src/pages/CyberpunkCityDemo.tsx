@@ -465,8 +465,8 @@ export default function CyberpunkCityDemo() {
           position={[50, 100, 50]}
           intensity={0.8}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
           shadow-camera-far={500}
           shadow-camera-left={-100}
           shadow-camera-right={100}
@@ -485,12 +485,12 @@ export default function CyberpunkCityDemo() {
           height={35} 
         />
         <GodRays 
-          count={12} 
+          count={6} 
           color="#88ddff" 
           intensity={0.25} 
         />
         <AtmosphericParticles 
-          count={600} 
+          count={300} 
           size={0.25} 
         />
         
@@ -558,11 +558,11 @@ export default function CyberpunkCityDemo() {
         {/* Bloom 后处理效果 - 让霓虹边发光 */}
         <EffectComposer>
           <Bloom 
-            intensity={0.2}
-            luminanceThreshold={0.2}
-            luminanceSmoothing={0.1}
-            radius={0.9}
-            // mipmapBlur
+            intensity={0.15}
+            luminanceThreshold={0.3}
+            luminanceSmoothing={0.05}
+            radius={0.7}
+            mipmapBlur
           />
         </EffectComposer>
       </Canvas>
@@ -579,8 +579,8 @@ export default function CyberpunkCityDemo() {
           fontFamily: 'monospace',
           fontSize: isOverviewExpanded ? '17px' : '16px',
           background: 'rgba(0, 0, 0, 0.2)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           padding: isOverviewExpanded ? '35px 45px' : '20px',
           borderRadius: isOverviewExpanded ? '12px' : '10px',
           border: `2px solid ${selectedVehicleId !== null ? '#ff00ff' : '#00ffff'}`,
@@ -630,12 +630,12 @@ export default function CyberpunkCityDemo() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '20px',
+                  marginBottom: '10px',
                   paddingBottom: '15px',
                   borderBottom: '2px solid #ff00ff'
                 }}>
                   <h2 style={{ margin: 0, color: '#ff00ff', fontSize: '24px', fontWeight: 'bold' }}>
-                    RYO-R K01
+                    RYO-O K01
                   </h2>
                   <div style={{ 
                     fontSize: '13px', 
@@ -1195,8 +1195,8 @@ export default function CyberpunkCityDemo() {
               fontFamily: 'monospace',
               fontSize: '12px',
               background: 'rgba(0, 0, 0, 0.2)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
               padding: '15px',
               borderRadius: '10px',
               border: '2px solid #00ffff',

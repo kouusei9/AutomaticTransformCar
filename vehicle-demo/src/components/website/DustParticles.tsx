@@ -127,9 +127,9 @@ export const DustParticles: React.FC<DustParticlesProps> = ({
 export const MultiLayerDustParticles: React.FC = () => {
   return (
     <>
-      {/* 底层 - 慢速大粒子 */}
+      {/* 底层 - 慢速大粒子 (优化: 200→100) */}
       <DustParticles
-        count={200}
+        count={100}
         color1="#00ffff"
         color2="#0088ff"
         size={0.4}
@@ -137,9 +137,9 @@ export const MultiLayerDustParticles: React.FC = () => {
         range={100}
       />
       
-      {/* 中层 - 中速中粒子 */}
+      {/* 中层 - 中速中粒子 (优化: 300→150) */}
       <DustParticles
-        count={300}
+        count={150}
         color1="#00ffff"
         color2="#ffffff"
         size={0.25}

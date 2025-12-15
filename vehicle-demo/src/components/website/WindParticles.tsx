@@ -19,7 +19,7 @@ export const WindParticles: React.FC<WindParticlesProps> = ({
   visible,
   position,
   tangent,
-  particleCount = 50,
+  particleCount = 30,
   speed = 2.0
 }) => {
   const pointsRef = useRef<THREE.Points>(null)
