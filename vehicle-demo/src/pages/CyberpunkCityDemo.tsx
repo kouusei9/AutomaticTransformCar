@@ -1152,67 +1152,69 @@ export default function CyberpunkCityDemo() {
         </div>
       </div>
 
-      {/* 版本信息和技术栈按钮（右上角） */}
+
+
+      {/* 技术栈展示面板 - 常驻展开/关闭按钮 */}
       <div
-        onClick={() => setIsTechStackOpen(!isTechStackOpen)}
         style={{
           position: 'absolute',
           top: 20,
           right: 20,
-          padding: '12px 20px',
-          fontSize: '16px',
-          fontFamily: 'monospace',
-          fontWeight: 'bold',
-          color: '#00ffff',
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          border: '2px solid #00ffff',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          zIndex: 10,
-          transition: 'all 0.3s ease',
-          boxShadow: '0 0 15px rgba(0, 255, 255, 0.3)',
-          textTransform: 'uppercase',
-          letterSpacing: '2px'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05)'
-          e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 255, 255, 0.6)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)'
-          e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.3)'
+          zIndex: 10
         }}
       >
-        v1.0 Beta
-      </div>
-
-      {/* 技术栈展示面板 */}
-      {isTechStackOpen && (
-        <div
+        {/* 展开/关闭按钮 */}
+        <button
+          onClick={() => setIsTechStackOpen(!isTechStackOpen)}
           style={{
-            position: 'absolute',
-            top: 80,
-            right: 20,
-            width: '450px',
-            maxHeight: 'calc(100vh - 120px)',
-            overflowY: 'auto',
-            color: '#00ffff',
+            padding: '8px 16px',
+            fontSize: '13px',
             fontFamily: 'monospace',
-            fontSize: '14px',
-            background: 'rgba(0, 0, 0, 0.85)',
+            fontWeight: 'bold',
+            color: '#00ffff',
+            background: 'rgba(0, 0, 0, 0.2)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            padding: '25px',
-            borderRadius: '12px',
             border: '2px solid #00ffff',
-            zIndex: 9,
-            boxShadow: '0 0 40px rgba(0, 255, 255, 0.4)',
-            animation: 'fadeIn 0.3s ease-out'
+            borderRadius: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 0 10px rgba(0, 255, 255, 0.3)'
           }}
-          className="tech-stack-scroll"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)'
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.6)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.3)'
+          }}
         >
+          {isTechStackOpen ? '✕ 閉じる' : '技術'}
+        </button>
+        
+        {/* 技术栈面板 */}
+        {isTechStackOpen && (
+          <div
+            style={{
+              marginTop: '5px',
+              width: '160px',
+              maxHeight: 'calc(100vh - 300px)',
+              overflowY: 'auto',
+              color: '#00ffff',
+              fontFamily: 'monospace',
+              fontSize: '12px',
+              background: 'rgba(0, 0, 0, 0.2)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              padding: '15px',
+              borderRadius: '10px',
+              border: '2px solid #00ffff',
+              boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
+              animation: 'fadeIn 0.3s ease-out'
+            }}
+            className="tech-stack-scroll"
+          >
           <style>{`
             @keyframes fadeIn {
               from { opacity: 0; transform: translateY(-10px); }
@@ -1235,145 +1237,129 @@ export default function CyberpunkCityDemo() {
           `}</style>
 
           <h2 style={{ 
-            margin: '0 0 20px 0', 
+            margin: '0 0 12px 0', 
             color: '#ff00ff', 
-            fontSize: '24px',
-            borderBottom: '2px solid #ff00ff',
-            paddingBottom: '12px',
+            fontSize: '16px',
+            borderBottom: '1px solid rgba(255, 0, 255, 0.3)',
+            paddingBottom: '8px',
             textAlign: 'center'
           }}>
             技術スタック
           </h2>
 
           {/* 前端框架 */}
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#00ffff', fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <h3 style={{ color: '#00ffff', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
               フロントエンド
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/react.svg" alt="React" style={{ width: '32px', height: '32px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/react.svg" alt="React" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>React</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>19.1.1</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>React</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>19.1.1</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/typescript.svg" alt="TypeScript" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/typescript.svg" alt="TypeScript" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>TypeScript</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>5.9.3</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>TypeScript</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>5.9.3</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/vite.svg" alt="Vite" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/vite.svg" alt="Vite" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Vite</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>7.1.7</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Vite</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>7.1.7</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/react.svg" alt="React Router" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/react.svg" alt="React Router" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Router</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>7.10.0</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Router</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>7.10.0</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 3D 图形 */}
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#00ffff', fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <h3 style={{ color: '#00ffff', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
               3Dグラフィックス
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/threejs.svg" alt="Three.js" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/threejs.svg" alt="Three.js" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Three.js</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>0.180.0</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Three.js</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>0.180</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/react.svg" alt="R3F" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/react.svg" alt="R3F" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>R3F</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>9.4.0</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>R3F</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>9.4.0</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/react.svg" alt="Drei" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/react.svg" alt="Drei" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Drei</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>10.7.6</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Drei</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>10.7.6</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/gsap.svg" alt="GSAP" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/gsap.svg" alt="GSAP" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>GSAP</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>3.13.0</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>GSAP</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>3.13.0</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 样式与通信 */}
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#00ffff', fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <h3 style={{ color: '#00ffff', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
               スタイル & 通信
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/tailwind.svg" alt="Tailwind" style={{ width: '32px', height: '32px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/tailwind.svg" alt="Tailwind" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Tailwind</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>4.1.14</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Tailwind</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>4.1.14</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/websocket.svg" alt="WebSocket" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/websocket.svg" alt="WebSocket" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>WebSocket</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>8.18.0</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>WebSocket</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>8.18.0</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <img src="/tech-logos/nodejs.svg" alt="Node.js" style={{ width: '32px', height: '32px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <img src="/tech-logos/nodejs.svg" alt="Node.js" style={{ width: '20px', height: '20px' }} />
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Node.js</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>20.19.0</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Node.js</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>20.19</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '6px' }}>
-                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f97583', borderRadius: '6px', fontWeight: 'bold', fontSize: '18px', color: '#000' }}>L</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+                <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f97583', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px', color: '#000' }}>L</div>
                 <div>
-                  <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>Lucide</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>0.548</div>
+                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Lucide</div>
+                  <div style={{ color: '#888', fontSize: '9px' }}>0.548</div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* 底部信息 */}
-          <div style={{
-            marginTop: '25px',
-            paddingTop: '15px',
-            borderTop: '2px solid rgba(0, 255, 255, 0.3)',
-            textAlign: 'center',
-            fontSize: '12px',
-            color: '#888'
-          }}>
-            <div style={{ marginBottom: '8px' }}>
-              🏗️ Built with Modern Web Tech
-            </div>
-            <div style={{ color: '#00ffff' }}>
-              React • Three.js • TypeScript • Vite
             </div>
           </div>
         </div>
-      )}
+        )}
+      </div>
 
       {/* 自动/手动切换按钮（左下角） */}
       <div
