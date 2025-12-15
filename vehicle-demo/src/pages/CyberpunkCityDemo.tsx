@@ -35,7 +35,6 @@ export default function CyberpunkCityDemo() {
   const stickyVehicleIdRef = useRef<string | null>(null) // 粘性跟踪的车辆ID
   const routePathsRef = useRef<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 路径 ref
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false) // 全体情报展开状态
-  const [isTechStackOpen, setIsTechStackOpen] = useState(false) // 技术栈面板状态
   const [floatingLandmarks, setFloatingLandmarks] = useState<Array<{
     position: [number, number, number]
     name: string
@@ -1175,44 +1174,22 @@ export default function CyberpunkCityDemo() {
 
 
 
-      {/* 技术栈展示面板 - 常驻展开/关闭按钮 */}
+      {/* 技术栈展示面板 - 始终显示 */}
       <div
         style={{
           position: 'absolute',
-          top: 20,
+          top: 0,
           right: 20,
           zIndex: 10
         }}
       >
-        {/* 展开/关闭按钮 */}
-        <button
-          onClick={() => setIsTechStackOpen(!isTechStackOpen)}
-          className="tech-stack-button"
-          style={{
-            padding: '8px 16px',
-            fontSize: '13px',
-            fontFamily: 'monospace',
-            fontWeight: 'bold',
-            color: '#00ffff',
-            background: 'rgba(0, 0, 0, 0.2)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '2px solid #00ffff',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 0 10px rgba(0, 255, 255, 0.3)'
-          }}
-        >
-          {isTechStackOpen ? '✕ 閉じる' : '技術'}
-        </button>
-        
         {/* 技术栈面板 */}
-        {isTechStackOpen && (
+        (
           <div
             style={{
-              marginTop: '5px',
-              width: '160px',
-              maxHeight: 'calc(100vh - 300px)',
+              marginTop: '0px',
+              width: '140px',
+              maxHeight: 'calc(100vh - 250px)',
               overflowY: 'auto',
               color: '#00ffff',
               fontFamily: 'monospace',
@@ -1249,7 +1226,7 @@ export default function CyberpunkCityDemo() {
             }
           `}</style>
 
-          <h2 style={{ 
+          {/* <h2 style={{ 
             margin: '0 0 12px 0', 
             color: '#ff00ff', 
             fontSize: '16px',
@@ -1258,12 +1235,12 @@ export default function CyberpunkCityDemo() {
             textAlign: 'center'
           }}>
             技術スタック
-          </h2>
+          </h2> */}
 
           {/* 前端框架 */}
           <div style={{ marginBottom: '12px' }}>
             <h3 style={{ color: '#00ffff', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
-              フロントエンド
+              {/* フロントエンド */}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
@@ -1300,7 +1277,7 @@ export default function CyberpunkCityDemo() {
           {/* 3D 图形 */}
           <div style={{ marginBottom: '12px' }}>
             <h3 style={{ color: '#00ffff', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
-              3Dグラフィックス
+              {/* 3Dグラフィックス */}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
@@ -1310,13 +1287,13 @@ export default function CyberpunkCityDemo() {
                   <div style={{ color: '#888', fontSize: '9px' }}>0.180</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+              {/* <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
                 <img src="/tech-logos/react.svg" alt="R3F" style={{ width: '20px', height: '20px' }} />
                 <div>
                   <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>R3F</div>
                   <div style={{ color: '#888', fontSize: '9px' }}>9.4.0</div>
                 </div>
-              </div>
+              </div> */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
                 <img src="/tech-logos/react.svg" alt="Drei" style={{ width: '20px', height: '20px' }} />
                 <div>
@@ -1337,7 +1314,7 @@ export default function CyberpunkCityDemo() {
           {/* 样式与通信 */}
           <div style={{ marginBottom: '10px' }}>
             <h3 style={{ color: '#00ffff', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
-              スタイル & 通信
+              {/* スタイル & 通信 */}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
@@ -1361,17 +1338,16 @@ export default function CyberpunkCityDemo() {
                   <div style={{ color: '#888', fontSize: '9px' }}>20.19</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
+              {/* <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
                 <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f97583', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px', color: '#000' }}>L</div>
                 <div>
                   <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Lucide</div>
                   <div style={{ color: '#888', fontSize: '9px' }}>0.548</div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
-        )}
       </div>
 
       {/* 自动/手动切换按钮（左下角） */}
