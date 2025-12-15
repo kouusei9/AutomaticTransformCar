@@ -41,6 +41,25 @@ export default function CyberpunkCityDemo() {
     name: string
   }>>([]) // 浮动标记数据
 
+  // 车辆状态数据（分为静态和实时两部分）
+  const [vehicleStatus, setVehicleStatus] = useState<{
+    // 静态状态信息
+    routeName: string
+    totalDistance: number
+    remainingEnergy: number
+    isOnline: boolean
+    // 实时信息
+    currentMode: string
+    currentSpeed: number
+    distanceToDestination: number
+    remainingTime: number
+    progress: number
+  } | null>(null)
+
+  // 用于延迟更新速度的 ref
+  const speedUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingSpeedRef = useRef<number | null>(null)
+
   // 车辆路线管理
   const {
     vehicleRoutes,
@@ -123,6 +142,22 @@ export default function CyberpunkCityDemo() {
         const startPos = path.getPointAt(0)
         const startTangent = path.getTangentAt(0).normalize()
         startFollowing(vehicleId, startPos, startTangent)
+        
+        // 初始化车辆状态（静态信息）
+        const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
+        setVehicleStatus({
+          // 静态状态
+          routeName: route.name,
+          totalDistance: totalDistance,
+          remainingEnergy: 35 + Math.random() * 30,
+          isOnline: true,
+          // 实时信息（初始值）
+          currentMode: route.edges[0]?.type || 'road',
+          currentSpeed: 60,
+          distanceToDestination: totalDistance,
+          remainingTime: 0,
+          progress: 0
+        })
       }
     }
   }, [routePaths, getVehicleRoute, startFollowing])
@@ -130,6 +165,14 @@ export default function CyberpunkCityDemo() {
   // 切换到全视角的回调
   const handleSwitchToOverview = useCallback(() => {
     stopFollowing()
+    setVehicleStatus(null)
+    
+    // 清除速度更新定时器
+    if (speedUpdateTimerRef.current) {
+      clearTimeout(speedUpdateTimerRef.current)
+      speedUpdateTimerRef.current = null
+    }
+    pendingSpeedRef.current = null
   }, [stopFollowing])
 
   // 自动视角切换
@@ -199,11 +242,97 @@ export default function CyberpunkCityDemo() {
     // 手动点击时关闭自动模式
     disableAutoMode()
     toggleFollow(vehicleId, position, forward)
+    
+    // 初始化车辆状态
+    const route = getVehicleRoute(vehicleId)
+    if (route) {
+      const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
+      setVehicleStatus({
+        // 静态状态
+        routeName: route.name,
+        totalDistance: totalDistance,
+        remainingEnergy: 35 + Math.random() * 30,
+        isOnline: true,
+        // 实时信息（初始值）
+        currentMode: route.edges[0]?.type || 'road',
+        currentSpeed: 60,
+        distanceToDestination: totalDistance,
+        remainingTime: 0,
+        progress: 0
+      })
+    }
   }
 
   // 车辆位置更新处理
-  const handlePositionUpdate = (vehicleId: string) => (position: THREE.Vector3, forward: THREE.Vector3) => {
+  const handlePositionUpdate = (vehicleId: string) => (position: THREE.Vector3, forward: THREE.Vector3, progressData?: { curveIndex: number; edgeType: string; speedKmh: number; progress: number }) => {
     updateVehiclePosition(vehicleId, position, forward)
+    
+    // 如果是当前跟踪的车辆且有进度数据
+    if (vehicleId === selectedVehicleId && progressData) {
+      const { edgeType, speedKmh, progress } = progressData
+      
+      // 调试日志（每60帧输出一次）
+      if (Math.random() < 0.016) {
+        console.log(`📊 更新数据: mode=${edgeType}, speed=${speedKmh.toFixed(1)} km/h, progress=${progress.toFixed(1)}%`)
+      }
+      
+      // vehicleStatus 已初始化才更新
+      if (vehicleStatus) {
+        const route = getVehicleRoute(vehicleId)
+        if (route) {
+          // 计算进度百分比（直接使用传入的progress）
+          const progressPercent = progress * 100
+          
+          // 计算到终点的距离（根据总距离和进度）
+          const distanceToDestination = vehicleStatus.totalDistance * (1 - progress)
+          
+          // 计算剩余时间（基于当前速度）
+          const remainingTime = speedKmh > 0 ? (distanceToDestination / 1000) / speedKmh * 60 : 0
+          
+          // 立即更新模式和进度相关信息（放宽更新条件）
+          if (edgeType !== vehicleStatus.currentMode || 
+              Math.abs(progressPercent - vehicleStatus.progress) > 0.05 ||
+              Math.abs(distanceToDestination - vehicleStatus.distanceToDestination) > 50) {
+            
+            setVehicleStatus(prev => prev ? { 
+              ...prev, 
+              currentMode: edgeType,
+              distanceToDestination: distanceToDestination,
+              remainingTime: remainingTime,
+              progress: progressPercent
+            } : null)
+            
+            if (edgeType !== vehicleStatus.currentMode) {
+              console.log(`🔄 模式更新: ${vehicleStatus.currentMode} → ${edgeType}`)
+            }
+          }
+          
+          // 延迟更新速度（降低阈值到10 km/h）
+          if (pendingSpeedRef.current === null) {
+            pendingSpeedRef.current = speedKmh
+          }
+          
+          const speedDiff = Math.abs(speedKmh - vehicleStatus.currentSpeed)
+          if (speedDiff > 10) {
+            pendingSpeedRef.current = speedKmh
+            
+            // 清除之前的定时器
+            if (speedUpdateTimerRef.current) {
+              clearTimeout(speedUpdateTimerRef.current)
+            }
+            
+            // 设置新的延迟更新（500ms后更新）
+            speedUpdateTimerRef.current = setTimeout(() => {
+              if (pendingSpeedRef.current !== null) {
+                setVehicleStatus(prev => prev ? { ...prev, currentSpeed: pendingSpeedRef.current! } : null)
+                console.log(`💨 速度更新: ${pendingSpeedRef.current.toFixed(1)} km/h`)
+              }
+              speedUpdateTimerRef.current = null
+            }, 50)
+          }
+        }
+      }
+    }
   }
 
   // 车辆到达终点的回调
@@ -449,31 +578,224 @@ export default function CyberpunkCityDemo() {
             : '0 0 20px rgba(0, 255, 255, 0.3)'
         }}
       >
-        {selectedVehicleId !== null && vehicleRoutes.find(r => r.id === selectedVehicleId) ? (
+        {selectedVehicleId !== null && vehicleRoutes.find(r => r.id === selectedVehicleId) && vehicleStatus ? (
           // 選択された車両の詳細情報
           (() => {
             const selectedRoute = vehicleRoutes.find(r => r.id === selectedVehicleId)!;
-            const totalTime = calculateTotalTime(selectedRoute.edges);
-            const demoTime = Math.round(totalTime / 20);
-            const totalDistance = selectedRoute.edges.reduce((sum, edge) => sum + edge.length, 0);
+            
+            // 模式显示配置
+            const modeDisplay = {
+              road: { icon: '🚗', name: '金将', color: '#EBCF65' },
+              highway: { icon: '🏎️', name: '香車', color: '#F24B90' },
+              drone: { icon: '🚁', name: '桂馬', color: '#B1C075' },
+              airplane: { icon: '✈️', name: '飛車', color: '#98B5C2' }
+            }[vehicleStatus.currentMode] || { icon: '🚗', name: '金将', color: '#EBCF65' };
+
+            const displayInteger = Math.round(vehicleStatus.progress);
+            
             return (
               <>
-                <h2 style={{ margin: '0 0 20px 0', color: '#ff00ff', textAlign: 'left', fontSize: '28px', borderBottom: '2px solid #ff00ff', paddingBottom: '15px' }}>
-                  🎯 車両追跡中
-                </h2>
-                <div style={{ lineHeight: '2', textAlign: 'left' }}>
-                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffffff', marginBottom: '15px' }}>
-                    {selectedRoute.name}
+                <style>{`
+                  @keyframes modeChange {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.15); }
+                  }
+                  .mode-card-animated {
+                    animation: modeChange 0.5s ease-in-out;
+                  }
+                `}</style>
+                
+                {/* 标题 */}
+                <div style={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '20px',
+                  paddingBottom: '15px',
+                  borderBottom: '2px solid #ff00ff'
+                }}>
+                  <h2 style={{ margin: 0, color: '#ff00ff', fontSize: '24px', fontWeight: 'bold' }}>
+                    RYO-R K01
+                  </h2>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    padding: '6px 14px', 
+                    background: vehicleStatus.isOnline ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 0, 0, 0.2)',
+                    border: `1px solid ${vehicleStatus.isOnline ? '#00ff00' : '#ff0000'}`,
+                    borderRadius: '12px',
+                    color: vehicleStatus.isOnline ? '#00ff00' : '#ff0000',
+                    fontWeight: 'bold'
+                  }}>
+                    {vehicleStatus.isOnline ? '● ONLINE' : '● OFFLINE'}
                   </div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>ルート: {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}</div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>総距離: <span style={{ color: '#00ffff', fontWeight: 'bold' }}>{(totalDistance / 1000).toFixed(2)} km</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>実際時間: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{totalTime} 分</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>デモ時間: <span style={{ color: '#ff00ff', fontWeight: 'bold' }}>{demoTime} 秒</span></div>
-                  <div style={{ fontSize: '17px', marginBottom: '12px' }}>モード: <span style={{ fontWeight: 'bold' }}>{selectedRoute.isCycle ? '循環ルート' : '片道ルート'}</span></div>
-                  {/* <div style={{ fontSize: '17px', marginBottom: '12px' }}>🎨 カラー: <span style={{ color: selectedRoute.color, fontSize: '20px' }}>■■■</span> {selectedRoute.color}</div> */}
-                  <div style={{ marginTop: '20px', fontSize: '15px', color: '#888', padding: '12px', background: 'rgba(255, 0, 255, 0.1)', borderRadius: '6px', border: '1px solid rgba(255, 0, 255, 0.3)' }}>
-                    💡 再クリックで追跡解除
+                </div>
+                
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', marginBottom: '20px' }}>
+                  {vehicleStatus.routeName}
+                </div>
+                
+                {/* 静态状态信息 */}
+                <div style={{ 
+                  marginBottom: '20px',
+                  padding: '15px',
+                  background: 'rgba(0, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  border: '2px solid rgba(0, 255, 255, 0.3)'
+                }}>
+                  <div style={{ fontSize: '14px', color: '#00ffff', marginBottom: '12px', fontWeight: 'bold' }}>
+                    状態情報
                   </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '15px' }}>
+                    <div>
+                      <span style={{ color: '#888' }}>ルート:</span>
+                      <div style={{ color: '#fff', fontWeight: 'bold', marginTop: '4px' }}>
+                        {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#888' }}>総距離:</span>
+                      <div style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '18px', marginTop: '4px' }}>
+                        {(vehicleStatus.totalDistance / 1000).toFixed(2)} km
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#888' }}>残りエネルギー:</span>
+                      <div style={{ marginTop: '6px' }}>
+                        <div style={{ 
+                          width: '100%', 
+                          height: '8px', 
+                          background: 'rgba(0, 0, 0, 0.3)', 
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(255, 255, 255, 0.2)'
+                        }}>
+                          <div style={{ 
+                            width: `${vehicleStatus.remainingEnergy}%`, 
+                            height: '100%',
+                            background: vehicleStatus.remainingEnergy > 50 
+                              ? 'linear-gradient(90deg, #00ff00, #00ff88)' 
+                              : vehicleStatus.remainingEnergy > 20 
+                              ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
+                              : 'linear-gradient(90deg, #ff0000, #ff4444)',
+                            transition: 'width 0.3s ease'
+                          }} />
+                        </div>
+                        <div style={{ 
+                          color: vehicleStatus.remainingEnergy > 50 ? '#00ff00' : vehicleStatus.remainingEnergy > 20 ? '#ffaa00' : '#ff0000',
+                          fontSize: '13px',
+                          fontWeight: 'bold',
+                          marginTop: '4px'
+                        }}>
+                          {vehicleStatus.remainingEnergy.toFixed(0)}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 实时动态信息 */}
+                <div style={{ 
+                  marginBottom: '15px',
+                  padding: '15px',
+                  background: 'rgba(255, 0, 255, 0.08)',
+                  borderRadius: '8px',
+                  border: '2px solid rgba(255, 0, 255, 0.3)'
+                }}>
+                  <div style={{ fontSize: '14px', color: '#ff00ff', marginBottom: '12px', fontWeight: 'bold' }}>
+                    リアルタイム情報
+                  </div>
+                  
+                  {/* 第一行：模式和速度 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    {/* 当前模式 */}
+                    <div style={{ 
+                      padding: '12px',
+                      background: `${modeDisplay.color}25`,
+                      borderRadius: '8px',
+                      border: `2px solid ${modeDisplay.color}`,
+                      textAlign: 'center',
+                      boxShadow: `0 0 10px ${modeDisplay.color}40, inset 0 2px 8px ${modeDisplay.color}20`
+                    }}>
+                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>現在のモード</div>
+                      {/* <div style={{ fontSize: '24px', marginBottom: '2px' }}>{modeDisplay.icon}</div> */}
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: modeDisplay.color }}>
+                        {modeDisplay.name}
+                      </div>
+                    </div>
+                    
+                    {/* 当前速度 */}
+                    <div style={{ 
+                      padding: '12px',
+                      background: 'rgba(0, 255, 255, 0.15)',
+                      borderRadius: '8px',
+                      border: '2px solid #00ffff',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>スピード</div>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#00ffff', lineHeight: '1.2' }}>
+                        {vehicleStatus.currentSpeed.toFixed(0)}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>km/h</div>
+                    </div>
+                  </div>
+                  
+                  {/* 第二行：距离和时间 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {/* 到目的地距离 */}
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>目的地まで</div>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#00ff88' }}>
+                        {(vehicleStatus.distanceToDestination / 1000).toFixed(2)} km
+                      </div>
+                    </div>
+                    
+                    {/* 剩余时间 */}
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>残り時間</div>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffaa00' }}>
+                        {vehicleStatus.remainingTime.toFixed(1)} 分
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 进度条 */}
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', color: '#888' }}>進行状況</span>
+                      <span style={{ fontSize: '13px', color: '#ff00ff', fontWeight: 'bold' }}>
+                        {displayInteger}%
+                      </span>
+                    </div>
+                    <div style={{ 
+                      width: '100%', 
+                      height: '10px', 
+                      background: 'rgba(0, 0, 0, 0.4)', 
+                      borderRadius: '5px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255, 0, 255, 0.3)'
+                    }}>
+                      <div style={{ 
+                        width: `${displayInteger}%`, 
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
+                        transition: 'width 0.3s ease',
+                        boxShadow: '0 0 10px rgba(255, 0, 255, 0.6)'
+                      }} />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 底部提示 */}
+                <div style={{ 
+                  marginTop: '15px', 
+                  fontSize: '13px', 
+                  color: '#888', 
+                  textAlign: 'center',
+                  padding: '10px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '6px'
+                }}>
+                  💡 再クリックで追跡解除
                 </div>
               </>
             );

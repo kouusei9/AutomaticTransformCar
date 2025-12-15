@@ -37,7 +37,7 @@ interface VehicleProps {
   /** クリックハンドラー */
   onClick?: (position: THREE.Vector3, forward: THREE.Vector3) => void
   /** 位置更新コールバック */
-  onPositionUpdate?: (position: THREE.Vector3, forward: THREE.Vector3) => void
+  onPositionUpdate?: (position: THREE.Vector3, forward: THREE.Vector3, progressData?: { curveIndex: number; edgeType: string; speedKmh: number; progress: number }) => void
   /** 完成回调（到达终点时触发）*/
   onComplete?: () => void
   /** 車両名 */
@@ -135,6 +135,7 @@ export const Vehicle: React.FC<VehicleProps> = ({
 
   // 路径进度管理
   const {
+    progressRef,
     updateProgress,
     getCurrentSegmentInfo,
     getPositionAndTangent
@@ -262,8 +263,46 @@ export const Vehicle: React.FC<VehicleProps> = ({
     }
 
     // 毎フレーム位置情報を更新
-    if (onPositionUpdate) {
-      onPositionUpdate(mesh.position.clone(), tangent.clone())
+    if (onPositionUpdate && path) {
+      const segmentInfo = getCurrentSegmentInfo()
+      
+      // 计算当前曲线索引
+      const curves = (path as THREE.CurvePath<THREE.Vector3>).curves
+      const curveLengths = curves.map(curve => curve.getLength())
+      const totalLength = curveLengths.reduce((a, b) => a + b, 0)
+      const travelDist = progressRef.current * totalLength
+      let acc = 0
+      let curveIndex = 0
+      for (let i = 0; i < curveLengths.length; i++) {
+        acc += curveLengths[i]
+        if (travelDist <= acc) {
+          curveIndex = i
+          break
+        }
+      }
+      
+      // 根据 edgeType 计算显示速度（km/h）
+      const speedMultipliers = {
+        road: 60,
+        highway: 100,
+        drone: 80,
+        sky: 800
+      }
+      const baseSpeed = speedMultipliers[segmentInfo.edgeType as keyof typeof speedMultipliers] || 60
+      const speedVariation = 0.8 + Math.random() * 0.4
+      const currentSpeedKmh = baseSpeed * speedVariation
+      
+      // Debug: 偶尔输出日志
+      if (Math.random() < 0.01) {
+        console.log(`🚗 Vehicle ${name}: edgeType=${segmentInfo.edgeType}, speed=${currentSpeedKmh.toFixed(1)} km/h, progress=${(progressRef.current * 100).toFixed(1)}%`)
+      }
+      
+      onPositionUpdate(mesh.position.clone(), tangent.clone(), {
+        curveIndex,
+        edgeType: segmentInfo.edgeType,
+        speedKmh: currentSpeedKmh,
+        progress: progressRef.current  // 传递实际进度 (0-1)
+      })
     }
   })
 
