@@ -391,6 +391,27 @@ export default function CyberpunkCityDemo() {
         .vehicle-list-scroll::-webkit-scrollbar-thumb:hover {
           background: rgba(0, 255, 255, 0.4);
         }
+        
+        /* 优化的按钮hover效果 - 使用CSS而非JS */
+        .tech-stack-button {
+          will-change: transform;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .tech-stack-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
+        }
+        
+        .auto-mode-button {
+          will-change: transform;
+          transition: all 0.3s ease;
+        }
+        
+        .auto-mode-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 20px rgba(0, 255, 255, 0.8) !important;
+        }
       `}</style>
       
       <Canvas
@@ -1166,6 +1187,7 @@ export default function CyberpunkCityDemo() {
         {/* 展开/关闭按钮 */}
         <button
           onClick={() => setIsTechStackOpen(!isTechStackOpen)}
+          className="tech-stack-button"
           style={{
             padding: '8px 16px',
             fontSize: '13px',
@@ -1178,16 +1200,7 @@ export default function CyberpunkCityDemo() {
             border: '2px solid #00ffff',
             borderRadius: '8px',
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
             boxShadow: '0 0 10px rgba(0, 255, 255, 0.3)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)'
-            e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.6)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.3)'
           }}
         >
           {isTechStackOpen ? '✕ 閉じる' : '技術'}
@@ -1372,6 +1385,7 @@ export default function CyberpunkCityDemo() {
       >
         <button
           onClick={toggleAutoMode}
+          className="auto-mode-button"
           style={{
             padding: '12px 24px',
             fontSize: '16px',
@@ -1384,22 +1398,11 @@ export default function CyberpunkCityDemo() {
             border: `2px solid ${isAutoMode ? '#00ffff' : '#00ffff'}`,
             borderRadius: '8px',
             cursor: 'pointer',
-            transition: 'all 0.3s ease',
             boxShadow: isAutoMode 
-              ? '0 0 20px rgba(0, 255, 255, 0.5)' 
-              : '0 0 10px rgba(0, 255, 255, 0.2)',
+              ? '0 0 15px rgba(0, 255, 255, 0.5)' 
+              : '0 0 8px rgba(0, 255, 255, 0.2)',
             textTransform: 'uppercase',
             letterSpacing: '1px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)'
-            e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 255, 255, 0.8)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.boxShadow = isAutoMode 
-              ? '0 0 20px rgba(0, 255, 255, 0.5)' 
-              : '0 0 10px rgba(0, 255, 255, 0.2)'
           }}
         >
           {isAutoMode ? '🤖 自動モード' : '👤 手動モード'}
