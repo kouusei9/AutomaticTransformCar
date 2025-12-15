@@ -58,7 +58,7 @@ export function FloatingInfoBoard({
             setTemperature(18 + Math.floor(Math.random() * 11))
 
             // 随机交通状况
-            const traffics = ['Light', 'Moderate', 'Heavy']
+            const traffics = ['Light', 'Moderate']
             setTraffic(traffics[Math.floor(Math.random() * traffics.length)])
 
             // 随机活跃车辆数 (2-8)
