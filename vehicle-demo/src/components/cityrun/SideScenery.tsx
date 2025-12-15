@@ -55,7 +55,7 @@ const CLOUD_CONFIG = {
 
 const GROUND_Y = {
     normal: -6,
-    drone: -13
+    drone: -12
 } as const;
 
 const FADE_DURATION = 1.0; // 秒
@@ -83,7 +83,8 @@ const TEXTURE_PATHS = {
     cloud07: '/assets/cloud/07.png',
     cloud08: '/assets/cloud/08.png',
     cloud09: '/assets/cloud/09.png',
-    asphalt: '/assets/asphalt_texture.jpg'
+    asphalt: '/assets/asphalt_texture.jpg',
+    dbuilding: '/assets/d_building.png'
 } as const;
 
 const BUILDING_TYPES: TreeType[] = [
@@ -419,32 +420,33 @@ export default function SideScenery({
 
         if (!isMoving) return;
 
-        if (isFlyMode) {
-            // 云移动
-            const cloudSpeed = delta * speed / 300;
-            [cloudGroup1Ref, cloudGroup2Ref].forEach(ref => {
-                if (ref.current) {
-                    ref.current.position.z += cloudSpeed;
-                    if (ref.current.position.z > cloudLoopDistance) {
-                        ref.current.position.z -= cloudLoopDistance * 2;
-                    }
-                }
-            });
-        } else {
-            // 地面和树木移动
-            groundOffsetRef.current += delta * speed / 100;
-            asphaltTexture.offset.y = groundOffsetRef.current;
+        // 统一处理 Z 轴移动逻辑
+        const speedMultiplier = isDroneMode ? 1.5 : (isFlyMode ? 2.0 : 1.0);
 
-            const treeSpeed = delta * speed / 10;
-            [group1Ref, group2Ref].forEach(ref => {
-                if (ref.current) {
-                    ref.current.position.z += treeSpeed;
-                    if (ref.current.position.z > loopDistance) {
-                        ref.current.position.z -= loopDistance * 2;
-                    }
+        // 云移动
+        const cloudSpeed = delta * speed / 20 * speedMultiplier;
+        [cloudGroup1Ref, cloudGroup2Ref].forEach(ref => {
+            if (ref.current) {
+                ref.current.position.z += cloudSpeed;
+                if (ref.current.position.z > cloudLoopDistance) {
+                    ref.current.position.z -= cloudLoopDistance * 2;
                 }
-            });
-        }
+            }
+        });
+
+        // 地面和树木移动
+        groundOffsetRef.current += delta * speed / 100 * speedMultiplier;
+        asphaltTexture.offset.y = groundOffsetRef.current;
+
+        const treeSpeed = delta * speed / 10 * speedMultiplier;
+        [group1Ref, group2Ref].forEach(ref => {
+            if (ref.current) {
+                ref.current.position.z += treeSpeed;
+                if (ref.current.position.z > loopDistance) {
+                    ref.current.position.z -= loopDistance * 2;
+                }
+            }
+        });
     });
 
     // 当前淡入透明度（从ref读取用于渲染）
@@ -490,6 +492,10 @@ export default function SideScenery({
                 {renderCloudGroup(cloudGroup2Ref, cloudLoopDistance, 'cloud2')}
             </>
         );
+    }
+
+    if (isDroneMode) {
+        return null
     }
 
     return (

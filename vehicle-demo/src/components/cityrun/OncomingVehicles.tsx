@@ -55,9 +55,9 @@ const SPEED_MULTIPLIERS: Record<VehicleMode, number> = {
 // 车辆视觉属性
 const VEHICLE_VISUALS: Record<VehicleMode, Omit<VehicleVisualProps, 'texture'>> = {
     [VehicleMode.NORMAL]: { width: 2, height: 1.5, y: -2.5 },
-    [VehicleMode.HIGHWAY]: { width: 2.2, height: 1.6, y: -1.5 },
-    [VehicleMode.DRONE]: { width: 1.8, height: 1.2, y: 0.5 },
-    [VehicleMode.FLIGHT]: { width: 4, height: 2.5, y: -2.5 }
+    [VehicleMode.HIGHWAY]: { width: 2.2, height: 1.6, y: -1.0 },
+    [VehicleMode.DRONE]: { width: 1.8, height: 1.2, y: -1.0 },
+    [VehicleMode.FLIGHT]: { width: 4, height: 2.5, y: -2.0 }
 };
 
 // 车辆类型生成概率配置
@@ -70,9 +70,7 @@ const VEHICLE_TYPE_PROBABILITIES: Record<VehicleMode, Array<{ threshold: number;
         { threshold: 1, type: VehicleMode.NORMAL }
     ],
     [VehicleMode.DRONE]: [
-        { threshold: 0.5, type: VehicleMode.DRONE },
-        { threshold: 0.8, type: VehicleMode.HIGHWAY },
-        { threshold: 1, type: VehicleMode.NORMAL }
+        { threshold: 1, type: VehicleMode.DRONE }
     ],
     [VehicleMode.FLIGHT]: [
         { threshold: 1, type: VehicleMode.FLIGHT }

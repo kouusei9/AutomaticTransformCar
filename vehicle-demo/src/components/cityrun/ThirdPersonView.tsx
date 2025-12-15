@@ -44,7 +44,7 @@ const MODE_VISUAL_CONFIG: Record<VehicleMode, ModeVisualConfig> = {
     outerColor: '#EFD6D5',
     particleColor: 0xffffff,
     particleSize: 0.06,
-    baseY: -1.5
+    baseY: -1.0
   },
   [VehicleMode.DRONE]: {
     text: '桂',
@@ -52,7 +52,7 @@ const MODE_VISUAL_CONFIG: Record<VehicleMode, ModeVisualConfig> = {
     outerColor: '#B1C075',
     particleColor: 0x00ffff,
     particleSize: 0.08,
-    baseY: 0.5
+    baseY: -1.0
   },
   [VehicleMode.FLIGHT]: {
     text: '飛',
@@ -60,7 +60,7 @@ const MODE_VISUAL_CONFIG: Record<VehicleMode, ModeVisualConfig> = {
     outerColor: '#98B5C2',
     particleColor: 0xff3300,
     particleSize: 0.12,
-    baseY: -2.5
+    baseY: -2.0
   }
 };
 

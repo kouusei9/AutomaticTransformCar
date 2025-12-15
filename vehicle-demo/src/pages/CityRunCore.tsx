@@ -40,12 +40,12 @@ const SCENERY_BASE_SPEED = 50;
 
 // 视频路径配置
 const TRANSFORM_VIDEOS = {
-  TO_HIGHWAY: '../assets/car_to_highway.mp4',
-  TO_DRONE: '../assets/car_to_drone.mp4',
-  TO_FLIGHT: '../assets/car_to_fly.mp4',
-  FROM_FLIGHT: '../assets/fly_to_car.mp4',
-  FROM_DRONE: '../assets/drone_to_car.mp4',
-  FROM_HIGHWAY: '../assets/highway_to_car.mp4'
+  TO_HIGHWAY: '/assets/car_to_highway.mp4',
+  TO_DRONE: '/assets/car_to_drone.mp4',
+  TO_FLIGHT: '/assets/car_to_fly.mp4',
+  FROM_FLIGHT: '/assets/fly_to_car.mp4',
+  FROM_DRONE: '/assets/drone_to_car.mp4',
+  FROM_HIGHWAY: '/assets/highway_to_car.mp4'
 } as const;
 
 // 相机位置配置

@@ -19,7 +19,7 @@ const ROAD_TEXTURE_PATHS = {
 } as const;
 
 // 绿化带纹理路径
-const GREENBELT_TEXTURE_PATH = '../assets/haystack_short.png';
+const GREENBELT_TEXTURE_PATH = '/assets/haystack_short.png';
 type RoadTextureKey = keyof typeof ROAD_TEXTURE_PATHS;
 
 const ROAD_TEXTURE_REPEAT = { x: 1, y: 20 };
@@ -124,6 +124,7 @@ export default function RoadSystem({
   const offsetRef = useRef(0);
 
   const isFlyMode = currentMode === VehicleMode.FLIGHT;
+  const isDroneMode = currentMode === VehicleMode.DRONE;
 
   // 加载纹理（必须在条件渲染之前）
   const roadTexture = useLoader(THREE.TextureLoader, ROAD_TEXTURE_PATHS.normal);
@@ -186,8 +187,8 @@ export default function RoadSystem({
     greenbeltTextureFlipped.offset.x = offsetRef.current;
   });
 
-  // 飞行模式不显示道路系统
-  if (isFlyMode) {
+  // 飞行模式和Drone模式不显示道路系统
+  if (isFlyMode || isDroneMode) {
     return null;
   }
 
