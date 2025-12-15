@@ -73,6 +73,9 @@ export default function CyberpunkCityDemo() {
   // 用于延迟更新速度的 ref
   const speedUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSpeedRef = useRef<number | null>(null)
+  
+  // 用于跟踪所有通知和道路状况的 timer
+  const activeTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
   // 车辆路线管理
   const {
@@ -257,15 +260,19 @@ export default function CyberpunkCityDemo() {
       }
       setNotifications(prev => [...prev, notification])
 
-      // 5秒后自动移除通知
-      setTimeout(() => {
+      // 5秒后自动移除通知 - 保存 timer 引用
+      const notificationTimer = setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== notification.id))
+        activeTimersRef.current.delete(notificationTimer)
       }, 5000)
+      activeTimersRef.current.add(notificationTimer)
 
-      // 5秒后自动移除道路状况板
-      setTimeout(() => {
+      // 5秒后自动移除道路状况板 - 保存 timer 引用
+      const conditionTimer = setTimeout(() => {
         setRoadConditions(prev => prev.filter(c => c.id !== newCondition.id))
+        activeTimersRef.current.delete(conditionTimer)
       }, 5000)
+      activeTimersRef.current.add(conditionTimer)
     }
 
     // 初始延迟3秒后开始，然后每15-30秒随机生成一次
@@ -281,6 +288,15 @@ export default function CyberpunkCityDemo() {
 
     return () => clearTimeout(initialTimeout)
   }, [roadConditions.length])
+  
+  // 组件卸载时清理所有 timer
+  useEffect(() => {
+    return () => {
+      // 清理所有通知和道路状况的 timer
+      activeTimersRef.current.forEach(timer => clearTimeout(timer))
+      activeTimersRef.current.clear()
+    }
+  }, [])
 
   // ノードIDからノード名を取得する関数
   const getNodeName = (nodeId: string): string => {
