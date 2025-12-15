@@ -5,13 +5,12 @@ import * as THREE from 'three'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import CityGround from '../components/website/CityGround'
 import SkyEnvironment from '../components/website/SkyEnvironment'
-import DistantCityscape from '../components/website/DistantCityscape'
 import Vehicle from '../components/website/Vehicle'
 import { CameraFollower } from '../components/website/CameraFollower'
 import { RouteMarkers } from '../components/website/RouteMarkers'
 import { MultiLayerDustParticles } from '../components/website/DustParticles'
 import { VolumetricFog, GodRays, AtmosphericParticles } from '../components/website/VolumetricFog'
-import { FloatingInfoBoards } from '../components/website/FloatingInfoBoard'
+import { FloatingInfoBoard, FloatingInfoBoards } from '../components/website/FloatingInfoBoard'
 import { useVehicleRoutes } from '../hooks/useVehicleRoutes'
 import { useRoutePaths } from '../hooks/useRoutePaths'
 import { useCameraFollow } from '../hooks/useCameraFollow'
@@ -19,7 +18,6 @@ import { useWebSocket } from '../hooks/useWebSocket'
 import { useAutoViewSwitch } from '../hooks/useAutoViewSwitch'
 import { INITIAL_VEHICLE_ROUTES } from '../config/vehicleRoutes'
 import { calculateTotalTime } from '../types/routeAPI'
-import { latLngToPosition3D } from '../utils/coordinateConverter'
 
 // 自动切换间隔时间（毫秒）
 const AUTO_SWITCH_INTERVAL = 10000 // 10 秒
@@ -39,6 +37,23 @@ export default function CyberpunkCityDemo() {
     position: [number, number, number]
     name: string
   }>>([]) // 浮动标记数据
+
+  // 道路状况板数据
+  const [roadConditions, setRoadConditions] = useState<Array<{
+    id: string
+    position: [number, number, number]
+    condition: string
+    severity: 'low' | 'medium' | 'high'
+    description: string
+    timestamp: number
+  }>>([])
+
+  // 通知消息数据
+  const [notifications, setNotifications] = useState<Array<{
+    id: string
+    message: string
+    timestamp: number
+  }>>([])
 
   // 车辆状态数据（分为静态和实时两部分）
   const [vehicleStatus, setVehicleStatus] = useState<{
@@ -206,6 +221,66 @@ export default function CyberpunkCityDemo() {
       })
       .catch(err => console.error('ルートデータの読み込みに失敗:', err))
   }, [])
+
+  // 随机生成道路状况板（最多5个）
+  useEffect(() => {
+    const generateRoadCondition = () => {
+      if (roadConditions.length >= 5) return
+
+      const conditions = [
+        { condition: '工事中', severity: 'medium' as const, description: '道路工事のため片側通行' },
+        { condition: '渋滞発生', severity: 'high' as const, description: '事故により渋滞中' },
+        { condition: '速度制限', severity: 'low' as const, description: '一時的に速度制限実施中' },
+        { condition: '路面凍結', severity: 'high' as const, description: '路面凍結注意' },
+        { condition: '濃霧注意', severity: 'medium' as const, description: '視界不良のため注意' }
+      ]
+
+      const randomCondition = conditions[Math.floor(Math.random() * conditions.length)]
+      const randomX = (Math.random() - 0.5) * 150
+      const randomZ = (Math.random() - 0.5) * 150
+      const randomY = 25 + Math.random() * 20
+
+      const newCondition = {
+        id: `road-${Date.now()}-${Math.random()}`,
+        position: [randomX, randomY, randomZ] as [number, number, number],
+        ...randomCondition,
+        timestamp: Date.now()
+      }
+
+      setRoadConditions(prev => [...prev, newCondition])
+
+      // 添加通知
+      const notification = {
+        id: `notif-${Date.now()}`,
+        message: `🚧 ${randomCondition.condition}: ${randomCondition.description}`,
+        timestamp: Date.now()
+      }
+      setNotifications(prev => [...prev, notification])
+
+      // 5秒后自动移除通知
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id))
+      }, 5000)
+
+      // 5秒后自动移除道路状况板
+      setTimeout(() => {
+        setRoadConditions(prev => prev.filter(c => c.id !== newCondition.id))
+      }, 5000)
+    }
+
+    // 初始延迟3秒后开始，然后每15-30秒随机生成一次
+    const initialTimeout = setTimeout(() => {
+      generateRoadCondition()
+      
+      const interval = setInterval(() => {
+        generateRoadCondition()
+      }, 15000 + Math.random() * 15000)
+
+      return () => clearInterval(interval)
+    }, 3000)
+
+    return () => clearTimeout(initialTimeout)
+  }, [roadConditions.length])
 
   // ノードIDからノード名を取得する関数
   const getNodeName = (nodeId: string): string => {
@@ -499,6 +574,20 @@ export default function CyberpunkCityDemo() {
         
         {/* 悬浮信息公告板 */}
         <FloatingInfoBoards />
+        
+        {/* 道路状况信息板 */}
+        {roadConditions.map(condition => (
+          <FloatingInfoBoard
+            key={condition.id}
+            position={condition.position}
+            title={condition.condition}
+            type="roadCondition"
+            roadConditionData={{
+              severity: condition.severity,
+              description: condition.description
+            }}
+          />
+        ))}
         
         {/* 城市地面（集成建筑、神社和路线，包含全息网格地面） */}
         <CityGround
@@ -1130,6 +1219,65 @@ export default function CyberpunkCityDemo() {
           </>
         )}
       </div>
+
+      {/* 通知面板（UIオーバーレイ下方） */}
+      {notifications.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: selectedVehicleId !== null ? '450px' : (isOverviewExpanded ? '650px' : '380px'),
+            left: 20,
+            zIndex: 9,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            maxWidth: '400px',
+            transition: 'top 0.3s ease'
+          }}
+        >
+          {notifications.map(notif => (
+            <div
+              key={notif.id}
+              style={{
+                color: '#fff',
+                fontFamily: 'monospace',
+                fontSize: '13px',
+                background: 'rgba(255, 100, 0, 0.15)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '2px solid rgba(255, 150, 0, 0.6)',
+                boxShadow: '0 0 15px rgba(255, 150, 0, 0.4)',
+                animation: 'slideInLeft 0.3s ease-out, fadeOut 0.5s ease-out 4.5s forwards'
+              }}
+            >
+              {notif.message}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+      `}</style>
 
       {/* ルート図例（右下角） */}
       <div

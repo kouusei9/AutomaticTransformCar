@@ -6,6 +6,11 @@ import { Text } from '@react-three/drei'
 interface FloatingInfoBoardProps {
     position: [number, number, number]
     title?: string
+    type?: 'cityInfo' | 'roadCondition'
+    roadConditionData?: {
+        severity: 'low' | 'medium' | 'high'
+        description: string
+    }
 }
 
 /**
@@ -14,7 +19,9 @@ interface FloatingInfoBoardProps {
  */
 export function FloatingInfoBoard({
     position,
-    title = 'CITY INFO'
+    title = 'CITY INFO',
+    type = 'cityInfo',
+    roadConditionData
 }: FloatingInfoBoardProps) {
     const boardRef = useRef<THREE.Group>(null!)
     const { camera } = useThree()
@@ -47,8 +54,21 @@ export function FloatingInfoBoard({
         return colors[traffic] || '#00ff00'
     }, [traffic])
 
+    // 道路状况严重程度颜色
+    const severityColor = useMemo(() => {
+        if (!roadConditionData) return '#00ff00'
+        const colors = {
+            'low': '#00ff88',
+            'medium': '#ffaa00',
+            'high': '#ff3333'
+        }
+        return colors[roadConditionData.severity]
+    }, [roadConditionData])
+
     // 模拟动态数据更新
     useEffect(() => {
+        if (type !== 'cityInfo') return
+        
         const interval = setInterval(() => {
             // 随机天气变化
             const weathers = ['Sunny', 'Cloudy', 'Rainy', 'Night']
@@ -70,7 +90,7 @@ export function FloatingInfoBoard({
         }, 5000) // 每5秒更新一次
 
         return () => clearInterval(interval)
-    }, [])
+    }, [type])
 
     // Billboard效果：始终朝向相机，并保持恒定视觉大小
     useFrame(() => {
@@ -88,8 +108,8 @@ export function FloatingInfoBoard({
     // 创建圆角矩形形状 (参考UIオーバーレイ的borderRadius)
     const roundedRectShape = useMemo(() => {
         const shape = new THREE.Shape()
-        const width = 12
-        const height = 8
+        const width = type === 'roadCondition' ? 8 : 12
+        const height = type === 'roadCondition' ? 4 : 8
         const radius = 0.5 // 圆角半径
 
         const x = -width / 2
@@ -106,7 +126,7 @@ export function FloatingInfoBoard({
         shape.quadraticCurveTo(x, y, x + radius, y)
 
         return shape
-    }, [])
+    }, [type])
 
     return (
         <group ref={boardRef} position={position}>
@@ -140,9 +160,9 @@ export function FloatingInfoBoard({
 
             {/* 标题 - 日文科技感 */}
             <Text
-                position={[0, 3.2, 0]}
-                fontSize={0.7}
-                color="#00ffff"
+                position={type === 'roadCondition' ? [0, 1.5, 0] : [0, 3.2, 0]}
+                fontSize={type === 'roadCondition' ? 0.6 : 0.7}
+                color={type === 'roadCondition' ? severityColor : "#00ffff"}
                 anchorX="center"
                 anchorY="middle"
                 outlineWidth={0.05}
@@ -153,16 +173,73 @@ export function FloatingInfoBoard({
             </Text>
 
             {/* 分隔线 - 科技感双线 */}
-            <mesh position={[0, 2.5, 0]}>
-                <planeGeometry args={[11, 0.06]} />
-                <meshBasicMaterial color="#00ffff" transparent opacity={0.9} />
-            </mesh>
+            {type === 'cityInfo' && (
+                <mesh position={[0, 2.5, 0]}>
+                    <planeGeometry args={[11, 0.06]} />
+                    <meshBasicMaterial color="#00ffff" transparent opacity={0.9} />
+                </mesh>
+            )}
 
-            {/* 天气信息 - 日文 */}
-            <group position={[-5, 1.2, 0]}>
-                <Text
-                    position={[0, 0.6, 0]}
-                    fontSize={0.44}
+            {type === 'roadCondition' && roadConditionData && (
+                <mesh position={[0, 0.8, 0]}>
+                    <planeGeometry args={[7, 0.05]} />
+                    <meshBasicMaterial color={severityColor} transparent opacity={0.9} />
+                </mesh>
+            )}
+
+            {/* 道路状况信息 */}
+            {type === 'roadCondition' && roadConditionData && (
+                <>
+                    {/* 严重程度指示 */}
+                    <group position={[0, 0, 0]}>
+                        <Text
+                            position={[0, 0.2, 0]}
+                            fontSize={0.4}
+                            color="#ffffff"
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            {roadConditionData.description}
+                        </Text>
+                        
+                        {/* 严重程度条 */}
+                        <mesh position={[0, -0.4, 0.01]}>
+                            <planeGeometry args={[6, 0.25]} />
+                            <meshBasicMaterial color={severityColor} transparent opacity={0.3} />
+                        </mesh>
+                        <mesh position={[
+                            -3 + (roadConditionData.severity === 'low' ? 1 : roadConditionData.severity === 'medium' ? 3 : 5),
+                            -0.4,
+                            0.02
+                        ]}>
+                            <planeGeometry args={[
+                                roadConditionData.severity === 'low' ? 2 : roadConditionData.severity === 'medium' ? 4 : 6,
+                                0.25
+                            ]} />
+                            <meshBasicMaterial color={severityColor} transparent opacity={0.9} />
+                        </mesh>
+                        
+                        {/* 警告图标 */}
+                        <Text
+                            position={[0, -1, 0]}
+                            fontSize={0.8}
+                            color={severityColor}
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            ⚠️
+                        </Text>
+                    </group>
+                </>
+            )}
+
+            {/* 天気情報 - 日文 */}
+            {type === 'cityInfo' && (
+            <>
+                <group position={[-5, 1.2, 0]}>
+                    <Text
+                        position={[0, 0.6, 0]}
+                        fontSize={0.44}
                     color="#00ffff"
                     anchorX="left"
                     anchorY="middle"
@@ -271,8 +348,11 @@ export function FloatingInfoBoard({
                     {time}
                 </Text>
             </group>
+            </>
+            )}
 
             {/* 底部状态指示灯 - 日文科技感 */}
+            {type === 'cityInfo' && (
             <group position={[0, -3.0, 0]}>
                 <mesh position={[-3, 0, 0.01]}>
                     <circleGeometry args={[0.16, 16]} />
@@ -302,17 +382,18 @@ export function FloatingInfoBoard({
                     同期済
                 </Text>
             </group>
+            )}
 
             {/* 发光效果 - 增强科技感 */}
             <pointLight
                 position={[0, 0, 1]}
-                color="#00ffff"
-                intensity={1.2}
-                distance={25}
+                color={type === 'roadCondition' ? severityColor : "#00ffff"}
+                intensity={type === 'roadCondition' ? 1.5 : 1.2}
+                distance={type === 'roadCondition' ? 20 : 25}
             />
             <pointLight
-                position={[0, 3, 0.5]}
-                color="#ff00ff"
+                position={type === 'roadCondition' ? [0, 1.5, 0.5] : [0, 3, 0.5]}
+                color={type === 'roadCondition' ? severityColor : "#ff00ff"}
                 intensity={0.6}
                 distance={15}
             />
