@@ -1,92 +1,172 @@
 /**
- * WebSocket Server - Enhanced Version (with Heartbeat Detection)
+ * SSE Server - Server-Sent Events with HTTP POST (Browser Compatible)
  */
 
-import { WebSocketServer } from 'ws';
+import http from 'http';
+import { parse } from 'url';
 
 const PORT = 9001;
-const HOST = '0.0.0.0'; // Listen on all network interfaces, allow external access
-const HEARTBEAT_INTERVAL = 30000; // 30-second heartbeat detection
-const HEARTBEAT_TIMEOUT = 35000;  // 35-second timeout
+const HOST = '0.0.0.0';
+const HEARTBEAT_INTERVAL = 30000; // 30-second heartbeat
+const CLIENT_TIMEOUT = 60000; // 60-second timeout
 
-const wss = new WebSocketServer({ 
-  port: PORT,
-  host: HOST  // Expose externally
-});
-const clients = new Map(); // Use Map to store clients and heartbeat status
+const clients = new Map(); // Store SSE connections
 
-console.log(`🚀 WebSocket server started on port ${PORT}`);
+console.log(`🚀 SSE Server starting on port ${PORT}`);
 console.log(`🌐 Listening address: ${HOST}:${PORT}`);
-console.log(`📡 External access: ws://<your-ip>:${PORT}`);
+console.log(`📡 External access: http://<your-ip>:${PORT}`);
 
-// Heartbeat detection timer
+// Heartbeat timer - send keep-alive comments
 const heartbeatInterval = setInterval(() => {
-  clients.forEach((clientInfo, ws) => {
-    if (!clientInfo.isAlive) {
-      console.log('💀 Client heartbeat timeout, force disconnect');
-      ws.terminate(); // Immediately terminate connection
-      clients.delete(ws);
+  const now = Date.now();
+  clients.forEach((clientInfo, res) => {
+    if (now - clientInfo.lastActivity > CLIENT_TIMEOUT) {
+      console.log('💀 Client timeout, closing connection');
+      res.end();
+      clients.delete(res);
       return;
     }
 
-    // Mark as pending confirmation, send ping
-    clientInfo.isAlive = false;
-    ws.ping();
+    // Send heartbeat comment
+    try {
+      res.write(': heartbeat\n\n');
+      clientInfo.lastActivity = now;
+    } catch (error) {
+      console.error('❌ Heartbeat failed:', error.message);
+      clients.delete(res);
+    }
   });
 }, HEARTBEAT_INTERVAL);
 
-wss.on('connection', (ws) => {
-  console.log('✅ New client connected');
+// Broadcast message to all clients
+function broadcastMessage(message, excludeRes = null) {
+  const messageStr = JSON.stringify(message);
+  let successCount = 0;
   
-  // Initialize client state
-  clients.set(ws, { 
-    isAlive: true,
-    connectedAt: new Date()
-  });
-
-  // Received pong response, mark as alive
-  ws.on('pong', () => {
-    const clientInfo = clients.get(ws);
-    if (clientInfo) {
-      clientInfo.isAlive = true;
+  clients.forEach((clientInfo, res) => {
+    if (res !== excludeRes) {
+      try {
+        res.write(`data: ${messageStr}\n\n`);
+        clientInfo.lastActivity = Date.now();
+        successCount++;
+      } catch (error) {
+        console.error('❌ Broadcast failed:', error.message);
+        clients.delete(res);
+      }
     }
   });
+  
+  if (successCount > 0) {
+    console.log(`📤 Broadcasted to ${successCount} client(s)`);
+  }
+}
 
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      console.log('📨 Received message:', data.type);
+// HTTP Server
+const server = http.createServer((req, res) => {
+  const { pathname } = parse(req.url || '', true);
 
-      // Broadcast to all other alive clients
-      clients.forEach((clientInfo, client) => {
-        if (client !== ws && client.readyState === 1 && clientInfo.isAlive) {
-          client.send(message);
-          console.log('📤 Forward message to client');
-        }
-      });
-    } catch (error) {
-      console.error('❌ Error processing message:', error);
-    }
-  });
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  ws.on('close', () => {
-    console.log('🔌 Client disconnected normally');
-    clients.delete(ws);
-    console.log(`📊 Current connections: ${clients.size}`);
-  });
+  // Handle OPTIONS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
-  ws.on('error', (error) => {
-    console.error('❌ WebSocket error:', error);
-    clients.delete(ws);
-    console.log(`📊 Current connections: ${clients.size}`);
-  });
+  // SSE Endpoint: /events
+  if (pathname === '/events' && req.method === 'GET') {
+    console.log('✅ New SSE client connected');
+
+    // Set SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    // Store client
+    clients.set(res, {
+      connectedAt: new Date(),
+      lastActivity: Date.now()
+    });
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: Date.now() })}\n\n`);
+
+    // Handle client disconnect
+    req.on('close', () => {
+      console.log('🔌 SSE client disconnected');
+      clients.delete(res);
+      console.log(`📊 Current connections: ${clients.size}`);
+    });
+
+    return;
+  }
+
+  // Message Endpoint: POST /message
+  if (pathname === '/message' && req.method === 'POST') {
+    let body = '';
+
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', () => {
+      try {
+        const message = JSON.parse(body);
+        console.log('📨 Received message:', message.type);
+
+        // Broadcast to all SSE clients
+        broadcastMessage(message);
+
+        // Send success response
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, clients: clients.size }));
+      } catch (error) {
+        console.error('❌ Error processing message:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+
+    return;
+  }
+
+  // Health check endpoint
+  if (pathname === '/health' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      clients: clients.size,
+      uptime: process.uptime()
+    }));
+    return;
+  }
+
+  // 404 for other routes
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not Found');
+});
+
+server.listen(PORT, HOST, () => {
+  console.log('💡 SSE Server ready');
+  console.log(`📍 SSE Endpoint: http://${HOST}:${PORT}/events`);
+  console.log(`📍 POST Endpoint: http://${HOST}:${PORT}/message`);
+  console.log(`⏱️  Heartbeat interval: ${HEARTBEAT_INTERVAL / 1000}s`);
 });
 
 // Graceful shutdown
-wss.on('close', () => {
+process.on('SIGTERM', () => {
+  console.log('🛑 Shutting down SSE server...');
   clearInterval(heartbeatInterval);
-  console.log('🛑 WebSocket server closed');
+  clients.forEach((_, res) => res.end());
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });
-
-console.log('💡 Waiting for client connections...');
-console.log(`⏱️  Heartbeat detection: ${HEARTBEAT_INTERVAL / 1000} second interval`);

@@ -1,5 +1,5 @@
 /**
- * WebSocket 服务 - 用于 CityRun 和 CyberpunkCityDemo 之间的通信
+ * SSE Service - Server-Sent Events for CityRun and CyberpunkCityDemo communication
  */
 
 export interface RouteMessage {
@@ -17,124 +17,143 @@ export interface VehicleStatusMessage {
   progress: number;
 }
 
-export type WebSocketMessage = RouteMessage | VehicleStatusMessage;
+export type SSEMessage = RouteMessage | VehicleStatusMessage;
 
-class WebSocketService {
-  private ws: WebSocket | null = null;
+class SSEService {
+  private eventSource: EventSource | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 2000;
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
+  private baseUrl = '';
 
   /**
-   * 连接到WebSocket服务器
+   * Connect to SSE server
    */
   connect(url?: string): Promise<void> {
-    // 如果已经连接，直接返回
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      console.log('ℹ️ WebSocket 已连接');
+    // If already connected, return immediately
+    if (this.eventSource && this.eventSource.readyState === EventSource.OPEN) {
+      console.log('ℹ️ SSE already connected');
       return Promise.resolve();
     }
 
-    // 动态获取 WebSocket URL
+    // Get SSE URL
     if (!url) {
-      // 优先使用环境变量，否则使用当前页面的 hostname
-      const wsHost = window.location.hostname || '10.0.0.249';
-      const wsPort = '9001';
+      const host = window.location.hostname || '10.0.0.249';
+      const port = '9001';
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       
-      // 如果环境变量明确指定了协议，使用环境变量
-      const protocol = 'ws:';
+      this.baseUrl = `${protocol}//${host}:${port}`;
+      url = `${this.baseUrl}/events`;
       
-      url = `${protocol}//${wsHost}:${wsPort}`;
-      console.log('🔗 WebSocket 连接地址:', url);
-      console.log('🔐 协议:', 'WS (普通连接)');
+      console.log('🔗 SSE connection URL:', url);
+      console.log('🔐 Protocol:', protocol === 'https:' ? 'HTTPS (Secure)' : 'HTTP (Standard)');
+    } else {
+      // Extract base URL from events endpoint
+      this.baseUrl = url.replace(/\/events$/, '');
     }
 
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(url);
+        this.eventSource = new EventSource(url);
 
-        this.ws.onopen = () => {
-          console.log('✅ WebSocket 连接成功');
+        this.eventSource.onopen = () => {
+          console.log('✅ SSE connected successfully');
           this.reconnectAttempts = 0;
           resolve();
         };
 
-        this.ws.onmessage = async (event) => {
+        this.eventSource.onmessage = (event) => {
           try {
-            let data = event.data;
+            const message: SSEMessage = JSON.parse(event.data);
             
-            // 如果是 Blob，先转换为文本
-            if (data instanceof Blob) {
-              data = await data.text();
+            // Skip CONNECTED message
+            if (message.type === 'CONNECTED') {
+              console.log('📡 SSE connection established');
+              return;
             }
             
-            const message: WebSocketMessage = JSON.parse(data);
-            console.log('📨 收到消息:', message);
-            // 直接传递整个消息对象，不再提取 data 字段
+            console.log('📨 Received message:', message);
             this.notifyListeners(message.type, message);
           } catch (error) {
-            console.error('❌ 解析消息失败:', error, '原始数据类型:', typeof event.data, '内容:', event.data);
+            console.error('❌ Failed to parse message:', error, 'Data:', event.data);
           }
         };
 
-        this.ws.onerror = (error) => {
-          console.error('❌ WebSocket 错误:', error);
+        this.eventSource.onerror = (error) => {
+          console.error('❌ SSE error:', error);
+          
+          // Close current connection
+          if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+          }
+          
+          // Attempt reconnect
+          this.attemptReconnect(url);
+          
           reject(error);
         };
-
-        this.ws.onclose = () => {
-          console.log('🔌 WebSocket 连接关闭');
-          this.attemptReconnect(url);
-        };
       } catch (error) {
-        console.error('❌ WebSocket 连接失败:', error);
+        console.error('❌ SSE connection failed:', error);
         reject(error);
       }
     });
   }
 
   /**
-   * 尝试重新连接
+   * Attempt to reconnect
    */
   private attemptReconnect(url: string) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`🔄 尝试重新连接 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+      console.log(`🔄 Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
       
       setTimeout(() => {
         this.connect(url).catch(() => {
-          console.log('⏳ 重连失败，等待下次尝试...');
+          console.log('⏳ Reconnect failed, waiting for next attempt...');
         });
       }, this.reconnectDelay);
     } else {
-      console.log('❌ 达到最大重连次数，停止尝试');
+      console.log('❌ Max reconnect attempts reached, stopping');
     }
   }
 
   /**
-   * 发送消息
+   * Send message via HTTP POST
    */
-  send(message: WebSocketMessage): boolean {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      try {
-        this.ws.send(JSON.stringify(message));
-        console.log('📤 发送消息:', message);
-        return true;
-      } catch (error) {
-        console.error('❌ 发送消息失败:', error);
-        return false;
+  async send(message: SSEMessage): Promise<boolean> {
+    if (!this.baseUrl) {
+      console.warn('⚠️ SSE not connected, cannot send message');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } else {
-      console.warn('⚠️ WebSocket 未连接');
+
+      const result = await response.json();
+      console.log('📤 Message sent successfully:', message.type, 'Clients:', result.clients);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send message:', error);
       return false;
     }
   }
 
   /**
-   * 发送新路线消息（CityRun使用）
+   * Send new route message (used by CityRun)
    */
-  sendNewRoute(start: string, destination: string, routeData: any): boolean {
+  async sendNewRoute(start: string, destination: string, routeData: any): Promise<boolean> {
     const message: RouteMessage = {
       type: 'NEW_ROUTE',
       start,
@@ -146,7 +165,7 @@ class WebSocketService {
   }
 
   /**
-   * 订阅消息类型
+   * Subscribe to message type
    */
   on(messageType: string, callback: (data: any) => void): () => void {
     if (!this.listeners.has(messageType)) {
@@ -154,14 +173,14 @@ class WebSocketService {
     }
     this.listeners.get(messageType)!.add(callback);
 
-    // 返回取消订阅函数
+    // Return unsubscribe function
     return () => {
       this.listeners.get(messageType)?.delete(callback);
     };
   }
 
   /**
-   * 通知监听器
+   * Notify listeners
    */
   private notifyListeners(messageType: string, data: any) {
     const callbacks = this.listeners.get(messageType);
@@ -171,22 +190,23 @@ class WebSocketService {
   }
 
   /**
-   * 断开连接
+   * Disconnect
    */
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+      console.log('🔌 SSE disconnected');
     }
   }
 
   /**
-   * 获取连接状态
+   * Get connection status
    */
   isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    return this.eventSource !== null && this.eventSource.readyState === EventSource.OPEN;
   }
 }
 
-// 导出单例
-export const websocketService = new WebSocketService();
+// Export singleton
+export const websocketService = new SSEService();

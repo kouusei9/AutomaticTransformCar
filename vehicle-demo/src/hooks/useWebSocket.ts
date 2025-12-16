@@ -1,5 +1,5 @@
 /**
- * WebSocket 连接管理 Hook
+ * SSE Connection Management Hook (Server-Sent Events)
  */
 
 import { useEffect, useCallback } from 'react'
@@ -13,18 +13,18 @@ export interface UseWebSocketOptions {
 }
 
 /**
- * WebSocket 管理 Hook
+ * SSE Management Hook
  */
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const {
     onNewRoute,
     autoConnect = true,
-    wsUrl = 'ws://localhost:9001'
+    wsUrl = 'http://localhost:9001/events'
   } = options
 
   const connect = useCallback(() => {
     return websocketService.connect(wsUrl).catch(err => {
-      console.warn('⚠️ WebSocket 连接失败，将在后台重试:', err.message)
+      console.warn('⚠️ SSE connection failed, retrying in background:', err.message)
     })
   }, [wsUrl])
 
@@ -33,15 +33,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     connect()
 
-    // 监听新路线消息
+    // Listen for new route messages
     const cleanup = websocketService.on('NEW_ROUTE', (message) => {
-      console.log('📨 收到新路线:', message)
+      console.log('📨 Received new route:', message)
       
       if (onNewRoute) {
         try {
           onNewRoute(message.start, message.destination, message.routeData)
         } catch (error) {
-          console.error('❌ 处理新路线失败:', error)
+          console.error('❌ Failed to process new route:', error)
         }
       }
     })
