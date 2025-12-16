@@ -94,7 +94,6 @@ const TEXTURE_PATHS = {
     cloud08: '/assets/cloud/08.png',
     cloud09: '/assets/cloud/09.png',
     asphalt: '/assets/asphalt_texture.jpg',
-    dbuilding: '/assets/d_building.png'
 } as const;
 
 const BUILDING_TYPES: TreeType[] = [
