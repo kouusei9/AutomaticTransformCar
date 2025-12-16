@@ -12,6 +12,7 @@ import DebugPanel from '../components/cityrun/DebugPanel.tsx';
 import type { RouteResponse } from '../types/routeAPI';
 import { websocketService } from '../services/websocketService';
 import { VehicleMode, MODE_CONFIG, type ModePalette } from '../types/vehicleMode';
+import { useVideoPreload } from '../hooks/cityrun/useVideoPreload';
 import './CityRunDemo.css';
 
 // 重新导出VehicleMode供其他组件使用
@@ -156,47 +157,6 @@ function isTestRouteId(routeId?: string): boolean {
 }
 
 // ===== 自定义Hooks =====
-/**
- * 视频预加载Hook
- */
-function useVideoPreload() {
-  const preloadedVideos = useRef<Map<string, HTMLVideoElement>>(new Map());
-
-  useEffect(() => {
-    const videoUrls = Object.values(TRANSFORM_VIDEOS);
-    console.log('🎬 开始预加载视频...');
-
-    videoUrls.forEach(url => {
-      const video = document.createElement('video');
-      video.src = url;
-      video.preload = 'auto';
-      video.muted = true;
-      video.playsInline = true;
-
-      video.addEventListener('loadeddata', () => {
-        console.log('✅ 视频预加载完成:', url);
-      });
-
-      video.addEventListener('error', (e) => {
-        console.error('❌ 视频预加载失败:', url, e);
-      });
-
-      video.load();
-      preloadedVideos.current.set(url, video);
-    });
-
-    return () => {
-      preloadedVideos.current.forEach(video => {
-        video.src = '';
-        video.load();
-      });
-      preloadedVideos.current.clear();
-    };
-  }, []);
-
-  return preloadedVideos;
-}
-
 /**
  * Timer管理Hook
  */
@@ -415,6 +375,9 @@ function PauseButton({ isPaused, onToggle }: PauseButtonProps) {
 export default function CityRunCore({ useSimulationMode = false }: CityRunCoreProps) {
   const isSafari = useMemo(() => isSafariBrowser(), []);
 
+  // Video preload
+  const isAllPreloaded = useVideoPreload();
+
   // 基础状态
   const [isMoving, setIsMoving] = useState(false);
   const [isFirstPerson, setIsFirstPerson] = useState(true);
@@ -447,7 +410,6 @@ export default function CityRunCore({ useSimulationMode = false }: CityRunCorePr
   const lastTimeRef = useRef<number>(Date.now());
 
   // 自定义Hooks
-  useVideoPreload();
   const { addTimer, animationFrameRef, clearAllTimers } = useTimerManager();
 
   // 计算值
@@ -742,6 +704,7 @@ export default function CityRunCore({ useSimulationMode = false }: CityRunCorePr
         margin: 0,
         padding: 0
       }}>
+
         {/* HUD 面板 */}
         <HUDPanel
           onStartStop={handleStartStop}
@@ -754,6 +717,7 @@ export default function CityRunCore({ useSimulationMode = false }: CityRunCorePr
           progressPercent={progressPercent}
           remainingTime={remainingTime}
           useSimulationMode={useSimulationMode}
+          isAllPreloaded={isAllPreloaded}
         />
 
         {/* 视频转换层 */}

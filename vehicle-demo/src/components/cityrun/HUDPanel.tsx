@@ -25,6 +25,7 @@ interface HUDPanelProps {
   progressPercent?: number;
   remainingTime?: number;
   useSimulationMode?: boolean; // 是否为模拟模式（true时不显示走行シミュレーション按钮）
+  isAllPreloaded?: boolean; // 视频是否全部预加载完成
 }
 
 interface WindowSize {
@@ -403,7 +404,8 @@ export default function HUDPanel({
   currentSegmentIndex = 0,
   progressPercent = 0,
   remainingTime = 0,
-  useSimulationMode = false
+  useSimulationMode = false,
+  isAllPreloaded = false
 }: HUDPanelProps) {
   // 状态：只存储ID，名称通过派生获取
   const [startLocationId, setStartLocationId] = useState(DEFAULT_START_ID);
@@ -629,9 +631,9 @@ export default function HUDPanel({
         {/* 装饰元素 */}
         {!isMoving && (
           <div className="mt-4 flex justify-center gap-1 opacity-50">
-            <div className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
-            <div className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse delay-75" />
-            <div className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse delay-150" />
+            <div className={`w-1 h-1 rounded-full ${isAllPreloaded ? 'bg-green-500' : 'bg-cyan-500'} animate-pulse`} />
+            <div className={`w-1 h-1 rounded-full ${isAllPreloaded ? 'bg-green-500' : 'bg-cyan-500'} animate-pulse delay-75`} />
+            <div className={`w-1 h-1 rounded-full ${isAllPreloaded ? 'bg-green-500' : 'bg-cyan-500'} animate-pulse delay-150`} />
           </div>
         )}
       </div>
