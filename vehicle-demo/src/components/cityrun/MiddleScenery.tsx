@@ -15,7 +15,7 @@ const TEXTURE_PATHS = {
   day: '/assets/view_middle02.png',
   night: '/assets/view_middle01.png',
   sky: '/assets/view_middle03.png',
-  city: '/assets/d_building.png'
+  city: '/assets/view_middle04.png'
 } as const;
 
 const TEXTURE_REPEAT = { x: 3, y: 1 };
@@ -35,7 +35,7 @@ const SKY_Z_POSITION = -95;   // 天空在城市后面
 const SCALE = {
   normal: 1.5,
   flight: 3.5,
-  drone: 1.5  // 放大城市背景
+  drone: 0.8 // 放大城市背景
 };
 
 const Y_POSITIONS: Record<VehicleMode, number> = {
@@ -154,18 +154,10 @@ export default function MiddleScenery({
   // Drone模式和Flight模式渲染
   if (isDroneMode || isFlyMode) {
     const cityScale = isDroneMode ? SCALE.drone : SCALE.flight;
-    const cityY = isDroneMode ? yPosition - 5 : yPosition;  // Drone模式城市稍微低一点
-
-    return (
-      <group>
-        {/* 天空背景 - 在最后面 */}
-        <mesh
-          geometry={geometry}
-          material={materials.sky}
-          position={[0, yPosition + 15, SKY_Z_POSITION]}
-          scale={[4, 3, 1]}
-        />
-        {/* 城市背景 - 在天空前面 */}
+    const cityY = isDroneMode ? yPosition + 35 : yPosition;  // Drone模式城市稍微低一点
+    if (isDroneMode) {
+      return (<group>
+        {/* 城市背景 */}
         <mesh
           geometry={cityGeometry}
           material={materials.city}
@@ -173,7 +165,19 @@ export default function MiddleScenery({
           scale={[cityScale, cityScale, 1]}
         />
       </group>
-    );
+      );
+    } else {
+      return (<group>
+        {/* 天空背景 */}
+        <mesh
+          geometry={geometry}
+          material={materials.sky}
+          position={[0, yPosition + 15, SKY_Z_POSITION]}
+          scale={[4, 3, 1]}
+        />
+      </group>
+      );
+    }
   }
 
   // 普通模式渲染
