@@ -187,25 +187,88 @@ interface LocationSelectProps {
 }
 
 function LocationSelect({ label, value, onChange, options, colorClass }: LocationSelectProps) {
-  const borderColor = colorClass === 'cyan' ? 'border-cyan-500/30 focus:border-cyan-500' : 'border-green-500/30 focus:border-green-500';
+  const [isOpen, setIsOpen] = useState(false);
   const textColor = colorClass === 'cyan' ? 'text-cyan-300' : 'text-green-300';
-  const labelColor = colorClass === 'cyan' ? 'text-cyan-500' : 'text-green-500';
+  const selectedLocation = options.find(loc => loc.id === value);
+  const isDestination = label === '目的地';
+  const pieceLabel = isDestination ? '発' : '着';
 
   return (
-    <div className="group">
-      <label className={`block ${labelColor} text-[14px] font-mono mb-1 tracking-wider`}>
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3 py-2 bg-gray-900/80 border ${borderColor} rounded ${textColor} text-sm focus:outline-none transition-colors cursor-pointer hover:bg-gray-800`}
-        style={{ fontSize: '16px' }}
-      >
-        {options.map(loc => (
-          <option key={loc.id} value={loc.id}>{loc.name}</option>
-        ))}
-      </select>
+    <div className="relative group flex items-center justify-center gap-3">
+      {/* Station name on left side for destination (発) */}
+      {isDestination && (
+        <div className={`${textColor} text-sm font-bold text-right`}
+          style={{
+            minWidth: '80px',
+            maxWidth: '100px',
+            wordBreak: 'break-word',
+            fontSize: '20px',
+            textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
+          }}>
+          {selectedLocation?.name || ''}
+        </div>
+      )}
+
+      {/* Shogi piece container */}
+      <div
+        className="relative flex justify-center flex-shrink-0 p-4 rounded-lg">
+        {/* SVG Shape */}
+        <svg
+          width="82"
+          height="102"
+          viewBox="0 0 41 51"
+          className="pointer-events-none"
+          preserveAspectRatio="none"
+          style={isDestination ? { transform: 'rotate(180deg)' } : undefined}
+        >
+          <path
+            d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+            fill="#A1E3FF"
+            stroke="#1F2937"
+            strokeWidth="1"
+          />
+          <text
+            x="20.5"
+            y="30"
+            fontSize="14"
+            fontWeight="bold"
+            fill="#1F2937"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ transform: isDestination ? 'rotate(180deg)' : 'none', transformOrigin: '20.5px 30px' }}
+          >
+            {pieceLabel}
+          </text>
+        </svg>
+
+        {/* Hidden native select for accessibility */}
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-20"
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => setIsOpen(false)}
+          style={{ fontSize: '16px' }}
+        >
+          {options.map(loc => (
+            <option key={loc.id} value={loc.id}>{loc.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Station name on right side for start (着) */}
+      {!isDestination && (
+        <div className={`${textColor} text-sm font-bold text-left`}
+          style={{
+            minWidth: '80px',
+            maxWidth: '100px',
+            wordBreak: 'break-word',
+            fontSize: '20px',
+            textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
+          }}>
+          {selectedLocation?.name || ''}
+        </div>
+      )}
     </div>
   );
 }
@@ -217,7 +280,7 @@ interface RoutePreviewProps {
 function RoutePreview({ routeData }: RoutePreviewProps) {
   const totalDistance = useMemo(() => calculateTotalDistance(routeData.edges), [routeData.edges]);
   const totalTime = useMemo(() => calculateTotalTime(routeData.edges), [routeData.edges]);
-  
+
   // 计算不同道路类型的数量
   const roadTypeCount = useMemo(() => {
     const types = new Set(routeData.edges.map(edge => edge.type));
@@ -521,18 +584,40 @@ export default function HUDPanel({
           maxWidth: isMoving ? 'none' : '95vw',
           maxHeight: isMoving ? 'calc(100vh - 48px)' : '95vh',
           overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          background: isMoving
+            ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(0, 0, 0, 0.95) 100%)'
+            : `
+              linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%),
+              repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(6, 182, 212, 0.03) 20px, rgba(6, 182, 212, 0.03) 21px),
+              repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(6, 182, 212, 0.03) 20px, rgba(6, 182, 212, 0.03) 21px)
+            `
         }}
       >
         {/* 标题 */}
-        <div className="text-center mb-3">
+        <div className="text-center mb-6">
           <h2
-            className={`font-mono font-bold text-cyan-400 mb-1 transition-all duration-1000 ${styleConfig.titleSize}`}
-            style={{ textShadow: '0 0 10px rgba(6, 182, 212, 0.8)' }}
+            className={`font-mono font-bold mb-1 transition-all duration-1000 ${styleConfig.titleSize}`}
+            style={{
+              background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #EC4899 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontSize: isMoving ? '14px' : '48px',
+              letterSpacing: '0.1em',
+              fontStyle: 'italic',
+              fontWeight: 900,
+              textShadow: 'none'
+            }}
           >
-            {isMoving ? 'SYSTEM MONITOR' : 'MISSION CONTROL'}
+            {isMoving ? 'SYSTEM MONITOR' : 'RYU-O'}
           </h2>
-          <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mx-auto" />
+          {!isMoving && (
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent mx-auto mt-4" />
+          )}
+          {isMoving && (
+            <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mx-auto" />
+          )}
         </div>
 
         {/* 内容区域 */}
@@ -548,7 +633,7 @@ export default function HUDPanel({
               progressPercent={progressPercent}
             />
           ) : (
-            <div className="space-y-4 py-1">              
+            <div className="space-y-4 py-1">
               {isLoadingRoute && (
                 <div className="text-center text-cyan-400 text-xs animate-pulse">
                   📡 UPLOADING NAVIGATION DATA...
@@ -557,7 +642,14 @@ export default function HUDPanel({
 
               {/* 非模拟模式时显示位置选择器 */}
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-2 gap-4 px-2"
+                style={{
+                  backgroundImage: 'url(/assets/hud_chess_board.png)',
+                  backgroundSize: 'fill',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}>
+
                 <LocationSelect
                   label="出発地"
                   value={startLocationId}
@@ -565,6 +657,8 @@ export default function HUDPanel({
                   options={availableLocations}
                   colorClass="cyan"
                 />
+
+
                 <LocationSelect
                   label="目的地"
                   value={destinationId}
@@ -573,8 +667,6 @@ export default function HUDPanel({
                   colorClass="green"
                 />
               </div>
-
-
               {routeData && !isLoadingRoute && (
                 <RoutePreview routeData={routeData} />
               )}
@@ -588,16 +680,18 @@ export default function HUDPanel({
             onClick={handleStartToggle}
             className={`w-full rounded font-bold font-mono tracking-wider transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isMoving
               ? 'py-2 text-xs bg-red-900/80 hover:bg-red-800 active:bg-red-700 text-red-100 border border-red-500/50'
-              : 'py-3 text-sm bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border border-cyan-500/50'
+              : 'py-4 text-lg bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border-2 border-cyan-500/50'
               }`}
             style={{
               backgroundColor: 'rgba(31, 41, 55, 0.9)',
-              textShadow: isMoving ? '0 0 5px rgba(220,38,38,0.5)' : '0 0 5px rgba(6,182,212,0.5)',
+              textShadow: isMoving ? '0 0 5px rgba(220,38,38,0.5)' : '0 0 8px rgba(6,182,212,0.8)',
               boxShadow: isMoving
                 ? '0 0 15px rgba(220, 38, 38, 0.2)'
-                : '0 0 15px rgba(6, 182, 212, 0.2)',
+                : '0 0 20px rgba(6, 182, 212, 0.4)',
               minHeight: `${TOUCH_MIN_HEIGHT}px`,
-              WebkitTapHighlightColor: 'transparent'
+              WebkitTapHighlightColor: 'transparent',
+              fontSize: isMoving ? undefined : '18px',
+              borderRadius: isMoving ? undefined : '12px'
             }}
           >
             {isMoving ? (
@@ -607,25 +701,10 @@ export default function HUDPanel({
               </>
             ) : (
               <>
-                開始
+                出発
               </>
             )}
           </button>
-
-          {/* 走行シミュレーション按钮：仅在非移动且非模拟模式时显示 */}
-          {/* {!isMoving && !useSimulationMode && (
-            <button
-              onClick={loadTestRoute}
-              className="w-full py-2 rounded font-mono text-xs bg-purple-900/40 hover:bg-purple-900/60 active:bg-purple-900/80 text-purple-200 border border-purple-500/30 transition-all duration-300"
-              style={{
-                backgroundColor: 'rgba(31, 41, 55, 0.7)',
-                minHeight: `${TOUCH_MIN_HEIGHT_SMALL}px`,
-                WebkitTapHighlightColor: 'transparent'
-              }}
-            >
-              [ 走行シミュレーション ]
-            </button>
-          )} */}
         </div>
 
         {/* 装饰元素 */}
