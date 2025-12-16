@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { RouteResponse } from '../../types/routeAPI';
 import { getAllModesRoute } from '../../api/completeRouteExample';
 import MiniRouteMap from './MiniRouteMap';
+import MapPickerModal from './MapPickerModal';
 import { generateRoute, getAvailableLocations, type KyotoNode } from '../../utils/kyotoRouteUtils';
 import {
   calculateTotalDistance,
@@ -187,10 +188,9 @@ interface LocationSelectProps {
 }
 
 function LocationSelect({ label, value, onChange, options, colorClass }: LocationSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const textColor = colorClass === 'cyan' ? 'text-cyan-300' : 'text-green-300';
   const selectedLocation = options.find(loc => loc.id === value);
-  const isDestination = label === '目的地';
+  const isDestination = label === '出発地';
   const pieceLabel = isDestination ? '発' : '着';
 
   return (
@@ -209,13 +209,15 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
         </div>
       )}
 
-      {/* Shogi piece container */}
+      {/* Shogi piece container - clickable */}
       <div
-        className="relative flex justify-center flex-shrink-0 p-4 rounded-lg">
+        className="relative flex justify-center flex-shrink-0 p-4 rounded-lg cursor-pointer hover:scale-105 transition-transform"
+        onClick={() => onChange('__OPEN_MAP__')}
+      >
         {/* SVG Shape */}
         <svg
-          width="82"
-          height="102"
+          width="50"
+          height="60"
           viewBox="0 0 41 51"
           className="pointer-events-none"
           preserveAspectRatio="none"
@@ -240,20 +242,6 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
             {pieceLabel}
           </text>
         </svg>
-
-        {/* Hidden native select for accessibility */}
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-20"
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => setIsOpen(false)}
-          style={{ fontSize: '16px' }}
-        >
-          {options.map(loc => (
-            <option key={loc.id} value={loc.id}>{loc.name}</option>
-          ))}
-        </select>
       </div>
 
       {/* Station name on right side for start (着) */}
@@ -475,6 +463,7 @@ export default function HUDPanel({
   const [destinationId, setDestinationId] = useState(DEFAULT_DEST_ID);
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
 
   // Hooks
   const windowSize = useWindowSize();
@@ -532,16 +521,31 @@ export default function HUDPanel({
   }, [isMoving, onStartStop, onViewToggle]);
 
   const handleStartLocationChange = useCallback((id: string) => {
+    if (id === '__OPEN_MAP__') {
+      setMapModalOpen(true);
+      return;
+    }
     setStartLocationId(id);
     const name = availableLocations.find(loc => loc.id === id)?.name || id;
     onStartLocationSet?.(name);
   }, [availableLocations, onStartLocationSet]);
 
   const handleDestinationChange = useCallback((id: string) => {
+    if (id === '__OPEN_MAP__') {
+      setMapModalOpen(true);
+      return;
+    }
     setDestinationId(id);
     const name = availableLocations.find(loc => loc.id === id)?.name || id;
     onDestinationSet?.(name);
   }, [availableLocations, onDestinationSet]);
+
+  const handleMapConfirm = useCallback((startId: string, startName: string, destId: string, destName: string) => {
+    setStartLocationId(startId);
+    setDestinationId(destId);
+    onStartLocationSet?.(startName);
+    onDestinationSet?.(destName);
+  }, [onStartLocationSet, onDestinationSet]);
 
   // 位置变化时获取路线（仅在停止状态）
   useEffect(() => {
@@ -642,7 +646,7 @@ export default function HUDPanel({
 
               {/* 非模拟模式时显示位置选择器 */}
 
-              <div className="grid grid-cols-2 gap-4 px-2"
+              <div className="flex flex-col gap-8 px-2 py-4"
                 style={{
                   backgroundImage: 'url(/assets/hud_chess_board.png)',
                   backgroundSize: 'fill',
@@ -650,22 +654,25 @@ export default function HUDPanel({
                   backgroundRepeat: 'no-repeat'
                 }}>
 
-                <LocationSelect
-                  label="出発地"
-                  value={startLocationId}
-                  onChange={handleStartLocationChange}
-                  options={availableLocations}
-                  colorClass="cyan"
-                />
+                <div className="flex justify-end pr-17 pt-4">
+                  <LocationSelect
+                    label="出発地"
+                    value={startLocationId}
+                    onChange={handleStartLocationChange}
+                    options={availableLocations}
+                    colorClass="green"
+                  />
+                </div>
 
-
-                <LocationSelect
-                  label="目的地"
-                  value={destinationId}
-                  onChange={handleDestinationChange}
-                  options={availableLocations}
-                  colorClass="green"
-                />
+                <div className="flex justify-start pl-18 pt-4">
+                  <LocationSelect
+                    label="目的地"
+                    value={destinationId}
+                    onChange={handleDestinationChange}
+                    options={availableLocations}
+                    colorClass="cyan"
+                  />
+                </div>
               </div>
               {routeData && !isLoadingRoute && (
                 <RoutePreview routeData={routeData} />
@@ -716,6 +723,15 @@ export default function HUDPanel({
           </div>
         )}
       </div>
+
+      {/* Map Picker Modal */}
+      <MapPickerModal
+        isOpen={mapModalOpen}
+        onClose={() => setMapModalOpen(false)}
+        onConfirm={handleMapConfirm}
+        startLocationId={startLocationId}
+        destinationId={destinationId}
+      />
     </div>
   );
 }
