@@ -15,7 +15,8 @@ const TEXTURE_PATHS = {
   day: '/assets/view_middle02.png',
   night: '/assets/view_middle01.png',
   sky: '/assets/view_middle03.png',
-  city: '/assets/view_middle04.png'
+  city: '/assets/view_middle04.png',
+  cloud: '/assets/cloud/02.png'
 } as const;
 
 const TEXTURE_REPEAT = { x: 3, y: 1 };
@@ -59,10 +60,11 @@ export default function MiddleScenery({
   const isDroneMode = currentMode === VehicleMode.DRONE;
 
   // 1. 加载普通背景纹理
-  const [dayTexture, nightTexture, skyTexture] = useLoader(THREE.TextureLoader, [
+  const [dayTexture, nightTexture, skyTexture, cloudTexture] = useLoader(THREE.TextureLoader, [
     TEXTURE_PATHS.day,
     TEXTURE_PATHS.night,
-    TEXTURE_PATHS.sky
+    TEXTURE_PATHS.sky,
+    TEXTURE_PATHS.cloud
   ]);
 
   // 2. 加载城市背景纹理
@@ -102,6 +104,7 @@ export default function MiddleScenery({
       day: new THREE.MeshBasicMaterial({ ...common, map: dayTexture }),
       night: new THREE.MeshBasicMaterial({ ...common, map: nightTexture }),
       sky: new THREE.MeshBasicMaterial({ ...common, map: skyTexture }),
+      cloud: new THREE.MeshBasicMaterial({ ...common, map: cloudTexture, opacity: 0.8 }),
       city: new THREE.MeshBasicMaterial({
         ...common,
         map: cityTexture,
@@ -154,15 +157,23 @@ export default function MiddleScenery({
   // Drone模式和Flight模式渲染
   if (isDroneMode || isFlyMode) {
     const cityScale = isDroneMode ? SCALE.drone : SCALE.flight;
+    const cloudScale = 0.8;
     const cityY = isDroneMode ? yPosition + 35 : yPosition;  // Drone模式城市稍微低一点
     if (isDroneMode) {
       return (<group>
+        {/* 云背景 */}
+        <mesh
+          geometry={geometry}
+          material={materials.cloud}
+          position={[10, cityY - 55, -69]}
+          scale={[cloudScale, cloudScale, cloudScale]}
+        />
         {/* 城市背景 */}
         <mesh
           geometry={cityGeometry}
           material={materials.city}
           position={[0, cityY, CITY_Z_POSITION]}
-          scale={[cityScale, cityScale, 1]}
+          scale={[cityScale, cityScale, cityScale]}
         />
       </group>
       );
@@ -187,13 +198,13 @@ export default function MiddleScenery({
         geometry={geometry}
         material={materials.night}
         position={[0, yPosition, Z_POSITION]}
-        scale={SCALE.normal}
+        scale={[SCALE.normal, SCALE.normal, SCALE.normal]}
       />
       <mesh
         geometry={geometry}
         material={materials.day}
         position={[0, yPosition, Z_POSITION + 0.01]}
-        scale={SCALE.normal}
+        scale={[SCALE.normal, SCALE.normal, SCALE.normal]}
       />
     </>
   );
