@@ -1,50 +1,50 @@
 /**
- * WebSocket服务器 - 增强版（含心跳检测）
+ * WebSocket Server - Enhanced Version (with Heartbeat Detection)
  */
 
 import { WebSocketServer } from 'ws';
 
 const PORT = 9001;
-const HOST = '0.0.0.0'; // 监听所有网络接口，允许外部访问
-const HEARTBEAT_INTERVAL = 30000; // 30秒心跳检测
-const HEARTBEAT_TIMEOUT = 35000;  // 35秒超时
+const HOST = '0.0.0.0'; // Listen on all network interfaces, allow external access
+const HEARTBEAT_INTERVAL = 30000; // 30-second heartbeat detection
+const HEARTBEAT_TIMEOUT = 35000;  // 35-second timeout
 
 const wss = new WebSocketServer({ 
   port: PORT,
-  host: HOST  // 对外暴露
+  host: HOST  // Expose externally
 });
-const clients = new Map(); // 改用 Map 存储客户端和心跳状态
+const clients = new Map(); // Use Map to store clients and heartbeat status
 
-console.log(`🚀 WebSocket 服务器启动在端口 ${PORT}`);
-console.log(`🌐 监听地址: ${HOST}:${PORT}`);
-console.log(`📡 外部访问: ws://<your-ip>:${PORT}`);
+console.log(`🚀 WebSocket server started on port ${PORT}`);
+console.log(`🌐 Listening address: ${HOST}:${PORT}`);
+console.log(`📡 External access: ws://<your-ip>:${PORT}`);
 
-// 心跳检测定时器
+// Heartbeat detection timer
 const heartbeatInterval = setInterval(() => {
   clients.forEach((clientInfo, ws) => {
     if (!clientInfo.isAlive) {
-      console.log('💀 客户端心跳超时，强制断开');
-      ws.terminate(); // 立即终止连接
+      console.log('💀 Client heartbeat timeout, force disconnect');
+      ws.terminate(); // Immediately terminate connection
       clients.delete(ws);
       return;
     }
 
-    // 标记为待确认，发送 ping
+    // Mark as pending confirmation, send ping
     clientInfo.isAlive = false;
     ws.ping();
   });
 }, HEARTBEAT_INTERVAL);
 
 wss.on('connection', (ws) => {
-  console.log('✅ 新客户端连接');
+  console.log('✅ New client connected');
   
-  // 初始化客户端状态
+  // Initialize client state
   clients.set(ws, { 
     isAlive: true,
     connectedAt: new Date()
   });
 
-  // 收到 pong 响应，标记为存活
+  // Received pong response, mark as alive
   ws.on('pong', () => {
     const clientInfo = clients.get(ws);
     if (clientInfo) {
@@ -55,38 +55,38 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      console.log('📨 收到消息:', data.type);
+      console.log('📨 Received message:', data.type);
 
-      // 广播给所有其他存活的客户端
+      // Broadcast to all other alive clients
       clients.forEach((clientInfo, client) => {
         if (client !== ws && client.readyState === 1 && clientInfo.isAlive) {
           client.send(message);
-          console.log('📤 转发消息给客户端');
+          console.log('📤 Forward message to client');
         }
       });
     } catch (error) {
-      console.error('❌ 处理消息错误:', error);
+      console.error('❌ Error processing message:', error);
     }
   });
 
   ws.on('close', () => {
-    console.log('🔌 客户端正常断开连接');
+    console.log('🔌 Client disconnected normally');
     clients.delete(ws);
-    console.log(`📊 当前连接数: ${clients.size}`);
+    console.log(`📊 Current connections: ${clients.size}`);
   });
 
   ws.on('error', (error) => {
-    console.error('❌ WebSocket 错误:', error);
+    console.error('❌ WebSocket error:', error);
     clients.delete(ws);
-    console.log(`📊 当前连接数: ${clients.size}`);
+    console.log(`📊 Current connections: ${clients.size}`);
   });
 });
 
-// 优雅关闭
+// Graceful shutdown
 wss.on('close', () => {
   clearInterval(heartbeatInterval);
-  console.log('🛑 WebSocket 服务器关闭');
+  console.log('🛑 WebSocket server closed');
 });
 
-console.log('💡 等待客户端连接...');
-console.log(`⏱️  心跳检测: ${HEARTBEAT_INTERVAL / 1000}秒间隔`);
+console.log('💡 Waiting for client connections...');
+console.log(`⏱️  Heartbeat detection: ${HEARTBEAT_INTERVAL / 1000} second interval`);
