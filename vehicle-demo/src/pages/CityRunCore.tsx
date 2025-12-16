@@ -815,7 +815,7 @@ export default function CityRunCore({ useSimulationMode = false }: CityRunCorePr
         )}
 
         {/* Debug面板 */}
-        {isTestRoute && <DebugPanel />}
+        {/* {isTestRoute && <DebugPanel />} */}
       </div>
     </SimulationContext.Provider>
   );
