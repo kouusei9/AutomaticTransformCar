@@ -232,7 +232,7 @@ export default function CyberpunkCityDemo() {
 
       const conditions = [
         { condition: '工事中', severity: 'medium' as const, description: '道路工事のため片側通行' },
-        { condition: '渋滞発生', severity: 'high' as const, description: '事故により渋滞中' },
+        // { condition: '渋滞発生', severity: 'high' as const, description: '事故により渋滞中' },
         { condition: '速度制限', severity: 'low' as const, description: '一時的に速度制限実施中' },
         { condition: '路面凍結', severity: 'high' as const, description: '路面凍結注意' },
         { condition: '濃霧注意', severity: 'medium' as const, description: '視界不良のため注意' }
@@ -275,16 +275,16 @@ export default function CyberpunkCityDemo() {
       activeTimersRef.current.add(conditionTimer)
     }
 
-    // 初始延迟3秒后开始，然后每15-30秒随机生成一次
+    // 初始延迟5秒后开始，然后每30-45秒随机生成一次
     const initialTimeout = setTimeout(() => {
       generateRoadCondition()
       
       const interval = setInterval(() => {
         generateRoadCondition()
-      }, 15000 + Math.random() * 15000)
+      }, 30000 + Math.random() * 15000)
 
       return () => clearInterval(interval)
-    }, 3000)
+    }, 5000)
 
     return () => clearTimeout(initialTimeout)
   }, [roadConditions.length])
