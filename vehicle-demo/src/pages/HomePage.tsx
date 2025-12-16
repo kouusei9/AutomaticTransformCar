@@ -72,7 +72,7 @@ export default function HomePage() {
             fontFamily: 'monospace',
             letterSpacing: '2px'
           }}>
-            シティランデモ
+            シティラン
           </h2>
           <p style={{
             fontSize: '20px',
