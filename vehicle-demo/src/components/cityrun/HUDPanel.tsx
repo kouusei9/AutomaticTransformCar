@@ -490,6 +490,8 @@ export default function HUDPanel({
     if (useSimulationMode && !routeData) {
       console.log('🎮 シミュレーションモード: テストルート自動読み込み');
       loadTestRoute();
+      setDestinationId('A1'); // 确保目的地为京都駅
+      setStartLocationId('OUT_H1'); // 确保出发地为東京駅
     }
   }, [useSimulationMode, routeData, loadTestRoute]);
 
