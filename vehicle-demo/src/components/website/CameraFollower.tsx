@@ -9,8 +9,8 @@ import * as THREE from 'three'
 
 interface CameraFollowerProps {
   followMode: boolean
-  vehiclePosition: THREE.Vector3 | null
-  vehicleForward: THREE.Vector3 | null
+  vehiclePositionRef: React.RefObject<THREE.Vector3 | null>
+  vehicleForwardRef: React.RefObject<THREE.Vector3 | null>
   cameraRef: React.RefObject<THREE.PerspectiveCamera>
   controlsRef: React.RefObject<any>
   followDistance?: number
@@ -23,8 +23,8 @@ interface CameraFollowerProps {
 
 export function CameraFollower({
   followMode,
-  vehiclePosition,
-  vehicleForward,
+  vehiclePositionRef,
+  vehicleForwardRef,
   cameraRef,
   controlsRef,
   followDistance = 12,
@@ -47,6 +47,10 @@ export function CameraFollower({
     if (!isAutoMode) {
       overviewInitializedRef.current = false
     }
+
+    // 从refs中获取当前值
+    const vehiclePosition = vehiclePositionRef.current
+    const vehicleForward = vehicleForwardRef.current
 
     if (followMode && vehiclePosition && vehicleForward) {
       let offset: THREE.Vector3

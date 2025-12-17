@@ -91,8 +91,8 @@ export default function CyberpunkCityDemo() {
   const {
     followMode,
     selectedVehicleId,
-    vehiclePosition,
-    vehicleForward,
+    vehiclePositionRef,
+    vehicleForwardRef,
     toggleFollow,
     updateVehiclePosition,
     startFollowing,
@@ -362,9 +362,9 @@ export default function CyberpunkCityDemo() {
       const { edgeType, speedKmh, progress } = progressData
       
       // 调试日志（每60帧输出一次）
-      if (Math.random() < 0.016) {
-        console.log(`📊 更新数据: mode=${edgeType}, speed=${speedKmh.toFixed(1)} km/h, progress=${progress.toFixed(1)}%`)
-      }
+      // if (Math.random() < 0.016) {
+      //   console.log(`📊 更新数据: mode=${edgeType}, speed=${speedKmh.toFixed(1)} km/h, progress=${progress.toFixed(1)}%`)
+      // }
       
       // vehicleStatus 已初始化才更新
       if (vehicleStatus) {
@@ -415,7 +415,7 @@ export default function CyberpunkCityDemo() {
             speedUpdateTimerRef.current = setTimeout(() => {
               if (pendingSpeedRef.current !== null) {
                 setVehicleStatus(prev => prev ? { ...prev, currentSpeed: pendingSpeedRef.current! } : null)
-                console.log(`💨 速度更新: ${pendingSpeedRef.current.toFixed(1)} km/h`)
+                // console.log(`💨 速度更新: ${pendingSpeedRef.current.toFixed(1)} km/h`)
               }
               speedUpdateTimerRef.current = null
             }, 50)
@@ -543,8 +543,8 @@ export default function CyberpunkCityDemo() {
 
         <CameraFollower
           followMode={followMode}
-          vehiclePosition={vehiclePosition}
-          vehicleForward={vehicleForward}
+          vehiclePositionRef={vehiclePositionRef}
+          vehicleForwardRef={vehicleForwardRef}
           cameraRef={cameraRef}
           controlsRef={controlsRef}
           isAutoMode={isAutoMode}

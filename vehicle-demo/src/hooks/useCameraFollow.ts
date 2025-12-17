@@ -37,8 +37,9 @@ export function useCameraFollow(
   
   const [followMode, setFollowMode] = useState(false)
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
-  const [vehiclePosition, setVehiclePosition] = useState<THREE.Vector3 | null>(null)
-  const [vehicleForward, setVehicleForward] = useState<THREE.Vector3 | null>(null)
+  // 使用ref而不是state，避免Vector3对象变化导致无限重渲染
+  const vehiclePositionRef = useRef<THREE.Vector3 | null>(null)
+  const vehicleForwardRef = useRef<THREE.Vector3 | null>(null)
 
   /**
    * 开始跟踪车辆
@@ -52,8 +53,8 @@ export function useCameraFollow(
 
     setFollowMode(true)
     setSelectedVehicleId(vehicleId)
-    setVehiclePosition(position)
-    setVehicleForward(forward)
+    vehiclePositionRef.current = position.clone()
+    vehicleForwardRef.current = forward.clone()
 
     // const offset = forward.clone().multiplyScalar(-opts.followDistance)
     // offset.y += opts.followHeight
@@ -84,8 +85,8 @@ export function useCameraFollow(
 
     setFollowMode(false)
     setSelectedVehicleId(null)
-    setVehiclePosition(null)
-    setVehicleForward(null)
+    vehiclePositionRef.current = null
+    vehicleForwardRef.current = null
 
     gsap.to(cameraRef.current.position, {
       x: opts.defaultPosition.x,
@@ -127,16 +128,16 @@ export function useCameraFollow(
     forward: THREE.Vector3
   ) => {
     if (followMode && selectedVehicleId === vehicleId) {
-      setVehiclePosition(position)
-      setVehicleForward(forward)
+      vehiclePositionRef.current = position.clone()
+      vehicleForwardRef.current = forward.clone()
     }
   }, [followMode, selectedVehicleId])
 
   return {
     followMode,
     selectedVehicleId,
-    vehiclePosition,
-    vehicleForward,
+    vehiclePositionRef,
+    vehicleForwardRef,
     startFollowing,
     stopFollowing,
     toggleFollow,
@@ -146,8 +147,8 @@ export function useCameraFollow(
 
 interface CameraFollowerProps {
   followMode: boolean
-  vehiclePosition: THREE.Vector3 | null
-  vehicleForward: THREE.Vector3 | null
+  vehiclePositionRef: React.RefObject<THREE.Vector3 | null>
+  vehicleForwardRef: React.RefObject<THREE.Vector3 | null>
   cameraRef: React.RefObject<THREE.PerspectiveCamera>
   controlsRef: React.RefObject<any>
   isAutoMode?: boolean        // 是否为自动模式
@@ -156,8 +157,8 @@ interface CameraFollowerProps {
 
 export function CameraFollower({
   followMode,
-  vehiclePosition,
-  vehicleForward,
+  vehiclePositionRef,
+  vehicleForwardRef,
   cameraRef,
   controlsRef,
   isAutoMode = false,
@@ -167,10 +168,9 @@ export function CameraFollower({
   const overviewRotationRef = useRef(0)     // 全视角时的旋转角度
   const lastModeRef = useRef<'vehicle' | 'overview' | null>(null)
 
-  // 模式切换时重置旋转角度
-  useEffect(() => {
+  useFrame((state, delta) => {
+    // 模式切换检测（在useFrame中进行，避免useEffect无限循环）
     const currentMode = followMode ? 'vehicle' : 'overview'
-    
     if (lastModeRef.current !== currentMode) {
       if (currentMode === 'overview') {
         // 切换到全视角时，从当前相机角度开始
@@ -187,9 +187,6 @@ export function CameraFollower({
       }
       lastModeRef.current = currentMode
     }
-  }, [followMode, cameraRef])
-
-  useFrame((state, delta) => {
     if (!cameraRef.current || !controlsRef.current) return
     const camera = cameraRef.current
     const controls = controlsRef.current
@@ -216,6 +213,8 @@ export function CameraFollower({
     }
 
     // 车辆跟踪模式
+    const vehiclePosition = vehiclePositionRef.current
+    const vehicleForward = vehicleForwardRef.current
     if (followMode && vehiclePosition && vehicleForward) {
       const distance = 16
       const height = 6

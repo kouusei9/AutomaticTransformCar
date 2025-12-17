@@ -293,9 +293,9 @@ export const Vehicle: React.FC<VehicleProps> = ({
       const currentSpeedKmh = baseSpeed * speedVariation
       
       // Debug: 偶尔输出日志
-      if (Math.random() < 0.01) {
-        console.log(`🚗 Vehicle ${name}: edgeType=${segmentInfo.edgeType}, speed=${currentSpeedKmh.toFixed(1)} km/h, progress=${(progressRef.current * 100).toFixed(1)}%`)
-      }
+      // if (Math.random() < 0.01) {
+      //   console.log(`🚗 Vehicle ${name}: edgeType=${segmentInfo.edgeType}, speed=${currentSpeedKmh.toFixed(1)} km/h, progress=${(progressRef.current * 100).toFixed(1)}%`)
+      // }
       
       onPositionUpdate(mesh.position.clone(), tangent.clone(), {
         curveIndex,
