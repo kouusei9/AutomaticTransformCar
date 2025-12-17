@@ -648,6 +648,12 @@
       "type": "road"
     },
     {
+      "from": "B1",
+      "to": "G3",
+      "distance_km": 1.36,
+      "type": "drone"
+    },
+    {
       "from": "A3",
       "to": "B2",
       "distance_km": 3.19,
