@@ -390,21 +390,26 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
     }, []);
 
     const handleConfirm = useCallback(() => {
-        if (selectionMode === 'start') {
-            const startNode = nodes.find(n => n.id === tempStartNode);
-            if (startNode) {
-                console.log('✅ 确认出发地:', startNode.name);
-                onConfirm(tempStartNode, startNode.name);
-                onClose();
-            }
-        } else {
-            const destNode = nodes.find(n => n.id === tempDestNode);
-            if (destNode) {
-                console.log('✅ 确认目的地:', destNode.name);
-                onConfirm(tempDestNode, destNode.name);
-                onClose();
-            }
+        if (tempDestNode && tempStartNode) {
+            onConfirm(tempStartNode, tempDestNode);
+            onClose();
         }
+
+        // if (selectionMode === 'start') {
+        //     const startNode = nodes.find(n => n.id === tempStartNode);
+        //     if (startNode) {
+        //         console.log('✅ 确认出发地:', startNode.name);
+        //         onConfirm(tempStartNode, startNode.name);
+        //         onClose();
+        //     }
+        // } else {
+        //     const destNode = nodes.find(n => n.id === tempDestNode);
+        //     if (destNode) {
+        //         console.log('✅ 确认目的地:', destNode.name);
+        //         onConfirm(tempDestNode, destNode.name);
+        //         onClose();
+        //     }
+        // }
     }, [nodes, tempStartNode, tempDestNode, selectionMode, onConfirm, onClose]);
 
     if (!isOpen) return null;

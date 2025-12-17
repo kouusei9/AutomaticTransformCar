@@ -538,14 +538,14 @@ export default function HUDPanel({
     onDestinationSet?.(name);
   }, [availableLocations, onDestinationSet]);
 
-  const handleMapConfirm = useCallback((selectedId: string, selectedName: string) => {
-    if (mapSelectionMode === 'start') {
-      setStartLocationId(selectedId);
-      onStartLocationSet?.(selectedName);
-    } else {
-      setDestinationId(selectedId);
-      onDestinationSet?.(selectedName);
-    }
+  const handleMapConfirm = useCallback((startLocationId: string, destinationId: string) => {
+    // if (mapSelectionMode === 'start') {
+      setStartLocationId(startLocationId);
+      // onStartLocationSet?.(selectedName);
+    // } else {
+      setDestinationId(destinationId);
+      // onDestinationSet?.(selectedName);
+    // }
   }, [mapSelectionMode, onStartLocationSet, onDestinationSet]);
 
   // 位置变化时获取路线（仅在停止状态）
