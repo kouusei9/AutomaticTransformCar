@@ -225,23 +225,20 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
 
         ctx.globalAlpha = 1;
 
-        // 绘制节点
+        // 绘制节点（起点和终点使用SVG标记，其他节点用圆圈）
         nodes.forEach(node => {
+            // 起点和终点跳过，使用SVG标记显示
+            if (node.id === tempStartNode || node.id === tempDestNode) {
+                return;
+            }
+
             const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, canvasWidth, canvasHeight);
 
             // 节点圆圈
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
 
-            if (node.id === tempStartNode) {
-                ctx.fillStyle = '#60A5FA'; // 蓝色 - 起点
-                ctx.shadowColor = '#60A5FA';
-                ctx.shadowBlur = 15;
-            } else if (node.id === tempDestNode) {
-                ctx.fillStyle = '#F24B90'; // 粉色 - 终点
-                ctx.shadowColor = '#F24B90';
-                ctx.shadowBlur = 15;
-            } else if (node.id === hoveredNode) {
+            if (node.id === hoveredNode) {
                 ctx.fillStyle = '#EBCF65'; // 金色 - hover
                 ctx.shadowColor = '#EBCF65';
                 ctx.shadowBlur = 10;
@@ -253,14 +250,13 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 节点标签
-            if (node.id === tempStartNode || node.id === tempDestNode || node.id === hoveredNode) {
+            // 节点标签（只显示hover的节点名称）
+            // if (node.id === hoveredNode) {
                 ctx.fillStyle = '#FFFFFF';
                 ctx.font = 'bold 11px sans-serif';
                 ctx.textAlign = 'center';
-                const label = node.id === tempStartNode ? `🚩 ${node.name}` : node.id === tempDestNode ? `🎯 ${node.name}` : node.name;
-                ctx.fillText(label, pos.x, pos.y - 12);
-            }
+                ctx.fillText(node.name, pos.x, pos.y - 12);
+            // }
         });
 
     }, [isOpen, bounds, nodes, edges, tempStartNode, tempDestNode, hoveredNode, highlightedRoute, canvasSize]);
@@ -452,13 +448,107 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 </div>
 
                 {/* 地图Canvas */}
-                <canvas
-                    ref={canvasRef}
-                    className="w-full border border-cyan-500/30 rounded cursor-pointer"
-                    style={{ height: 'calc(100% - 140px)' }}
-                    onClick={handleCanvasClick}
-                    onMouseMove={handleCanvasMouseMove}
-                />
+                <div className="relative" style={{ height: 'calc(100% - 140px)' }}>
+                    <canvas
+                        ref={canvasRef}
+                        className="w-full h-full border border-cyan-500/30 rounded cursor-pointer"
+                        onClick={handleCanvasClick}
+                        onMouseMove={handleCanvasMouseMove}
+                    />
+                    
+                    {/* SVG标记层 - 起点和终点 */}
+                    {bounds && canvasRef.current && (
+                        <>
+                            {/* 起点标记 */}
+                            {tempStartNode && (() => {
+                                const node = nodes.find(n => n.id === tempStartNode);
+                                if (!node) return null;
+                                const rect = canvasRef.current!.getBoundingClientRect();
+                                const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
+                                return (
+                                    <div
+                                        className="absolute pointer-events-none"
+                                        style={{
+                                            left: `${pos.x}px`,
+                                            top: `${pos.y}px`,
+                                            transform: 'translate(-50%, -100%)',
+                                            width: 'clamp(30px, 2vw, 60px)',
+                                        }}
+                                    >
+                                        <svg
+                                            viewBox="0 0 41 51"
+                                            className="w-full h-auto drop-shadow-lg"
+                                            preserveAspectRatio="xMidYMid meet"
+                                        >
+                                            <path
+                                                d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+                                                fill="#60A5FA"
+                                                stroke="#1F2937"
+                                                strokeWidth="1"
+                                            />
+                                            <text
+                                                x="20.5"
+                                                y="30"
+                                                fontSize="20"
+                                                fontWeight="bold"
+                                                fill="#ffffffff"
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                            >
+                                                発
+                                            </text>
+                                        </svg>
+                                    </div>
+                                );
+                            })()}
+                            
+                            {/* 终点标记 */}
+                            {tempDestNode && (() => {
+                                const node = nodes.find(n => n.id === tempDestNode);
+                                if (!node) return null;
+                                const rect = canvasRef.current!.getBoundingClientRect();
+                                const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
+                                return (
+                                    <div
+                                        className="absolute pointer-events-none"
+                                        style={{
+                                            left: `${pos.x}px`,
+                                            top: `${pos.y}px`,
+                                            transform: 'translate(-50%, -100%)',
+                                            width: 'clamp(30px, 2vw, 60px)',
+                                        }}
+                                    >
+                                        <svg
+                                            viewBox="0 0 41 51"
+                                            className="w-full h-auto drop-shadow-lg"
+                                            preserveAspectRatio="xMidYMid meet"
+                                            style={{ transform: 'rotate(180deg)' }}
+                                        >
+                                            <path
+                                                d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+                                                fill="#F24B90"
+                                                stroke="#1F2937"
+                                                strokeWidth="1"
+                                            />
+                                            <text
+                                                x="20.5"
+                                                y="30"
+                                                fontSize="20"
+                                                fontWeight="bold"
+                                                fill="#ffffffff"
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                                style={{ transform: 'rotate(180deg)', transformOrigin: '20.5px 30px' }}
+                                            >
+                                                着
+                                            </text>
+                                        </svg>
+                                    </div>
+                                );
+                            })()}
+                        </>
+                    )}
+                </div>
 
                 {/* 底部按钮 */}
                 <div className="mt-4 flex justify-between items-center">

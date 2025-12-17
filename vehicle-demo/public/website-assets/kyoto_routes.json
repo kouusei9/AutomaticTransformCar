@@ -406,33 +406,6 @@
       "type": "point"
     },
     {
-      "id": "J1",
-      "name": "商業区",
-      "coordinates": {
-        "lat": 35.055,
-        "lng": 135.77
-      },
-      "type": "point"
-    },
-    {
-      "id": "J2",
-      "name": "寺院丘",
-      "coordinates": {
-        "lat": 35.055,
-        "lng": 135.785
-      },
-      "type": "point"
-    },
-    {
-      "id": "J3",
-      "name": "詩仙園",
-      "coordinates": {
-        "lat": 35.105,
-        "lng": 135.785
-      },
-      "type": "point"
-    },
-    {
       "id": "J4",
       "name": "北丘",
       "coordinates": {
@@ -816,18 +789,6 @@
       "type": "road"
     },
     {
-      "from": "H2",
-      "to": "J2",
-      "distance_km": 0,
-      "type": "road"
-    },
-    {
-      "from": "J2",
-      "to": "D4",
-      "distance_km": 2.78,
-      "type": "road"
-    },
-    {
       "from": "C5",
       "to": "H3",
       "distance_km": 1.82,
@@ -853,20 +814,8 @@
     },
     {
       "from": "D5",
-      "to": "J3",
-      "distance_km": 0,
-      "type": "road"
-    },
-    {
-      "from": "J3",
       "to": "J4",
       "distance_km": 3.34,
-      "type": "road"
-    },
-    {
-      "from": "H3",
-      "to": "J3",
-      "distance_km": 3.18,
       "type": "road"
     },
     {
