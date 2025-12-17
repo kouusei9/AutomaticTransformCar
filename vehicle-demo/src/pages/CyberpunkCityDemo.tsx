@@ -70,12 +70,20 @@ export default function CyberpunkCityDemo() {
     progress: number
   } | null>(null)
 
-  // 用于延迟更新速度的 ref
-  const speedUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingSpeedRef = useRef<number | null>(null)
-  
+  // 实时状态数据的 ref（避免每帧更新 state 导致的无限循环）
+  const vehicleStatusRef = useRef<{
+    currentMode: string
+    currentSpeed: number
+    distanceToDestination: number
+    remainingTime: number
+    progress: number
+  } | null>(null)
+
   // 用于跟踪所有通知和道路状况的 timer
   const activeTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
+  
+  // 存储getVehicleRoute函数的ref，避免在useCallback中依赖它
+  const getVehicleRouteRef = useRef<((vehicleId: string) => any) | null>(null)
 
   // 车辆路线管理
   const {
@@ -86,6 +94,9 @@ export default function CyberpunkCityDemo() {
     removeVehicle,
     getVehicleRoute
   } = useVehicleRoutes(INITIAL_VEHICLE_ROUTES)
+  
+  // 同步 getVehicleRoute 到 ref
+  getVehicleRouteRef.current = getVehicleRoute
 
   // 相机跟踪
   const {
@@ -183,13 +194,7 @@ export default function CyberpunkCityDemo() {
   const handleSwitchToOverview = useCallback(() => {
     stopFollowing()
     setVehicleStatus(null)
-    
-    // 清除速度更新定时器
-    if (speedUpdateTimerRef.current) {
-      clearTimeout(speedUpdateTimerRef.current)
-      speedUpdateTimerRef.current = null
-    }
-    pendingSpeedRef.current = null
+    vehicleStatusRef.current = null
   }, [stopFollowing])
 
   // 自动视角切换
@@ -366,77 +371,55 @@ export default function CyberpunkCityDemo() {
     }
   }
 
-  // 车辆位置更新处理
-  const handlePositionUpdate = (vehicleId: string) => (position: THREE.Vector3, forward: THREE.Vector3, progressData?: { curveIndex: number; edgeType: string; speedKmh: number; progress: number }) => {
-    updateVehiclePosition(vehicleId, position, forward)
-    
-    // 如果是当前跟踪的车辆且有进度数据
-    if (vehicleId === selectedVehicleId && progressData) {
-      const { edgeType, speedKmh, progress } = progressData
-      
-      // 调试日志（每60帧输出一次）
-      // if (Math.random() < 0.016) {
-      //   console.log(`📊 更新数据: mode=${edgeType}, speed=${speedKmh.toFixed(1)} km/h, progress=${progress.toFixed(1)}%`)
-      // }
-      
-      // vehicleStatus 已初始化才更新
-      if (vehicleStatus) {
-        const route = getVehicleRoute(vehicleId)
-        if (route) {
-          // 计算进度百分比（直接使用传入的progress）
-          const progressPercent = progress * 100
-          
-          // 计算到终点的距离（根据总距离和进度）
-          const distanceToDestination = vehicleStatus.totalDistance * (1 - progress)
-          
-          // 计算剩余时间（基于当前速度）
-          const remainingTime = speedKmh > 0 ? (distanceToDestination / 1000) / speedKmh * 60 : 0
-          
-          // 立即更新模式和进度相关信息（放宽更新条件）
-          if (edgeType !== vehicleStatus.currentMode || 
-              Math.abs(progressPercent - vehicleStatus.progress) > 0.05 ||
-              Math.abs(distanceToDestination - vehicleStatus.distanceToDestination) > 50) {
-            
-            setVehicleStatus(prev => prev ? { 
-              ...prev, 
-              currentMode: edgeType,
-              distanceToDestination: distanceToDestination,
-              remainingTime: remainingTime,
-              progress: progressPercent
-            } : null)
-            
-            if (edgeType !== vehicleStatus.currentMode) {
-              console.log(`🔄 模式更新: ${vehicleStatus.currentMode} → ${edgeType}`)
-            }
-          }
-          
-          // 延迟更新速度（降低阈值到10 km/h）
-          if (pendingSpeedRef.current === null) {
-            pendingSpeedRef.current = speedKmh
-          }
-          
-          const speedDiff = Math.abs(speedKmh - vehicleStatus.currentSpeed)
-          if (speedDiff > 10) {
-            pendingSpeedRef.current = speedKmh
-            
-            // 清除之前的定时器
-            if (speedUpdateTimerRef.current) {
-              clearTimeout(speedUpdateTimerRef.current)
-            }
-            
-            // 设置新的延迟更新（500ms后更新）
-            speedUpdateTimerRef.current = setTimeout(() => {
-              if (pendingSpeedRef.current !== null) {
-                setVehicleStatus(prev => prev ? { ...prev, currentSpeed: pendingSpeedRef.current! } : null)
-                // console.log(`💨 速度更新: ${pendingSpeedRef.current.toFixed(1)} km/h`)
-              }
-              speedUpdateTimerRef.current = null
-            }, 50)
-          }
+  // 车辆位置更新处理 - 只更新 ref，不触发 state 更新
+  const handlePositionUpdate = useCallback(
+    (vehicleId: string) =>
+      (position: THREE.Vector3, forward: THREE.Vector3, progressData?: {
+        curveIndex: number
+        edgeType: string
+        speedKmh: number
+        progress: number
+      }) => {
+        updateVehiclePosition(vehicleId, position, forward)
+
+        if (vehicleId !== selectedVehicleId || !progressData) return
+
+        const { edgeType, speedKmh, progress } = progressData
+        const route = getVehicleRouteRef.current?.(vehicleId)
+        if (!route) return
+
+        const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
+        const distanceToDestination = totalDistance * (1 - progress)
+
+        // 只更新 ref，不触发重渲染
+        vehicleStatusRef.current = {
+          currentMode: edgeType,
+          currentSpeed: speedKmh,
+          distanceToDestination,
+          remainingTime: speedKmh > 0 ? (distanceToDestination / 1000 / speedKmh) * 60 : 0,
+          progress: progress * 100
         }
-      }
-    }
-  }
+      },
+    [selectedVehicleId, updateVehiclePosition]
+  )
+
+  // 定期将 ref 中的实时数据同步到 state（200ms = 5fps，避免每帧更新）
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!vehicleStatusRef.current) return
+
+      setVehicleStatus(prev => {
+        if (!prev) return prev
+
+        return {
+          ...prev,
+          ...vehicleStatusRef.current
+        }
+      })
+    }, 200) // 5fps 更新 UI，足够顺滑
+
+    return () => clearInterval(interval)
+  }, [])
 
   // 车辆到达终点的回调
   const handleVehicleComplete = (vehicleId: string) => {
