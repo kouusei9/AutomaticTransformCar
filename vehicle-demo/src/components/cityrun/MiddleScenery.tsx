@@ -72,7 +72,7 @@ export default function MiddleScenery({
 
   // 配置纹理
   useEffect(() => {
-    [dayTexture, nightTexture].forEach(texture => {
+    [dayTexture, nightTexture, skyTexture].forEach(texture => {
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(TEXTURE_REPEAT.x, TEXTURE_REPEAT.y);
@@ -80,7 +80,7 @@ export default function MiddleScenery({
       texture.needsUpdate = true; // 🔥 关键
     });
 
-    [cloudTexture, cityTexture, skyTexture].forEach(texture => {
+    [cloudTexture, cityTexture].forEach(texture => {
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(1, 1);
