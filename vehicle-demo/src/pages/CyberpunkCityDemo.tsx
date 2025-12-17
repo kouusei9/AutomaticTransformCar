@@ -228,51 +228,54 @@ export default function CyberpunkCityDemo() {
   // 随机生成道路状况板（最多5个）
   useEffect(() => {
     const generateRoadCondition = () => {
-      if (roadConditions.length >= 5) return
+      // 使用函数式更新，在回调中检查长度
+      setRoadConditions(prev => {
+        if (prev.length >= 5) return prev
 
-      const conditions = [
-        { condition: '工事中', severity: 'medium' as const, description: '道路工事のため片側通行' },
-        // { condition: '渋滞発生', severity: 'high' as const, description: '事故により渋滞中' },
-        { condition: '速度制限', severity: 'low' as const, description: '一時的に速度制限実施中' },
-        { condition: '路面凍結', severity: 'high' as const, description: '路面凍結注意' },
-        { condition: '濃霧注意', severity: 'medium' as const, description: '視界不良のため注意' }
-      ]
+        const conditions = [
+          { condition: '工事中', severity: 'medium' as const, description: '道路工事のため片側通行' },
+          // { condition: '渋滞発生', severity: 'high' as const, description: '事故により渋滞中' },
+          { condition: '速度制限', severity: 'low' as const, description: '一時的に速度制限実施中' },
+          { condition: '路面凍結', severity: 'high' as const, description: '路面凍結注意' },
+          { condition: '濃霧注意', severity: 'medium' as const, description: '視界不良のため注意' }
+        ]
 
-      const randomCondition = conditions[Math.floor(Math.random() * conditions.length)]
-      const randomX = (Math.random() - 0.5) * 150
-      const randomZ = (Math.random() - 0.5) * 150
-      const randomY = 25 + Math.random() * 20
+        const randomCondition = conditions[Math.floor(Math.random() * conditions.length)]
+        const randomX = (Math.random() - 0.5) * 150
+        const randomZ = (Math.random() - 0.5) * 150
+        const randomY = 25 + Math.random() * 20
 
-      const newCondition = {
-        id: `road-${Date.now()}-${Math.random()}`,
-        position: [randomX, randomY, randomZ] as [number, number, number],
-        ...randomCondition,
-        timestamp: Date.now()
-      }
+        const newCondition = {
+          id: `road-${Date.now()}-${Math.random()}`,
+          position: [randomX, randomY, randomZ] as [number, number, number],
+          ...randomCondition,
+          timestamp: Date.now()
+        }
 
-      setRoadConditions(prev => [...prev, newCondition])
+        // 添加通知
+        const notification = {
+          id: `notif-${Date.now()}`,
+          message: `🚧 ${randomCondition.condition}: ${randomCondition.description}`,
+          timestamp: Date.now()
+        }
+        setNotifications(prevNotif => [...prevNotif, notification])
 
-      // 添加通知
-      const notification = {
-        id: `notif-${Date.now()}`,
-        message: `🚧 ${randomCondition.condition}: ${randomCondition.description}`,
-        timestamp: Date.now()
-      }
-      setNotifications(prev => [...prev, notification])
+        // 5秒后自动移除通知 - 保存 timer 引用
+        const notificationTimer = setTimeout(() => {
+          setNotifications(prevNotif => prevNotif.filter(n => n.id !== notification.id))
+          activeTimersRef.current.delete(notificationTimer)
+        }, 5000)
+        activeTimersRef.current.add(notificationTimer)
 
-      // 5秒后自动移除通知 - 保存 timer 引用
-      const notificationTimer = setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== notification.id))
-        activeTimersRef.current.delete(notificationTimer)
-      }, 5000)
-      activeTimersRef.current.add(notificationTimer)
+        // 5秒后自动移除道路状况板 - 保存 timer 引用
+        const conditionTimer = setTimeout(() => {
+          setRoadConditions(prevCond => prevCond.filter(c => c.id !== newCondition.id))
+          activeTimersRef.current.delete(conditionTimer)
+        }, 5000)
+        activeTimersRef.current.add(conditionTimer)
 
-      // 5秒后自动移除道路状况板 - 保存 timer 引用
-      const conditionTimer = setTimeout(() => {
-        setRoadConditions(prev => prev.filter(c => c.id !== newCondition.id))
-        activeTimersRef.current.delete(conditionTimer)
-      }, 5000)
-      activeTimersRef.current.add(conditionTimer)
+        return [...prev, newCondition]
+      })
     }
 
     // 初始延迟5秒后开始，然后每30-45秒随机生成一次
@@ -283,11 +286,21 @@ export default function CyberpunkCityDemo() {
         generateRoadCondition()
       }, 30000 + Math.random() * 15000)
 
-      return () => clearInterval(interval)
+      activeTimersRef.current.add(interval)
+
+      return () => {
+        clearInterval(interval)
+        activeTimersRef.current.delete(interval)
+      }
     }, 5000)
 
-    return () => clearTimeout(initialTimeout)
-  }, [roadConditions.length])
+    activeTimersRef.current.add(initialTimeout)
+
+    return () => {
+      clearTimeout(initialTimeout)
+      activeTimersRef.current.delete(initialTimeout)
+    }
+  }, []) // 空依赖数组，只在组件挂载时运行一次
   
   // 组件卸载时清理所有 timer
   useEffect(() => {
