@@ -72,17 +72,25 @@ export default function MiddleScenery({
 
   // 配置纹理
   useEffect(() => {
-    [dayTexture, nightTexture, skyTexture].forEach(texture => {
+    [dayTexture, nightTexture].forEach(texture => {
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(TEXTURE_REPEAT.x, TEXTURE_REPEAT.y);
       texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true; // 🔥 关键
     });
 
-    cityTexture.wrapS = THREE.RepeatWrapping;
-    cityTexture.repeat.set(1, 1);
-    cityTexture.center.set(0.5, 0.5);
-    cityTexture.colorSpace = THREE.SRGBColorSpace;
+    [cloudTexture, cityTexture, skyTexture].forEach(texture => {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(1, 1);
+      texture.center.set(0.5, 0.5);
+      texture.colorSpace = THREE.SRGBColorSpace;
+    });
+    // cityTexture.wrapS = THREE.RepeatWrapping;
+    // cityTexture.repeat.set(1, 1);
+    // cityTexture.center.set(0.5, 0.5);
+    // cityTexture.colorSpace = THREE.SRGBColorSpace;
 
   }, [dayTexture, nightTexture, skyTexture, cityTexture]);
 
@@ -146,9 +154,9 @@ export default function MiddleScenery({
     if (isDroneMode || isFlyMode) {
       cityTexture.offset.x = offsetRef.current * 0.15;  // 稍微加快移动
     } else {
-      dayTexture.offset.x = -offsetRef.current;
-      nightTexture.offset.x = -offsetRef.current;
-      skyTexture.offset.x = -offsetRef.current;
+      dayTexture.offset.x = (-offsetRef.current) % 1;
+      nightTexture.offset.x = (-offsetRef.current) % 1;
+      skyTexture.offset.x = (-offsetRef.current) % 1;
     }
   });
 
