@@ -436,7 +436,7 @@
       "id": "J4",
       "name": "北丘",
       "coordinates": {
-        "lat": 35.12,
+        "lat": 35.135,
         "lng": 135.785
       },
       "type": "point"
@@ -447,7 +447,7 @@
       "from": "A2",
       "to": "A1",
       "distance_km": 8.34,
-      "type": "drone"
+      "type": "road"
     },
     {
       "from": "A1",
@@ -561,7 +561,7 @@
       "from": "D1",
       "to": "H1",
       "distance_km": 3.1,
-      "type": "road"
+      "type": "highway"
     },
     {
       "from": "E1",
@@ -657,7 +657,7 @@
       "from": "A4",
       "to": "B3",
       "distance_km": 3.19,
-      "type": "road"
+      "type": "drone"
     },
     {
       "from": "A5",
@@ -732,6 +732,12 @@
       "type": "road"
     },
     {
+      "from": "I3",
+      "to": "A5",
+      "distance_km": 1.37,
+      "type": "drone"
+    },
+    {
       "from": "I1",
       "to": "C1",
       "distance_km": 0.91,
@@ -789,7 +795,7 @@
       "from": "A2",
       "to": "D1",
       "distance_km": 3.19,
-      "type": "road"
+      "type": "drone"
     },
     {
       "from": "E2",
@@ -848,7 +854,7 @@
     {
       "from": "J3",
       "to": "J4",
-      "distance_km": 1.67,
+      "distance_km": 3.34,
       "type": "road"
     },
     {
