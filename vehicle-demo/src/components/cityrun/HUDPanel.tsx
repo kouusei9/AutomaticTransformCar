@@ -277,20 +277,15 @@ function RoutePreview({ routeData }: RoutePreviewProps) {
 
   return (
     <div className="mt-4 p-3 bg-gray-800/40 rounded border border-cyan-500/10">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[14px] text-gray-400 font-mono">推定距離</span>
+      <div className="flex justify-center items-center gap-6">
         <span className="text-sm text-cyan-300 font-mono font-bold">
           {formatDistance(totalDistance)}
         </span>
-      </div>
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[14px] text-gray-400 font-mono">推定時間</span>
+        <span className="text-gray-600">|</span>
         <span className="text-sm text-purple-300 font-mono font-bold">
           {formatTime(totalTime)}
         </span>
-      </div>
-      <div className="flex justify-between items-center">
-        <span className="text-[14px] text-gray-400 font-mono">経路種類</span>
+        <span className="text-gray-600">|</span>
         <span className="text-sm text-blue-300 font-mono font-bold">
           {roadTypeCount} <span className="text-[12px] font-normal text-gray-500">種類</span>
         </span>
