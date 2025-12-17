@@ -85,14 +85,14 @@ function getSpeedLimit(mode: number): number {
 }
 
 /**
- * 使用 BFS 查找两点之间的路径
+ * 使用 Dijkstra 算法查找两点之间速度最快的路径
  */
 function findPath(
   startId: string,
   endId: string,
   edges: KyotoEdge[]
 ): string[] | null {
-  // 构建邻接表
+  // 构建邻接表（包含边信息）
   const graph = new Map<string, { to: string; edge: KyotoEdge }[]>();
 
   edges.forEach(edge => {
@@ -109,27 +109,90 @@ function findPath(
     graph.get(edge.to)!.push({ to: edge.from, edge });
   });
 
-  // BFS 查找「跳数最少」的路径
-  const queue: { nodeId: string; path: string[] }[] = [{ nodeId: startId, path: [startId] }];
-  const visited = new Set<string>([startId]);
+  // Dijkstra 算法数据结构
+  const distances = new Map<string, number>(); // 到达每个节点的最短时间
+  const previous = new Map<string, string>(); // 最短路径的前驱节点
+  const unvisited = new Set<string>(); // 未访问的节点集合
 
-  while (queue.length > 0) {
-    const { nodeId, path } = queue.shift()!;
+  // 初始化所有节点距离为无穷大
+  graph.forEach((_, nodeId) => {
+    distances.set(nodeId, Infinity);
+    unvisited.add(nodeId);
+  });
 
-    if (nodeId === endId) {
-      return path;
+  // 起点距离为0
+  distances.set(startId, 0);
+
+  while (unvisited.size > 0) {
+    // 找到未访问节点中距离最小的节点
+    let currentNode: string | null = null;
+    let minDistance = Infinity;
+
+    for (const nodeId of unvisited) {
+      const distance = distances.get(nodeId)!;
+      if (distance < minDistance) {
+        minDistance = distance;
+        currentNode = nodeId;
+      }
     }
 
-    const neighbors = graph.get(nodeId) || [];
-    for (const { to } of neighbors) {
-      if (!visited.has(to)) {
-        visited.add(to);
-        queue.push({ nodeId: to, path: [...path, to] });
+    // 如果没有可达的节点，退出
+    if (currentNode === null || minDistance === Infinity) {
+      break;
+    }
+
+    // 如果找到终点，提前退出
+    if (currentNode === endId) {
+      break;
+    }
+
+    // 标记当前节点为已访问
+    unvisited.delete(currentNode);
+
+    // 更新邻居节点的距离
+    const neighbors = graph.get(currentNode) || [];
+    for (const { to, edge } of neighbors) {
+      if (!unvisited.has(to)) continue;
+
+      // 计算通过当前节点到达邻居的时间
+      const mode = getEdgeMode(edge.type);
+      const speedLimit = getSpeedLimit(mode);
+      const cost = (edge.distance_km / speedLimit) * 3_600_000; // km / (km/h) * ms/h
+
+      const newDistance = distances.get(currentNode)! + cost;
+
+      // 如果找到更短的路径，更新距离和前驱
+      if (newDistance < distances.get(to)!) {
+        distances.set(to, newDistance);
+        previous.set(to, currentNode);
       }
     }
   }
 
-  return null; // 没有找到路径
+  // 如果终点不可达
+  if (!previous.has(endId) && startId !== endId) {
+    return null;
+  }
+
+  // 重建路径
+  const path: string[] = [];
+  let current: string | undefined = endId;
+
+  while (current !== undefined) {
+    path.unshift(current);
+    if (current === startId) break;
+    current = previous.get(current);
+  }
+
+  // 验证路径是否有效
+  if (path.length === 0 || path[0] !== startId) {
+    return null;
+  }
+
+  const totalTime = distances.get(endId)!;
+  console.log(`🚀 Dijkstra找到最快路径: ${path.join(' → ')} (总时间: ${(totalTime / 60000).toFixed(2)} 分钟)`);
+
+  return path;
 }
 
 /**
