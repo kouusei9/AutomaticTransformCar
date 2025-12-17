@@ -21,8 +21,12 @@ const EDGE_COLORS = {
 
 // 坐标转换：将经纬度转换为Canvas坐标
 function latLngToCanvas(lat: number, lng: number, bounds: any, canvasWidth: number, canvasHeight: number) {
-    const x = ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * canvasWidth;
-    const y = canvasHeight - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * canvasHeight;
+    const padding = 30; // 上下左右留出空间，避免标签被裁剪
+    const availableWidth = canvasWidth - padding * 2;
+    const availableHeight = canvasHeight - padding * 2;
+    
+    const x = padding + ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * availableWidth;
+    const y = canvasHeight - padding - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * availableHeight;
     return { x, y };
 }
 
@@ -32,6 +36,9 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
     const [tempStartNode, setTempStartNode] = useState<string>(startLocationId);
     const [tempDestNode, setTempDestNode] = useState<string>(destinationId);
     const [highlightedRoute, setHighlightedRoute] = useState<RouteResponse | null>(null);
+    
+    // 内部状态：当前正在选择起点还是终点（独立于外部selectionMode）
+    const [internalSelectionMode, setInternalSelectionMode] = useState<'start' | 'destination'>('start');
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -50,13 +57,22 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         };
     }, [nodes]);
 
-    // 初始化临时选择节点
+    // 初始化临时选择节点和内部选择模式
     useEffect(() => {
         if (isOpen) {
             setTempStartNode(startLocationId);
             setTempDestNode(destinationId);
+            
+            // 根据外部selectionMode初始化内部状态
+            if (selectionMode === 'start') {
+                // 点击"着"：第一次选择出发地
+                setInternalSelectionMode('start');
+            } else {
+                // 点击"発"：第一次选择目的地
+                setInternalSelectionMode('destination');
+            }
         }
-    }, [isOpen, startLocationId, destinationId]);
+    }, [isOpen, startLocationId, destinationId, selectionMode]);
 
     // 加载地图数据
     useEffect(() => {
@@ -276,24 +292,41 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             return;
         }
 
-        const isStart = selectionMode === 'start';
-        const label = isStart ? '出発地' : '目的地';
-        console.log('🎯 选择节点:', closestNode.name, closestNode.id, '模式:', label);
-
-        // 更新对应的节点
-        const newStartId = isStart ? closestNode.id : tempStartNode;
-        const newDestId = isStart ? tempDestNode : closestNode.id;
-
-        if (isStart) {
-            setTempStartNode(closestNode.id);
-        } else {
-            setTempDestNode(closestNode.id);
+        // 检查是否选择了相同的节点
+        if (closestNode.id === tempStartNode && closestNode.id === tempDestNode) {
+            console.log('⚠️ 出発地と目的地は同じにできません');
+            return;
         }
-        console.log(`✅ 已设置${label}:`, closestNode.name);
+
+        let newStartId = tempStartNode;
+        let newDestId = tempDestNode;
+
+        if (internalSelectionMode === 'start') {
+            // 当前正在选择出发地
+            console.log('✅ 选择出発地:', closestNode.name);
+            newStartId = closestNode.id;
+            setTempStartNode(closestNode.id);
+            
+            // 清除目的地和高亮路线
+            newDestId = '';
+            setTempDestNode('');
+            setHighlightedRoute(null);
+            
+            // 切换到选择目的地模式
+            setInternalSelectionMode('destination');
+        } else {
+            // 当前正在选择目的地
+            console.log('✅ 选择目的地:', closestNode.name);
+            newDestId = closestNode.id;
+            setTempDestNode(closestNode.id);
+            
+            // 切换到选择出发地模式
+            setInternalSelectionMode('start');
+        }
 
         // 如果起点终点都存在且不同，计算路线
         if (newStartId && newDestId && newStartId !== newDestId) {
-            console.log('📍 重新计算路线:', { start: newStartId, dest: newDestId });
+            console.log('📍 计算路线:', { start: newStartId, dest: newDestId });
             try {
                 const route = await generateRoute(newStartId, newDestId);
                 if (route) {
@@ -310,7 +343,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         } else {
             setHighlightedRoute(null);
         }
-    }, [bounds, nodes, selectionMode, tempStartNode, tempDestNode]);
+    }, [bounds, nodes, internalSelectionMode, tempStartNode, tempDestNode]);
 
     // 处理鼠标移动（显示hover效果）- 使用RAF节流
     const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -426,7 +459,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 <div className="mt-4 flex justify-between items-center">
                     <div className="text-sm space-y-1">
                         <div className="text-yellow-300 text-base font-bold mb-2">
-                            {selectionMode === 'start' ? '🚩 出発地を選択してください' : '🎯 目的地を選択してください'}
+                            {internalSelectionMode === 'start' ? '🚩 出発地を選択してください' : '🎯 目的地を選択してください'}
                         </div>
                         <div className="text-cyan-300">
                             🚩 出発: {nodes.find(n => n.id === tempStartNode)?.name || '未選択'}
