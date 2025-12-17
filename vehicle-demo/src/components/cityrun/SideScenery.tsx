@@ -453,6 +453,7 @@ export default function SideScenery({
 
     // 循环距离
     const loopDistance = TREE_CONFIG.count * TREE_CONFIG.spacing;
+    const droneBuildingLoopDistance = DRONE_BUILDING_CONFIG.count * DRONE_BUILDING_CONFIG.spacing;
     const cloudLoopDistance = CLOUD_CONFIG.count * CLOUD_CONFIG.spacing;
 
     // 动画更新
@@ -482,13 +483,14 @@ export default function SideScenery({
         // 地面和树木移动
         groundOffsetRef.current += delta * speed / 100 * speedMultiplier;
         asphaltTexture.offset.y = groundOffsetRef.current;
-
+        
         const treeSpeed = delta * speed / 10 * speedMultiplier;
+        const currentLoopDistance = isDroneMode ? droneBuildingLoopDistance : loopDistance;
         [group1Ref, group2Ref].forEach(ref => {
             if (ref.current) {
                 ref.current.position.z += treeSpeed;
-                if (ref.current.position.z > loopDistance) {
-                    ref.current.position.z -= loopDistance * 2;
+                if (ref.current.position.z > currentLoopDistance) {
+                    ref.current.position.z -= currentLoopDistance * 2;
                 }
             }
         });
@@ -562,7 +564,7 @@ export default function SideScenery({
             <>
                 {/* Drone mode: 只显示建筑顶部 */}
                 {renderDroneBuildingGroup(group1Ref, 0, 'drone-building1')}
-                {renderDroneBuildingGroup(group2Ref, -loopDistance, 'drone-building2')}
+                {renderDroneBuildingGroup(group2Ref, droneBuildingLoopDistance, 'drone-building2')}
             </>
         );
     }
