@@ -24,25 +24,21 @@ export interface KyotoRoutesData {
   edges: KyotoEdge[];
 }
 
-let cachedData: KyotoRoutesData | null = null;
+let cachePromise: Promise<KyotoRoutesData> | null = null;
 
 /**
  * 加载 kyoto_routes.json 数据
  */
-export async function loadKyotoRoutes(): Promise<KyotoRoutesData> {
-  if (cachedData) {
-    return cachedData;
+export function loadKyotoRoutes(): Promise<KyotoRoutesData> {
+  if (!cachePromise) {
+    cachePromise = fetch('/website-assets/kyoto_routes.json')
+      .then(res => res.json())
+      .catch(err => {
+        cachePromise = null;  // 失败时重置，允许重试
+        throw err;
+      });
   }
-
-  try {
-    const response = await fetch('/website-assets/kyoto_routes.json');
-    const data = await response.json();
-    cachedData = data;
-    return data;
-  } catch (error) {
-    console.error('❌ 加载 kyoto_routes.json 失败:', error);
-    throw error;
-  }
+  return cachePromise;
 }
 
 /**
@@ -98,14 +94,14 @@ function findPath(
 ): string[] | null {
   // 构建邻接表
   const graph = new Map<string, { to: string; edge: KyotoEdge }[]>();
-  
+
   edges.forEach(edge => {
     // 添加正向边
     if (!graph.has(edge.from)) {
       graph.set(edge.from, []);
     }
     graph.get(edge.from)!.push({ to: edge.to, edge });
-    
+
     // 添加反向边（假设所有边都是双向的）
     if (!graph.has(edge.to)) {
       graph.set(edge.to, []);
@@ -113,7 +109,7 @@ function findPath(
     graph.get(edge.to)!.push({ to: edge.from, edge });
   });
 
-  // BFS 查找最短路径
+  // BFS 查找「跳数最少」的路径
   const queue: { nodeId: string; path: string[] }[] = [{ nodeId: startId, path: [startId] }];
   const visited = new Set<string>([startId]);
 
@@ -144,11 +140,11 @@ export async function generateRoute(
   endId: string
 ): Promise<RouteResponse | null> {
   const data = await loadKyotoRoutes();
-  
+
   // 查找节点
   const startNode = data.nodes.find(n => n.id === startId);
   const endNode = data.nodes.find(n => n.id === endId);
-  
+
   if (!startNode || !endNode) {
     console.error('❌ 找不到节点:', { startId, endId });
     return null;
@@ -156,7 +152,7 @@ export async function generateRoute(
 
   // 查找路径
   const path = findPath(startId, endId, data.edges);
-  
+
   if (!path || path.length < 2) {
     console.error('❌ 无法找到路径:', { startId, endId });
     return null;
@@ -176,17 +172,17 @@ export async function generateRoute(
 
   // 构建路线边
   const routeEdges: RouteEdge[] = [];
-  
+
   for (let i = 0; i < path.length - 1; i++) {
     const fromId = path[i];
     const toId = path[i + 1];
-    
+
     // 查找对应的边（正向或反向）
     let edge = data.edges.find(e => e.from === fromId && e.to === toId);
     if (!edge) {
       edge = data.edges.find(e => e.from === toId && e.to === fromId);
     }
-    
+
     if (!edge) {
       console.warn('⚠️ 找不到边:', { fromId, toId });
       continue;
@@ -194,8 +190,8 @@ export async function generateRoute(
 
     const mode = getEdgeMode(edge.type);
     const speedLimit = getSpeedLimit(mode);
-    const length = edge.distance_km * 1000; // 转换为米
-    const cost = (length / speedLimit) * 3600; // 计算时间（毫秒）
+    const length = edge.distance_km * 1000;
+    const cost = (edge.distance_km / speedLimit) * 3_600_000; // km / (km/h) * ms/h
 
     routeEdges.push({
       seq: i + 1,
