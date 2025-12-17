@@ -674,8 +674,8 @@ export default function CyberpunkCityDemo() {
         style={{
           position: 'absolute',
           top: 20,
-          left: isOverviewExpanded ? '50%' : 20,
-          transform: isOverviewExpanded ? 'translateX(-50%) scale(1)' : 'scale(1)',
+          left: 20,
+          transform: isOverviewExpanded ? 'translateX(20px) scale(1)' : 'scale(1)',
           color: '#00ffff',
           fontFamily: 'monospace',
           fontSize: isOverviewExpanded ? '17px' : '16px',
@@ -688,7 +688,7 @@ export default function CyberpunkCityDemo() {
           zIndex: 10,
           pointerEvents: selectedVehicleId ? 'none' : 'auto',
           textAlign: 'left',
-          width: isOverviewExpanded ? 'calc(100vw - 100px)' : 'auto',
+          width: isOverviewExpanded ? 'calc(100vw - 250px)' : 'auto',
           maxWidth: isOverviewExpanded ? '1600px' : '420px',
           minWidth: isOverviewExpanded ? '950px' : '320px',
           cursor: selectedVehicleId ? 'default' : 'pointer',
@@ -960,37 +960,30 @@ export default function CyberpunkCityDemo() {
                 {/* 顶部系统状态栏 */}
                 <div style={{ 
                   display: 'flex',
-                  gap: '30px',
-                  marginBottom: '30px',
-                  padding: '25px 30px',
+                  gap: '8px',
+                  marginBottom: '15px',
+                  padding: '12px 15px',
                   background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.08) 0%, rgba(0, 255, 255, 0.02) 100%)',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   border: '1px solid rgba(0, 255, 255, 0.4)',
-                  boxShadow: '0 4px 15px rgba(0, 255, 255, 0.1)'
+                  boxShadow: '0 2px 10px rgba(0, 255, 255, 0.1)'
                 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px' }}>ルート総数</div>
-                    <div style={{ fontSize: '32px', color: '#00ffff', fontWeight: 'bold' }}>{routePaths.size}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>ルート総数</div>
+                    <div style={{ fontSize: '20px', color: '#00ffff', fontWeight: 'bold' }}>{routePaths.size}</div>
                   </div>
-                  <div style={{ width: '2px', background: 'rgba(0, 255, 255, 0.3)' }} />
+                  <div style={{ width: '1px', background: 'rgba(0, 255, 255, 0.3)' }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px' }}>アクティブ車両</div>
-                    <div style={{ fontSize: '32px', color: '#00ff00', fontWeight: 'bold' }}>{activeVehicles.size} 台</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>アクティブ車両</div>
+                    <div style={{ fontSize: '20px', color: '#00ff00', fontWeight: 'bold' }}>{activeVehicles.size} 台</div>
                   </div>
-                  <div style={{ width: '2px', background: 'rgba(0, 255, 255, 0.3)' }} />
+                  <div style={{ width: '1px', background: 'rgba(0, 255, 255, 0.3)' }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px' }}>ノード/エッジ</div>
-                    <div style={{ fontSize: '32px', color: '#fff', fontWeight: 'bold' }}>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>ノード/エッジ</div>
+                    <div style={{ fontSize: '20px', color: '#fff', fontWeight: 'bold' }}>
                       {routeData?.nodes?.length || 0} / {routeData?.edges?.length || 0}
                     </div>
                   </div>
-                  {/* <div style={{ width: '2px', background: 'rgba(0, 255, 255, 0.3)' }} /> */}
-                  {/* <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', color: '#888', marginBottom: '8px' }}>制御モード</div>
-                    <div style={{ fontSize: '32px', color: isAutoMode ? '#00ff00' : '#ffaa00', fontWeight: 'bold' }}>
-                      {isAutoMode ? '自動' : '手動'}
-                    </div>
-                  </div> */}
                 </div>
 
                 {/* 车辆详细信息 - 3列网格布局 */}
@@ -999,11 +992,11 @@ export default function CyberpunkCityDemo() {
                   style={{ 
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '25px',
-                    maxHeight: '450px',
+                    gap: '10px',
+                    maxHeight: '350px',
                     overflowY: 'auto',
-                    paddingRight: '10px',
-                    marginBottom: '25px'
+                    paddingRight: '8px',
+                    marginBottom: '10px'
                   }}
                 >
                   {vehicleRoutes.filter(r => activeVehicles.has(r.id)).map((route, idx) => {
@@ -1023,12 +1016,12 @@ export default function CyberpunkCityDemo() {
                       <div 
                         key={route.id}
                         style={{ 
-                          padding: '22px',
+                          padding: '12px',
                           background: `linear-gradient(135deg, ${route.color}08 0%, rgba(0, 0, 0, 0.3) 100%)`,
-                          borderRadius: '12px',
-                          border: `2px solid ${route.color}`,
-                          borderLeft: `6px solid ${route.color}`,
-                          boxShadow: `0 4px 20px ${route.color}40`
+                          borderRadius: '8px',
+                          border: `1.5px solid ${route.color}`,
+                          borderLeft: `4px solid ${route.color}`,
+                          boxShadow: `0 2px 12px ${route.color}40`
                         }}
                       >
                         {/* 车辆标题 */}
@@ -1036,22 +1029,22 @@ export default function CyberpunkCityDemo() {
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          marginBottom: '18px',
-                          paddingBottom: '15px',
-                          borderBottom: `2px solid ${route.color}40`
+                          marginBottom: '10px',
+                          paddingBottom: '8px',
+                          borderBottom: `1.5px solid ${route.color}40`
                         }}>
                           <div style={{ 
-                            fontSize: '22px', 
+                            fontSize: '16px', 
                             fontWeight: 'bold', 
                             color: route.color
                           }}>
                             車両 {idx + 1}
                           </div>
                           <div style={{
-                            padding: '6px 16px',
+                            padding: '3px 10px',
                             background: route.isCycle ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 170, 0, 0.2)',
-                            borderRadius: '14px',
-                            fontSize: '14px',
+                            borderRadius: '10px',
+                            fontSize: '11px',
                             fontWeight: 'bold',
                             color: route.isCycle ? '#00ff00' : '#ffaa00',
                             border: `1px solid ${route.isCycle ? '#00ff00' : '#ffaa00'}`
@@ -1061,7 +1054,7 @@ export default function CyberpunkCityDemo() {
                         </div>
 
                         {/* 路线名称 */}
-                        <div style={{ fontSize: '19px', color: '#fff', marginBottom: '15px', fontWeight: '600' }}>
+                        <div style={{ fontSize: '13px', color: '#fff', marginBottom: '10px', fontWeight: '600', lineHeight: '1.3' }}>
                           {route.name}
                         </div>
 
@@ -1069,46 +1062,41 @@ export default function CyberpunkCityDemo() {
                         <div style={{ 
                           display: 'grid',
                           gridTemplateColumns: '1fr 1fr',
-                          gap: '12px',
-                          fontSize: '16px',
-                          marginBottom: '15px'
+                          gap: '8px',
+                          fontSize: '12px',
+                          marginBottom: '10px'
                         }}>
                           <div style={{ color: '#aaa' }}>
-                          ノード: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{route.nodes?.length || 0}</span>
+                          ノード: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '13px' }}>{route.nodes?.length || 0}</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                          エッジ: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{route.edges?.length || 0}</span>
+                          エッジ: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '13px' }}>{route.edges?.length || 0}</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                            距離: <span style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '17px' }}>{(totalDistance / 1000).toFixed(2)} km</span>
+                            距離: <span style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '13px' }}>{(totalDistance / 1000).toFixed(2)} km</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                            実際: <span style={{ color: '#ffaa00', fontWeight: 'bold', fontSize: '17px' }}>{totalTime} 分</span>
+                            実際: <span style={{ color: '#ffaa00', fontWeight: 'bold', fontSize: '13px' }}>{totalTime} 分</span>
                           </div>
-                          <div style={{ color: '#aaa' }}>
-                            デモ: <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '17px' }}>{demoTime} 秒</span>
+                          <div style={{ color: '#aaa', gridColumn: 'span 2' }}>
+                            デモ: <span style={{ color: '#ff00ff', fontWeight: 'bold', fontSize: '13px' }}>{demoTime} 秒</span>
                           </div>
-                          {/* {path && (
-                            <div style={{ color: '#aaa' }}>
-                              Path: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '17px' }}>{path.getLength().toFixed(1)} u</span>
-                            </div>
-                          )} */}
                         </div>
 
                         {/* 模式统计 */}
                         <div style={{ 
-                          marginTop: '15px',
-                          paddingTop: '15px',
-                          borderTop: `2px dashed ${route.color}30`
+                          marginTop: '10px',
+                          paddingTop: '10px',
+                          borderTop: `1.5px dashed ${route.color}30`
                         }}>
-                          <div style={{ fontSize: '15px', color: '#888', marginBottom: '10px', fontWeight: '500' }}>移動モード分布:</div>
-                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>移動モード:</div>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {modeCounts.road && (
                               <div style={{ 
-                                padding: '6px 14px',
+                                padding: '3px 8px',
                                 background: 'rgba(0, 255, 255, 0.15)',
-                                borderRadius: '8px',
-                                fontSize: '14px',
+                                borderRadius: '6px',
+                                fontSize: '11px',
                                 fontWeight: 'bold',
                                 color: '#00ffff',
                                 border: '1px solid rgba(0, 255, 255, 0.3)'
@@ -1205,7 +1193,7 @@ export default function CyberpunkCityDemo() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  paddingTop: '20px',
+                  paddingTop: '10px',
                   borderTop: '2px solid rgba(0, 255, 255, 0.3)',
                   fontSize: '16px'
                 }}>
@@ -1331,8 +1319,6 @@ export default function CyberpunkCityDemo() {
         </div>
       </div>
 
-
-
       {/* 技术栈展示面板 - 始终显示 */}
       <div
         style={{
@@ -1343,10 +1329,10 @@ export default function CyberpunkCityDemo() {
         }}
       >
         {/* 技术栈面板 */}
-        (
+        
           <div
             style={{
-              marginTop: '0px',
+              marginTop: '18px',
               width: '140px',
               maxHeight: 'calc(100vh - 250px)',
               overflowY: 'auto',
@@ -1384,17 +1370,6 @@ export default function CyberpunkCityDemo() {
               background: rgba(0, 255, 255, 0.5);
             }
           `}</style>
-
-          {/* <h2 style={{ 
-            margin: '0 0 12px 0', 
-            color: '#ff00ff', 
-            fontSize: '16px',
-            borderBottom: '1px solid rgba(255, 0, 255, 0.3)',
-            paddingBottom: '8px',
-            textAlign: 'center'
-          }}>
-            技術スタック
-          </h2> */}
 
           {/* 前端框架 */}
           <div style={{ marginBottom: '12px' }}>
@@ -1446,13 +1421,6 @@ export default function CyberpunkCityDemo() {
                   <div style={{ color: '#888', fontSize: '9px' }}>0.180</div>
                 </div>
               </div>
-              {/* <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
-                <img src="/tech-logos/react.svg" alt="R3F" style={{ width: '20px', height: '20px' }} />
-                <div>
-                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>R3F</div>
-                  <div style={{ color: '#888', fontSize: '9px' }}>9.4.0</div>
-                </div>
-              </div> */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
                 <img src="/tech-logos/react.svg" alt="Drei" style={{ width: '20px', height: '20px' }} />
                 <div>
@@ -1497,13 +1465,6 @@ export default function CyberpunkCityDemo() {
                   <div style={{ color: '#888', fontSize: '9px' }}>20.19</div>
                 </div>
               </div>
-              {/* <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '4px' }}>
-                <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f97583', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px', color: '#000' }}>L</div>
-                <div>
-                  <div style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>Lucide</div>
-                  <div style={{ color: '#888', fontSize: '9px' }}>0.548</div>
-                </div>
-              </div> */}
             </div>
           </div>
         </div>
