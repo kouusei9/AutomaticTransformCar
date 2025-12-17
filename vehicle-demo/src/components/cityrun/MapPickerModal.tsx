@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { RouteResponse } from '../../types/routeAPI';
-import { generateRoute, getAvailableLocations, type KyotoNode } from '../../utils/kyotoRouteUtils';
+import { generateRoute, getAvailableLocations, KyotoEdge, type KyotoNode } from '../../utils/kyotoRouteUtils';
 
 interface MapPickerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (startId: string, startName: string, destId: string, destName: string) => void;
+    onConfirm: (selectedId: string, selectedName: string) => void;
     startLocationId: string;
     destinationId: string;
+    selectionMode: 'start' | 'destination';
 }
 
 // 路线类型颜色映射
@@ -25,13 +26,12 @@ function latLngToCanvas(lat: number, lng: number, bounds: any, canvasWidth: numb
     return { x, y };
 }
 
-export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocationId, destinationId }: MapPickerModalProps) {
+export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocationId, destinationId, selectionMode }: MapPickerModalProps) {
     const [nodes, setNodes] = useState<KyotoNode[]>([]);
-    const [edges, setEdges] = useState<any[]>([]);
+    const [edges, setEdges] = useState<KyotoEdge[]>([]);
     const [tempStartNode, setTempStartNode] = useState<string>(startLocationId);
     const [tempDestNode, setTempDestNode] = useState<string>(destinationId);
     const [highlightedRoute, setHighlightedRoute] = useState<RouteResponse | null>(null);
-    const [nextSelectIsStart, setNextSelectIsStart] = useState(true); // true=下次选起点, false=下次选终点
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -55,7 +55,6 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         if (isOpen) {
             setTempStartNode(startLocationId);
             setTempDestNode(destinationId);
-            setNextSelectIsStart(true);
         }
     }, [isOpen, startLocationId, destinationId]);
 
@@ -90,6 +89,26 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
 
         calculateInitialRoute();
     }, [isOpen, tempStartNode, tempDestNode]);
+
+    // Canvas 尺寸监听
+    const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        if (!isOpen || !canvasRef.current) return;
+
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (entry) {
+                setCanvasSize({
+                    width: entry.contentRect.width,
+                    height: entry.contentRect.height
+                });
+            }
+        });
+
+        observer.observe(canvasRef.current);
+        return () => observer.disconnect();
+    }, [isOpen]);
 
     // 绘制地图
     useEffect(() => {
@@ -228,7 +247,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             }
         });
 
-    }, [isOpen, bounds, nodes, edges, tempStartNode, tempDestNode, hoveredNode, highlightedRoute]);
+    }, [isOpen, bounds, nodes, edges, tempStartNode, tempDestNode, hoveredNode, highlightedRoute, canvasSize]);
 
     // 处理Canvas点击
     const handleCanvasClick = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -252,71 +271,79 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             }
         });
 
-        if (closestNode) {
-            console.log('🎯 选择节点:', closestNode.name, closestNode.id, '模式:', nextSelectIsStart ? '起点' : '终点');
+        if (!closestNode) {
+            console.log('⚠️ 未找到节点，点击位置:', { x, y });
+            return;
+        }
 
-            if (nextSelectIsStart) {
-                // 选择起点，清除终点
-                setTempStartNode(closestNode.id);
-                setTempDestNode(''); // 清除终点选择
-                setNextSelectIsStart(false);
-                setHighlightedRoute(null); // 清除路线
-                console.log('✅ 已设置起点:', closestNode.name, '，已清除终点');
-            } else {
-                // 选择终点
-                setTempDestNode(closestNode.id);
-                setNextSelectIsStart(true);
-                console.log('✅ 已设置终点:', closestNode.name);
+        const isStart = selectionMode === 'start';
+        const label = isStart ? '出発地' : '目的地';
+        console.log('🎯 选择节点:', closestNode.name, closestNode.id, '模式:', label);
 
-                // 计算新路线
-                if (tempStartNode && closestNode.id !== tempStartNode) {
-                    console.log('📍 重新计算路线:', { start: tempStartNode, dest: closestNode.id });
+        // 更新对应的节点
+        const newStartId = isStart ? closestNode.id : tempStartNode;
+        const newDestId = isStart ? tempDestNode : closestNode.id;
 
-                    try {
-                        const route = await generateRoute(tempStartNode, closestNode.id);
-                        if (route) {
-                            console.log('✅ 路线计算成功');
-                            setHighlightedRoute(route);
-                        } else {
-                            console.log('⚠️ 无法生成路线');
-                            setHighlightedRoute(null);
-                        }
-                    } catch (error) {
-                        console.error('❌ 路线计算失败:', error);
-                        setHighlightedRoute(null);
-                    }
+        if (isStart) {
+            setTempStartNode(closestNode.id);
+        } else {
+            setTempDestNode(closestNode.id);
+        }
+        console.log(`✅ 已设置${label}:`, closestNode.name);
+
+        // 如果起点终点都存在且不同，计算路线
+        if (newStartId && newDestId && newStartId !== newDestId) {
+            console.log('📍 重新计算路线:', { start: newStartId, dest: newDestId });
+            try {
+                const route = await generateRoute(newStartId, newDestId);
+                if (route) {
+                    console.log('✅ 路线计算成功');
+                    setHighlightedRoute(route);
+                } else {
+                    console.log('⚠️ 无法生成路线');
+                    setHighlightedRoute(null);
                 }
+            } catch (error) {
+                console.error('❌ 路线计算失败:', error);
+                setHighlightedRoute(null);
             }
         } else {
-            console.log('⚠️ 未找到节点，点击位置:', { x, y });
+            setHighlightedRoute(null);
         }
-    }, [bounds, nodes, nextSelectIsStart, tempStartNode]);
+    }, [bounds, nodes, selectionMode, tempStartNode, tempDestNode]);
 
     // 处理鼠标移动（显示hover效果）- 使用RAF节流
     const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!canvasRef.current || !bounds) return;
 
-        // 取消之前的RAF
+        // 先提取坐标值，避免事件对象在 RAF 回调时失效
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+
         if (mouseMoveRafRef.current) {
             cancelAnimationFrame(mouseMoveRafRef.current);
         }
 
         mouseMoveRafRef.current = requestAnimationFrame(() => {
-            const rect = canvasRef.current!.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-            let hoveredNodeId: string | null = null;
-            nodes.forEach(node => {
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            let foundNodeId: string | null = null;
+            for (const node of nodes) {
                 const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
-                const distance = Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2));
+                const distance = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);
 
                 if (distance < 15) {
-                    hoveredNodeId = node.id;
+                    foundNodeId = node.id;
+                    break; // 找到第一个就退出，比 forEach 更高效
                 }
-            });
+            }
 
-            setHoveredNode(hoveredNodeId);
+            setHoveredNode(foundNodeId);
         });
     }, [bounds, nodes]);
 
@@ -330,15 +357,22 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
     }, []);
 
     const handleConfirm = useCallback(() => {
-        const startNode = nodes.find(n => n.id === tempStartNode);
-        const destNode = nodes.find(n => n.id === tempDestNode);
-
-        if (startNode && destNode && tempStartNode !== tempDestNode) {
-            console.log('✅ 确认路线:', startNode.name, '→', destNode.name);
-            onConfirm(tempStartNode, startNode.name, tempDestNode, destNode.name);
-            onClose();
+        if (selectionMode === 'start') {
+            const startNode = nodes.find(n => n.id === tempStartNode);
+            if (startNode) {
+                console.log('✅ 确认出发地:', startNode.name);
+                onConfirm(tempStartNode, startNode.name);
+                onClose();
+            }
+        } else {
+            const destNode = nodes.find(n => n.id === tempDestNode);
+            if (destNode) {
+                console.log('✅ 确认目的地:', destNode.name);
+                onConfirm(tempDestNode, destNode.name);
+                onClose();
+            }
         }
-    }, [nodes, tempStartNode, tempDestNode, onConfirm, onClose]);
+    }, [nodes, tempStartNode, tempDestNode, selectionMode, onConfirm, onClose]);
 
     if (!isOpen) return null;
 
@@ -391,15 +425,15 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 {/* 底部按钮 */}
                 <div className="mt-4 flex justify-between items-center">
                     <div className="text-sm space-y-1">
+                        <div className="text-yellow-300 text-base font-bold mb-2">
+                            {selectionMode === 'start' ? '🚩 出発地を選択してください' : '🎯 目的地を選択してください'}
+                        </div>
                         <div className="text-cyan-300">
                             🚩 出発: {nodes.find(n => n.id === tempStartNode)?.name || '未選択'}
                         </div>
                         <div className="text-pink-300">
                             🎯 目的: {nodes.find(n => n.id === tempDestNode)?.name || '未選択'}
                         </div>
-                        {/* <div className="text-yellow-300 text-xs">
-                            {nextSelectIsStart ? '次: 出発地を選択' : '次: 目的地を選択'}
-                        </div> */}
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -418,7 +452,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                         </button>
                         <button
                             onClick={handleConfirm}
-                            disabled={!tempStartNode || !tempDestNode || tempStartNode === tempDestNode}
+                            disabled={selectionMode === 'start' ? !tempStartNode : !tempDestNode}
                             className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-cyan-400/50 shadow-lg"
                             style={{
                                 backgroundColor: 'rgba(31, 41, 55, 0.9)',

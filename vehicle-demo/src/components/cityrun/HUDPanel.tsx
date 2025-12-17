@@ -464,6 +464,7 @@ export default function HUDPanel({
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [mapSelectionMode, setMapSelectionMode] = useState<'start' | 'destination'>('start');
 
   // Hooks
   const windowSize = useWindowSize();
@@ -522,6 +523,7 @@ export default function HUDPanel({
 
   const handleStartLocationChange = useCallback((id: string) => {
     if (id === '__OPEN_MAP__') {
+      setMapSelectionMode('start');
       setMapModalOpen(true);
       return;
     }
@@ -532,6 +534,7 @@ export default function HUDPanel({
 
   const handleDestinationChange = useCallback((id: string) => {
     if (id === '__OPEN_MAP__') {
+      setMapSelectionMode('destination');
       setMapModalOpen(true);
       return;
     }
@@ -540,12 +543,15 @@ export default function HUDPanel({
     onDestinationSet?.(name);
   }, [availableLocations, onDestinationSet]);
 
-  const handleMapConfirm = useCallback((startId: string, startName: string, destId: string, destName: string) => {
-    setStartLocationId(startId);
-    setDestinationId(destId);
-    onStartLocationSet?.(startName);
-    onDestinationSet?.(destName);
-  }, [onStartLocationSet, onDestinationSet]);
+  const handleMapConfirm = useCallback((selectedId: string, selectedName: string) => {
+    if (mapSelectionMode === 'start') {
+      setStartLocationId(selectedId);
+      onStartLocationSet?.(selectedName);
+    } else {
+      setDestinationId(selectedId);
+      onDestinationSet?.(selectedName);
+    }
+  }, [mapSelectionMode, onStartLocationSet, onDestinationSet]);
 
   // 位置变化时获取路线（仅在停止状态）
   useEffect(() => {
@@ -731,6 +737,7 @@ export default function HUDPanel({
         onConfirm={handleMapConfirm}
         startLocationId={startLocationId}
         destinationId={destinationId}
+        selectionMode={mapSelectionMode}
       />
     </div>
   );
