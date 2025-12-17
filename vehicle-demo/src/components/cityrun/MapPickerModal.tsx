@@ -15,7 +15,7 @@ interface MapPickerModalProps {
 const EDGE_COLORS = {
     road: '#EBCF65',      // 金将
     highway: '#F24B90',   // 香車
-    drone: '#B1C075',     // 桂馬
+    drone: '#13632cff',     // 桂馬
     airplane: '#98B5C2'   // 飛車
 };
 
@@ -423,7 +423,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         >
             <div
                 className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-cyan-500/50 rounded-xl p-6 shadow-2xl pointer-events-auto"
-                style={{ width: '80vw', height: '80vh', maxWidth: '1200px', maxHeight: '800px' }}
+                style={{ width: '90vw', height: '90vh', maxWidth: '1600px', maxHeight: '900px' }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 标题 */}
@@ -463,9 +463,9 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 {/* 底部按钮 */}
                 <div className="mt-4 flex justify-between items-center">
                     <div className="text-sm space-y-1">
-                        <div className="text-yellow-300 text-base font-bold mb-2">
+                        {/* <div className="text-yellow-300 text-base font-bold mb-2">
                             {internalSelectionMode === 'start' ? '🚩 出発地を選択してください' : '🎯 目的地を選択してください'}
-                        </div>
+                        </div> */}
                         <div className="text-cyan-300">
                             🚩 出発: {nodes.find(n => n.id === tempStartNode)?.name || '未選択'}
                         </div>

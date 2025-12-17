@@ -194,15 +194,15 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
   const pieceLabel = isDestination ? '発' : '着';
 
   return (
-    <div className="relative group flex items-center justify-center gap-3">
+    <div className="relative group flex items-center justify-center gap-5">
       {/* Station name on left side for destination (発) */}
       {isDestination && (
         <div className={`${textColor} text-sm font-bold text-right`}
           style={{
-            minWidth: '80px',
-            maxWidth: '200px',
+            minWidth: '4em',
+            maxWidth: '10em',
             wordBreak: 'break-word',
-            fontSize: '20px',
+            fontSize: '1.2em',
             textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
           }}>
           {selectedLocation?.name || ''}
@@ -211,16 +211,19 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
 
       {/* Shogi piece container - clickable */}
       <div
-        className="relative flex justify-center flex-shrink-0 p-4 rounded-lg cursor-pointer hover:scale-105 transition-transform"
+        className="relative flex justify-center flex-shrink-0 p-1 rounded-lg cursor-pointer hover:scale-[1.02] transition-transform"
+        style={{
+          width: 'clamp(30px, 5vw, 60px)', // 👈 你现在调这个一定会生效
+        }}
         onClick={() => onChange('__OPEN_MAP__')}
       >
         {/* SVG Shape */}
         <svg
-          width="50"
-          height="60"
+          // width="50"
+          // height="60"
           viewBox="0 0 41 51"
-          className="pointer-events-none"
-          preserveAspectRatio="none"
+          className="w-full h-auto"
+          preserveAspectRatio="xMidYMid meet"
           style={isDestination ? { transform: 'rotate(180deg)' } : undefined}
         >
           <path
@@ -248,10 +251,10 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
       {!isDestination && (
         <div className={`${textColor} text-sm font-bold text-left`}
           style={{
-            minWidth: '80px',
-            maxWidth: '200px',
+            minWidth: '4em',
+            maxWidth: '10em',
             wordBreak: 'break-word',
-            fontSize: '20px',
+            fontSize: '1.2em',
             textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
           }}>
           {selectedLocation?.name || ''}
@@ -540,11 +543,11 @@ export default function HUDPanel({
 
   const handleMapConfirm = useCallback((startLocationId: string, destinationId: string) => {
     // if (mapSelectionMode === 'start') {
-      setStartLocationId(startLocationId);
-      // onStartLocationSet?.(selectedName);
+    setStartLocationId(startLocationId);
+    // onStartLocationSet?.(selectedName);
     // } else {
-      setDestinationId(destinationId);
-      // onDestinationSet?.(selectedName);
+    setDestinationId(destinationId);
+    // onDestinationSet?.(selectedName);
     // }
   }, [mapSelectionMode, onStartLocationSet, onDestinationSet]);
 
@@ -647,15 +650,15 @@ export default function HUDPanel({
 
               {/* 非模拟模式时显示位置选择器 */}
 
-              <div className="flex flex-col gap-8 px-2 py-4"
+              <div className="relative w-full aspect-[504/303]"
                 style={{
                   backgroundImage: 'url(/assets/hud_chess_board.png)',
-                  backgroundSize: 'fill',
+                  backgroundSize: 'contain',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat'
                 }}>
 
-                <div className="flex justify-end pr-17 pt-4">
+                <div className="absolute right-[15%] top-[16%]">
                   <LocationSelect
                     label="出発地"
                     value={startLocationId}
@@ -665,7 +668,7 @@ export default function HUDPanel({
                   />
                 </div>
 
-                <div className="flex justify-start pl-18 pt-4">
+                <div className="absolute left-[16%] bottom-[11%]">
                   <LocationSelect
                     label="目的地"
                     value={destinationId}
