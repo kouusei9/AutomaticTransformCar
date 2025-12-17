@@ -259,7 +259,7 @@ export default function CyberpunkCityDemo() {
 
         // 添加通知
         const notification = {
-          id: `notif-${Date.now()}`,
+          id: `notif-${Date.now()}-${Math.random()}`,
           message: `🚧 ${randomCondition.condition}: ${randomCondition.description}`,
           timestamp: Date.now()
         }
@@ -283,13 +283,13 @@ export default function CyberpunkCityDemo() {
       })
     }
 
-    // 初始延迟5秒后开始，然后每30-45秒随机生成一次
+    // 初始延迟5秒后开始，然后每15-30秒随机生成一次
     const initialTimeout = setTimeout(() => {
       generateRoadCondition()
       
       const interval = setInterval(() => {
         generateRoadCondition()
-      }, 30000 + Math.random() * 15000)
+      }, 15000 + Math.random() * 15000)
 
       activeTimersRef.current.add(interval)
 
