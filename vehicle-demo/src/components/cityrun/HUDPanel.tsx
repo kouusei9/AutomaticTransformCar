@@ -200,7 +200,7 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
         <div className={`${textColor} text-sm font-bold text-right`}
           style={{
             minWidth: '80px',
-            maxWidth: '100px',
+            maxWidth: '200px',
             wordBreak: 'break-word',
             fontSize: '20px',
             textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
@@ -249,7 +249,7 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
         <div className={`${textColor} text-sm font-bold text-left`}
           style={{
             minWidth: '80px',
-            maxWidth: '100px',
+            maxWidth: '200px',
             wordBreak: 'break-word',
             fontSize: '20px',
             textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
