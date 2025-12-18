@@ -81,7 +81,7 @@ export default function CyberpunkCityDemo() {
 
   // 用于跟踪所有通知和道路状况的 timer
   const activeTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
-  
+
   // 存储getVehicleRoute函数的ref，避免在useCallback中依赖它
   const getVehicleRouteRef = useRef<((vehicleId: string) => any) | null>(null)
 
@@ -94,7 +94,7 @@ export default function CyberpunkCityDemo() {
     removeVehicle,
     getVehicleRoute
   } = useVehicleRoutes(INITIAL_VEHICLE_ROUTES)
-  
+
   // 同步 getVehicleRoute 到 ref
   getVehicleRouteRef.current = getVehicleRoute
 
@@ -119,31 +119,45 @@ export default function CyberpunkCityDemo() {
 
   // 路径生成（使用回调通知新路径生成）
   const routePaths = useRoutePaths(
-    vehicleRoutes, 
-    routeData, 
-    extractNodeIds, 
+    vehicleRoutes,
+    routeData,
+    extractNodeIds,
     useCallback((vehicleId: string) => {
       console.log(`📢 路径生成回调触发: ${vehicleId}`)
       console.log(`  自动模式: ${isAutoModeRef.current}`)
-      
+
       // 如果在自动模式下，立即切换到新车辆并设置粘性跟踪
       if (isAutoModeRef.current) {
         console.log(`🆕 新车辆加入，切换跟踪: ${vehicleId}`)
         setTimeout(() => {
           const route = getVehicleRoute(vehicleId)
           console.log(`  找到路线:`, route?.name || '无')
-          
+
           if (route) {
             // 从 ref 获取最新的路径 Map
             const path = routePathsRef.current.get(vehicleId)
             console.log(`  找到路径:`, path ? '是' : '否')
             console.log(`  当前 routePathsRef 大小:`, routePathsRef.current.size)
             console.log(`  当前 routePathsRef keys:`, Array.from(routePathsRef.current.keys()))
-            
+
             if (path) {
               const startPos = path.getPointAt(0)
               const startTangent = path.getTangentAt(0).normalize()
               startFollowing(vehicleId, startPos, startTangent)
+
+              const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
+              setVehicleStatus({
+                routeName: route.name,
+                totalDistance: totalDistance,
+                remainingEnergy: 35 + Math.random() * 30,
+                isOnline: true,
+                currentMode: route.edges[0]?.type || 'road',
+                currentSpeed: 60,
+                distanceToDestination: totalDistance,
+                remainingTime: 0,
+                progress: 0
+              })
+              
               // 设置粘性跟踪标记
               stickyVehicleIdRef.current = vehicleId
               console.log(`🔒 粘性跟踪启用: ${route.name}`)
@@ -170,7 +184,7 @@ export default function CyberpunkCityDemo() {
         const startPos = path.getPointAt(0)
         const startTangent = path.getTangentAt(0).normalize()
         startFollowing(vehicleId, startPos, startTangent)
-        
+
         // 初始化车辆状态（静态信息）
         const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
         setVehicleStatus({
@@ -286,7 +300,7 @@ export default function CyberpunkCityDemo() {
     // 初始延迟5秒后开始，然后每15-30秒随机生成一次
     const initialTimeout = setTimeout(() => {
       generateRoadCondition()
-      
+
       const interval = setInterval(() => {
         generateRoadCondition()
       }, 15000 + Math.random() * 15000)
@@ -306,7 +320,7 @@ export default function CyberpunkCityDemo() {
       activeTimersRef.current.delete(initialTimeout)
     }
   }, []) // 空依赖数组，只在组件挂载时运行一次
-  
+
   // 组件卸载时清理所有 timer
   useEffect(() => {
     return () => {
@@ -338,7 +352,7 @@ export default function CyberpunkCityDemo() {
     if (route.nodeIds) return route.nodeIds
     // 备用：如果有 path 字段
     if (route.path) {
-      return route.path.map((segment: any) => 
+      return route.path.map((segment: any) =>
         typeof segment === 'string' ? segment : segment.nodeId
       )
     }
@@ -350,7 +364,7 @@ export default function CyberpunkCityDemo() {
     // 手动点击时关闭自动模式
     disableAutoMode()
     toggleFollow(vehicleId, position, forward)
-    
+
     // 初始化车辆状态
     const route = getVehicleRoute(vehicleId)
     if (route) {
@@ -499,7 +513,7 @@ export default function CyberpunkCityDemo() {
           box-shadow: 0 0 20px rgba(0, 255, 255, 0.8) !important;
         }
       `}</style>
-      
+
       <Canvas
         shadows
         gl={{
@@ -544,7 +558,7 @@ export default function CyberpunkCityDemo() {
           cameraRef={cameraRef}
           controlsRef={controlsRef}
           isAutoMode={isAutoMode}
-          // followDistance={100}
+        // followDistance={100}
         />
 
         <ambientLight intensity={0.4} />
@@ -564,29 +578,29 @@ export default function CyberpunkCityDemo() {
 
         <SkyEnvironment />
         {/* <DistantCityscape /> */}
-        
+
         {/* 体积雾和神光效果 */}
-        <VolumetricFog 
-          color="#0a1a2e" 
-          density={0.015} 
-          height={35} 
+        <VolumetricFog
+          color="#0a1a2e"
+          density={0.015}
+          height={35}
         />
-        <GodRays 
-          count={6} 
-          color="#88ddff" 
-          intensity={0.25} 
+        <GodRays
+          count={6}
+          color="#88ddff"
+          intensity={0.25}
         />
-        <AtmosphericParticles 
-          count={300} 
-          size={0.25} 
+        <AtmosphericParticles
+          count={300}
+          size={0.25}
         />
-        
+
         {/* 漂浮粒子系统 */}
         <MultiLayerDustParticles />
-        
+
         {/* 悬浮信息公告板 */}
         <FloatingInfoBoards />
-        
+
         {/* 道路状况信息板 */}
         {roadConditions.map(condition => (
           <FloatingInfoBoard
@@ -600,7 +614,7 @@ export default function CyberpunkCityDemo() {
             }}
           />
         ))}
-        
+
         {/* 城市地面（集成建筑、神社和路线，包含全息网格地面） */}
         <CityGround
           onRouteDataLoaded={setRouteData}
@@ -638,7 +652,7 @@ export default function CyberpunkCityDemo() {
                 name={route.name}
                 isCycle={route.isCycle}
               />
-              
+
               {/* 跟踪模式下显示起点和终点标志 */}
               {isFollowing && (
                 <RouteMarkers
@@ -658,7 +672,7 @@ export default function CyberpunkCityDemo() {
 
         {/* Bloom 后处理效果 - 让霓虹边发光 */}
         <EffectComposer>
-          <Bloom 
+          <Bloom
             intensity={0.15}
             luminanceThreshold={0.3}
             luminanceSmoothing={0.05}
@@ -694,8 +708,8 @@ export default function CyberpunkCityDemo() {
           cursor: selectedVehicleId ? 'default' : 'pointer',
           transition: 'transform 0.3s ease-out, opacity 0.2s ease',
           transformOrigin: isOverviewExpanded ? 'top center' : 'top left',
-          boxShadow: isOverviewExpanded 
-            ? '0 0 60px rgba(0, 255, 255, 0.6), inset 0 0 30px rgba(0, 255, 255, 0.1)' 
+          boxShadow: isOverviewExpanded
+            ? '0 0 60px rgba(0, 255, 255, 0.6), inset 0 0 30px rgba(0, 255, 255, 0.1)'
             : '0 0 20px rgba(0, 255, 255, 0.3)'
         }}
       >
@@ -703,7 +717,7 @@ export default function CyberpunkCityDemo() {
           // 選択された車両の詳細情報
           (() => {
             const selectedRoute = vehicleRoutes.find(r => r.id === selectedVehicleId)!;
-            
+
             // 模式显示配置
             const modeDisplay = {
               road: { icon: '🚗', name: '金将', color: '#EBCF65' },
@@ -713,7 +727,7 @@ export default function CyberpunkCityDemo() {
             }[vehicleStatus.currentMode] || { icon: '🚗', name: '金将', color: '#EBCF65' };
 
             const displayInteger = Math.round(vehicleStatus.progress);
-            
+
             return (
               <>
                 <style>{`
@@ -725,9 +739,9 @@ export default function CyberpunkCityDemo() {
                     animation: modeChange 0.5s ease-in-out;
                   }
                 `}</style>
-                
+
                 {/* 标题 */}
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -736,11 +750,11 @@ export default function CyberpunkCityDemo() {
                   borderBottom: '2px solid #ff00ff'
                 }}>
                   <h2 style={{ margin: 0, color: '#ff00ff', fontSize: '20px', fontWeight: 'bold' }}>
-                    RYO-O K01
+                    RYU-O K01
                   </h2>
-                  <div style={{ 
-                    fontSize: '12px', 
-                    padding: '4px 10px', 
+                  <div style={{
+                    fontSize: '12px',
+                    padding: '4px 10px',
                     background: vehicleStatus.isOnline ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 0, 0, 0.2)',
                     border: `1px solid ${vehicleStatus.isOnline ? '#00ff00' : '#ff0000'}`,
                     borderRadius: '10px',
@@ -750,13 +764,13 @@ export default function CyberpunkCityDemo() {
                     {vehicleStatus.isOnline ? '● ONLINE' : '● OFFLINE'}
                   </div>
                 </div>
-                
+
                 <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#fff', marginBottom: '10px' }}>
                   {vehicleStatus.routeName}
                 </div>
-                
+
                 {/* 静态状态信息 */}
-                <div style={{ 
+                <div style={{
                   marginBottom: '10px',
                   padding: '10px',
                   background: 'rgba(0, 255, 255, 0.08)',
@@ -782,26 +796,26 @@ export default function CyberpunkCityDemo() {
                     <div>
                       <span style={{ color: '#888' }}>残りエネルギー:</span>
                       <div style={{ marginTop: '3px' }}>
-                        <div style={{ 
-                          width: '100%', 
-                          height: '6px', 
-                          background: 'rgba(0, 0, 0, 0.3)', 
+                        <div style={{
+                          width: '100%',
+                          height: '6px',
+                          background: 'rgba(0, 0, 0, 0.3)',
                           borderRadius: '3px',
                           overflow: 'hidden',
                           border: '1px solid rgba(255, 255, 255, 0.2)'
                         }}>
-                          <div style={{ 
-                            width: `${vehicleStatus.remainingEnergy}%`, 
+                          <div style={{
+                            width: `${vehicleStatus.remainingEnergy}%`,
                             height: '100%',
-                            background: vehicleStatus.remainingEnergy > 50 
-                              ? 'linear-gradient(90deg, #00ff00, #00ff88)' 
-                              : vehicleStatus.remainingEnergy > 20 
-                              ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
-                              : 'linear-gradient(90deg, #ff0000, #ff4444)',
+                            background: vehicleStatus.remainingEnergy > 50
+                              ? 'linear-gradient(90deg, #00ff00, #00ff88)'
+                              : vehicleStatus.remainingEnergy > 20
+                                ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
+                                : 'linear-gradient(90deg, #ff0000, #ff4444)',
                             transition: 'width 0.3s ease'
                           }} />
                         </div>
-                        <div style={{ 
+                        <div style={{
                           color: vehicleStatus.remainingEnergy > 50 ? '#00ff00' : vehicleStatus.remainingEnergy > 20 ? '#ffaa00' : '#ff0000',
                           fontSize: '12px',
                           fontWeight: 'bold',
@@ -813,9 +827,9 @@ export default function CyberpunkCityDemo() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* 实时动态信息 */}
-                <div style={{ 
+                <div style={{
                   marginBottom: '10px',
                   padding: '10px',
                   background: 'rgba(255, 0, 255, 0.08)',
@@ -825,11 +839,11 @@ export default function CyberpunkCityDemo() {
                   <div style={{ fontSize: '13px', color: '#ff00ff', marginBottom: '6px', fontWeight: 'bold' }}>
                     リアルタイム情報
                   </div>
-                  
+
                   {/* 第一行：模式和速度 */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                     {/* 当前模式 */}
-                    <div style={{ 
+                    <div style={{
                       padding: '8px',
                       background: `${modeDisplay.color}25`,
                       borderRadius: '6px',
@@ -843,9 +857,9 @@ export default function CyberpunkCityDemo() {
                         {modeDisplay.name}
                       </div>
                     </div>
-                    
+
                     {/* 当前速度 */}
-                    <div style={{ 
+                    <div style={{
                       padding: '8px',
                       background: 'rgba(0, 255, 255, 0.15)',
                       borderRadius: '6px',
@@ -859,25 +873,25 @@ export default function CyberpunkCityDemo() {
                       <div style={{ fontSize: '11px', color: '#888' }}>km/h</div>
                     </div>
                   </div>
-                  
+
                   {/* 第二行：距离和时间 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {/* 到目的地距离 */}
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>目的地まで</div>
-                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00ff88' }}>
-                      {(vehicleStatus.distanceToDestination / 1000).toFixed(2)} km
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {/* 到目的地距离 */}
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>目的地まで</div>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00ff88' }}>
+                        {(vehicleStatus.distanceToDestination / 1000).toFixed(2)} km
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* 剩余时间 */}
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>残り時間</div>
-                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffaa00' }}>
+
+                    {/* 剩余时间 */}
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>残り時間</div>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffaa00' }}>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* 进度条 */}
                   <div style={{ marginTop: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
@@ -886,16 +900,16 @@ export default function CyberpunkCityDemo() {
                         {displayInteger}%
                       </span>
                     </div>
-                    <div style={{ 
-                      width: '100%', 
-                      height: '6px', 
-                      background: 'rgba(0, 0, 0, 0.4)', 
+                    <div style={{
+                      width: '100%',
+                      height: '6px',
+                      background: 'rgba(0, 0, 0, 0.4)',
                       borderRadius: '3px',
                       overflow: 'hidden',
                       border: '1px solid rgba(255, 0, 255, 0.3)'
                     }}>
-                      <div style={{ 
-                        width: `${displayInteger}%`, 
+                      <div style={{
+                        width: `${displayInteger}%`,
                         height: '100%',
                         background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
                         transition: 'width 0.3s ease',
@@ -904,12 +918,12 @@ export default function CyberpunkCityDemo() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* 底部提示 */}
-                <div style={{ 
-                  marginTop: '8px', 
-                  fontSize: '11px', 
-                  color: '#888', 
+                <div style={{
+                  marginTop: '8px',
+                  fontSize: '11px',
+                  color: '#888',
                   textAlign: 'center',
                   padding: '6px',
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -923,9 +937,9 @@ export default function CyberpunkCityDemo() {
         ) : (
           // 全体情報
           <>
-            <h2 style={{ 
-              margin: '0 0 18px 0', 
-              color: '#00ffff', 
+            <h2 style={{
+              margin: '0 0 18px 0',
+              color: '#00ffff',
               textAlign: 'left',
               fontSize: isOverviewExpanded ? '28px' : '20px',
               fontWeight: 'bold',
@@ -934,7 +948,7 @@ export default function CyberpunkCityDemo() {
             }}>
               NEO TOKYO ナビゲーション {!isOverviewExpanded && '▼'}
             </h2>
-            
+
             {!isOverviewExpanded ? (
               // 缩略版
               <div style={{ lineHeight: '2', textAlign: 'left' }}>
@@ -958,7 +972,7 @@ export default function CyberpunkCityDemo() {
               // 展开版详细信息 - 横向布局
               <div style={{ textAlign: 'left' }}>
                 {/* 顶部系统状态栏 */}
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   gap: '8px',
                   marginBottom: '15px',
@@ -987,9 +1001,9 @@ export default function CyberpunkCityDemo() {
                 </div>
 
                 {/* 车辆详细信息 - 3列网格布局 */}
-                <div 
+                <div
                   className="vehicle-list-scroll"
-                  style={{ 
+                  style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
                     gap: '10px',
@@ -1004,18 +1018,18 @@ export default function CyberpunkCityDemo() {
                     const totalTime = calculateTotalTime(route.edges)
                     const demoTime = Math.round(totalTime / 20)
                     const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
-                    
+
                     // 统计各模式的边数量
                     const modeCounts = route.edges.reduce((acc, edge) => {
                       const modeType = edge.type || 'road'
                       acc[modeType] = (acc[modeType] || 0) + 1
                       return acc
                     }, {} as Record<string, number>)
-                    
+
                     return (
-                      <div 
+                      <div
                         key={route.id}
-                        style={{ 
+                        style={{
                           padding: '12px',
                           background: `linear-gradient(135deg, ${route.color}08 0%, rgba(0, 0, 0, 0.3) 100%)`,
                           borderRadius: '8px',
@@ -1025,7 +1039,7 @@ export default function CyberpunkCityDemo() {
                         }}
                       >
                         {/* 车辆标题 */}
-                        <div style={{ 
+                        <div style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -1033,9 +1047,9 @@ export default function CyberpunkCityDemo() {
                           paddingBottom: '8px',
                           borderBottom: `1.5px solid ${route.color}40`
                         }}>
-                          <div style={{ 
-                            fontSize: '16px', 
-                            fontWeight: 'bold', 
+                          <div style={{
+                            fontSize: '16px',
+                            fontWeight: 'bold',
                             color: route.color
                           }}>
                             車両 {idx + 1}
@@ -1059,7 +1073,7 @@ export default function CyberpunkCityDemo() {
                         </div>
 
                         {/* 详细统计 - 两列布局 */}
-                        <div style={{ 
+                        <div style={{
                           display: 'grid',
                           gridTemplateColumns: '1fr 1fr',
                           gap: '8px',
@@ -1067,10 +1081,10 @@ export default function CyberpunkCityDemo() {
                           marginBottom: '10px'
                         }}>
                           <div style={{ color: '#aaa' }}>
-                          ノード: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '13px' }}>{route.nodes?.length || 0}</span>
+                            ノード: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '13px' }}>{route.nodes?.length || 0}</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
-                          エッジ: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '13px' }}>{route.edges?.length || 0}</span>
+                            エッジ: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '13px' }}>{route.edges?.length || 0}</span>
                           </div>
                           <div style={{ color: '#aaa' }}>
                             距離: <span style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '13px' }}>{(totalDistance / 1000).toFixed(2)} km</span>
@@ -1084,7 +1098,7 @@ export default function CyberpunkCityDemo() {
                         </div>
 
                         {/* 模式统计 */}
-                        <div style={{ 
+                        <div style={{
                           marginTop: '10px',
                           paddingTop: '10px',
                           borderTop: `1.5px dashed ${route.color}30`
@@ -1092,7 +1106,7 @@ export default function CyberpunkCityDemo() {
                           <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px', fontWeight: '500' }}>移動モード:</div>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {modeCounts.road && (
-                              <div style={{ 
+                              <div style={{
                                 padding: '3px 8px',
                                 background: 'rgba(0, 255, 255, 0.15)',
                                 borderRadius: '6px',
@@ -1105,7 +1119,7 @@ export default function CyberpunkCityDemo() {
                               </div>
                             )}
                             {modeCounts.highway && (
-                              <div style={{ 
+                              <div style={{
                                 padding: '6px 14px',
                                 background: 'rgba(255, 170, 0, 0.15)',
                                 borderRadius: '8px',
@@ -1118,7 +1132,7 @@ export default function CyberpunkCityDemo() {
                               </div>
                             )}
                             {modeCounts.drone && (
-                              <div style={{ 
+                              <div style={{
                                 padding: '6px 14px',
                                 background: 'rgba(0, 255, 0, 0.15)',
                                 borderRadius: '8px',
@@ -1131,7 +1145,7 @@ export default function CyberpunkCityDemo() {
                               </div>
                             )}
                             {modeCounts.sky && (
-                              <div style={{ 
+                              <div style={{
                                 padding: '6px 14px',
                                 background: 'rgba(255, 0, 255, 0.15)',
                                 borderRadius: '8px',
@@ -1147,7 +1161,7 @@ export default function CyberpunkCityDemo() {
                         </div>
 
                         {/* 路线节点详情 */}
-                        <div style={{ 
+                        <div style={{
                           marginTop: '15px',
                           paddingTop: '15px',
                           borderTop: `2px dashed ${route.color}30`
@@ -1158,7 +1172,7 @@ export default function CyberpunkCityDemo() {
                               // 获取当前节点到下一个节点的边类型
                               const edgeToNext = i < route.edges?.length ? route.edges[i] : null
                               const edgeType = edgeToNext?.type || 'road'
-                              
+
                               // 根据边类型选择颜色和图标
                               const edgeDisplay = {
                                 road: { icon: '🚗', color: '#00ffff' },
@@ -1166,7 +1180,7 @@ export default function CyberpunkCityDemo() {
                                 drone: { icon: '🚁', color: '#00ff00' },
                                 sky: { icon: '✈️', color: '#ff00ff' }
                               }[edgeType] || { icon: '→', color: '#00ffff' }
-                              
+
                               return (
                                 <span key={node.id}>
                                   <span style={{ color: '#fff', fontWeight: 'bold' }}>{getNodeName(node.id)}</span>
@@ -1189,7 +1203,7 @@ export default function CyberpunkCityDemo() {
                 </div>
 
                 {/* 底部提示 */}
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -1200,8 +1214,8 @@ export default function CyberpunkCityDemo() {
                   <div style={{ color: '#888' }}>
                     ヒント: 車両をクリックで追跡 | マウスで視点操作
                   </div>
-                  <div style={{ 
-                    fontSize: '16px', 
+                  <div style={{
+                    fontSize: '16px',
                     fontWeight: 'bold',
                     color: '#00ffff',
                     cursor: 'pointer',
@@ -1329,27 +1343,27 @@ export default function CyberpunkCityDemo() {
         }}
       >
         {/* 技术栈面板 */}
-        
-          <div
-            style={{
-              marginTop: '18px',
-              width: '140px',
-              maxHeight: 'calc(100vh - 250px)',
-              overflowY: 'auto',
-              color: '#00ffff',
-              fontFamily: 'monospace',
-              fontSize: '12px',
-              background: 'rgba(0, 0, 0, 0.2)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              padding: '15px',
-              borderRadius: '10px',
-              border: '2px solid #00ffff',
-              boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
-              animation: 'fadeIn 0.3s ease-out'
-            }}
-            className="tech-stack-scroll"
-          >
+
+        <div
+          style={{
+            marginTop: '18px',
+            width: '140px',
+            maxHeight: 'calc(100vh - 250px)',
+            overflowY: 'auto',
+            color: '#00ffff',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            background: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            padding: '15px',
+            borderRadius: '10px',
+            border: '2px solid #00ffff',
+            boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+          className="tech-stack-scroll"
+        >
           <style>{`
             @keyframes fadeIn {
               from { opacity: 0; transform: translateY(-10px); }
@@ -1488,14 +1502,14 @@ export default function CyberpunkCityDemo() {
             fontFamily: 'monospace',
             fontWeight: 'bold',
             color: isAutoMode ? '#000' : '#00ffff',
-            background: isAutoMode 
-              ? 'linear-gradient(135deg, #00ffff 0%, #00ff88 100%)' 
+            background: isAutoMode
+              ? 'linear-gradient(135deg, #00ffff 0%, #00ff88 100%)'
               : 'rgba(0, 0, 0, 0.7)',
             border: `2px solid ${isAutoMode ? '#00ffff' : '#00ffff'}`,
             borderRadius: '8px',
             cursor: 'pointer',
-            boxShadow: isAutoMode 
-              ? '0 0 15px rgba(0, 255, 255, 0.5)' 
+            boxShadow: isAutoMode
+              ? '0 0 15px rgba(0, 255, 255, 0.5)'
               : '0 0 8px rgba(0, 255, 255, 0.2)',
             textTransform: 'uppercase',
             letterSpacing: '1px'
@@ -1503,7 +1517,7 @@ export default function CyberpunkCityDemo() {
         >
           {isAutoMode ? '🤖 自動モード' : '👤 手動モード'}
         </button>
-        
+
         {isAutoMode && (
           <div
             style={{
