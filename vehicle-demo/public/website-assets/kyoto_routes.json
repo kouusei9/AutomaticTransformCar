@@ -191,7 +191,7 @@
     },
     {
       "id": "E2",
-      "name": "中心線7",
+      "name": "中心１線",
       "coordinates": {
         "lat": 34.955,
         "lng": 135.75
@@ -200,7 +200,7 @@
     },
     {
       "id": "E3",
-      "name": "中心線5",
+      "name": "中心３線",
       "coordinates": {
         "lat": 35.005,
         "lng": 135.75
@@ -371,7 +371,7 @@
     },
     {
       "id": "I1",
-      "name": "川景5",
+      "name": "川景5番地区",
       "coordinates": {
         "lat": 35.005,
         "lng": 135.76
@@ -380,7 +380,7 @@
     },
     {
       "id": "I2",
-      "name": "川景3",
+      "name": "川景3番地区",
       "coordinates": {
         "lat": 35.055,
         "lng": 135.76
@@ -393,15 +393,6 @@
       "coordinates": {
         "lat": 35.08,
         "lng": 135.72
-      },
-      "type": "point"
-    },
-    {
-      "id": "I4",
-      "name": "皇苑",
-      "coordinates": {
-        "lat": 35.08,
-        "lng": 135.735
       },
       "type": "point"
     },
@@ -645,6 +636,12 @@
       "type": "road"
     },
     {
+      "from": "H3",
+      "to": "A5",
+      "distance_km": 3.1,
+      "type": "road"
+    },
+    {
       "from": "A1",
       "to": "C1",
       "distance_km": 3.19,
@@ -798,18 +795,6 @@
       "from": "H3",
       "to": "E5",
       "distance_km": 2.78,
-      "type": "road"
-    },
-    {
-      "from": "H3",
-      "to": "I4",
-      "distance_km": 3.1,
-      "type": "road"
-    },
-    {
-      "from": "I4",
-      "to": "A5",
-      "distance_km": 0,
       "type": "road"
     },
     {
