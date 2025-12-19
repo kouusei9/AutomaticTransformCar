@@ -46,10 +46,23 @@ export function useVehicleRoutes(initialRoutes: VehicleRoute[]) {
     addedRouteIdsRef.current.add(routeId)
     console.log('✅ 添加车辆到追踪列表:', routeId)
 
+    const VEHICLE_COLORS = [
+      '#00ffff', // 青色
+      '#ff00ff', // 洋红
+      '#00ff00', // 绿色
+      '#ffff00', // 黄色
+      '#ff6600', // 橙色
+      '#00ff88', // 青绿
+      '#ff0088', // 玫红
+      '#88ff00', // 黄绿
+      '#0088ff', // 天蓝
+      '#ff8800', // 橘色
+    ]
+
     const newRoute: VehicleRoute = {
       ...routeResponse,
       name: `${start} → ${destination}`,
-      color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+      color: VEHICLE_COLORS[Math.floor(Math.random() * VEHICLE_COLORS.length)],
       isCycle: false
     }
 
