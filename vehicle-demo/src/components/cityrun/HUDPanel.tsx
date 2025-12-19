@@ -1,16 +1,20 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { RouteResponse } from '../../types/routeAPI';
-import { getAllModesRoute } from '../../api/completeRouteExample';
-import MiniRouteMap from './MiniRouteMap';
-import MapPickerModal from './MapPickerModal';
-import { generateRoute, getAvailableLocations, type KyotoNode } from '../../utils/kyotoRouteUtils';
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import type { RouteResponse } from "../../types/routeAPI";
+import { getAllModesRoute } from "../../api/completeRouteExample";
+import MiniRouteMap from "./MiniRouteMap";
+import MapPickerModal from "./MapPickerModal";
+import {
+  generateRoute,
+  getAvailableLocations,
+  type KyotoNode,
+} from "../../utils/kyotoRouteUtils";
 import {
   calculateTotalDistance,
   calculateTotalTime,
   formatDistance,
   formatTime,
-  getModeById
-} from '../../types/routeAPI';
+  getModeById,
+} from "../../types/routeAPI";
 
 // ===== 类型定义 =====
 interface HUDPanelProps {
@@ -44,40 +48,45 @@ interface StyleConfig {
 }
 
 // ===== 常量定义 =====
-const DEFAULT_START_ID = 'A1'; // 京都駅
-const DEFAULT_DEST_ID = 'D2';  // 清水寺
+const DEFAULT_START_ID = "A1"; // 京都駅
+const DEFAULT_DEST_ID = "D2"; // 清水寺
 
 const STYLE_CONFIG = {
   moving: {
-    width: '320px',
-    transform: 'rotateX(0deg) scale(1)',
-    padding: 'p-3',
-    shadow: '0 0 20px rgba(6, 182, 212, 0.2)',
-    titleSize: 'text-sm tracking-widest',
-    position: { top: 24, left: 24 }
+    width: "320px",
+    transform: "rotateX(0deg) scale(1)",
+    padding: "p-3",
+    shadow: "0 0 20px rgba(6, 182, 212, 0.2)",
+    titleSize: "text-sm tracking-widest",
+    position: { top: 24, left: 24 },
   },
   stopped: {
-    width: '600px',
-    transform: 'rotateX(10deg) scale(1)',
-    padding: 'p-6',
-    shadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(6, 182, 212, 0.1)',
-    titleSize: 'text-xl tracking-widest',
-    position: { top: 0, left: 0 }
-  }
+    width: "600px",
+    transform: "rotateX(10deg) scale(1)",
+    padding: "p-6",
+    shadow: "0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(6, 182, 212, 0.1)",
+    titleSize: "text-xl tracking-widest",
+    position: { top: 0, left: 0 },
+  },
 } as const;
 
 const IPAD_BREAKPOINT = { min: 768, max: 1024 };
 const TOUCH_MIN_HEIGHT = 48;
 const TOUCH_MIN_HEIGHT_SMALL = 44;
 
+const TIME_SCALE_FACTOR = 3;
+const MS_TO_MINUTES = 1000 * 60;
+
 // ===== 工具函数 =====
 /**
  * 检测是否为iPad设备
  */
 function isIPadDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPad/.test(navigator.userAgent) ||
-    (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad/.test(navigator.userAgent) ||
+    (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+  );
 }
 
 /**
@@ -106,18 +115,20 @@ function calculateResponsiveStyles(
   if (isMoving) {
     return {
       ...baseConfig,
-      width: isPortrait ? `${Math.min(280, safeMaxWidth)}px` : `${Math.min(340, safeMaxWidth)}px`,
+      width: isPortrait
+        ? `${Math.min(280, safeMaxWidth)}px`
+        : `${Math.min(340, safeMaxWidth)}px`,
       position: { top: isPortrait ? 16 : 20, left: isPortrait ? 16 : 20 },
-      padding: 'p-2.5',
-      titleSize: 'text-xs tracking-wider'
+      padding: "p-2.5",
+      titleSize: "text-xs tracking-wider",
     };
   }
 
   return {
     ...baseConfig,
-    width: isPortrait ? '90vw' : `${Math.min(520, safeMaxWidth)}px`,
-    padding: isPortrait ? 'p-4' : 'p-5',
-    titleSize: isPortrait ? 'text-lg tracking-wide' : 'text-xl tracking-widest'
+    width: isPortrait ? "90vw" : `${Math.min(520, safeMaxWidth)}px`,
+    padding: isPortrait ? "p-4" : "p-5",
+    titleSize: isPortrait ? "text-lg tracking-wide" : "text-xl tracking-widest",
   };
 }
 
@@ -127,8 +138,8 @@ function calculateResponsiveStyles(
  */
 function useWindowSize(): WindowSize {
   const [size, setSize] = useState<WindowSize>(() => ({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
-    height: typeof window !== 'undefined' ? window.innerHeight : 768
+    width: typeof window !== "undefined" ? window.innerWidth : 1024,
+    height: typeof window !== "undefined" ? window.innerHeight : 768,
   }));
 
   useEffect(() => {
@@ -136,12 +147,12 @@ function useWindowSize(): WindowSize {
       setSize({ width: window.innerWidth, height: window.innerHeight });
     };
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
     };
   }, []);
 
@@ -159,20 +170,22 @@ function useAvailableLocations() {
     let cancelled = false;
 
     getAvailableLocations()
-      .then(data => {
+      .then((data) => {
         if (!cancelled) {
           setLocations(data);
-          console.log('📍 加载了', data.length, '个地点');
+          console.log("📍 加载了", data.length, "个地点");
         }
       })
-      .catch(error => {
-        console.error('❌ 加载地点列表失败:', error);
+      .catch((error) => {
+        console.error("❌ 加载地点列表失败:", error);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { locations, isLoading };
@@ -187,25 +200,33 @@ interface LocationSelectProps {
   colorClass: string;
 }
 
-function LocationSelect({ label, value, onChange, options, colorClass }: LocationSelectProps) {
-  const textColor = colorClass === 'cyan' ? 'text-cyan-300' : 'text-green-300';
-  const selectedLocation = options.find(loc => loc.id === value);
-  const isDestination = label === '出発地';
-  const pieceLabel = isDestination ? '発' : '着';
+function LocationSelect({
+  label,
+  value,
+  onChange,
+  options,
+  colorClass,
+}: LocationSelectProps) {
+  const textColor = colorClass === "cyan" ? "text-cyan-300" : "text-green-300";
+  const selectedLocation = options.find((loc) => loc.id === value);
+  const isDestination = label === "出発地";
+  const pieceLabel = isDestination ? "発" : "着";
 
   return (
     <div className="relative group flex items-center justify-center gap-5">
       {/* Station name on left side for destination (発) */}
       {isDestination && (
-        <div className={`${textColor} text-sm font-bold text-right`}
+        <div
+          className={`${textColor} text-sm font-bold text-right`}
           style={{
-            minWidth: '4em',
-            maxWidth: '10em',
-            wordBreak: 'break-word',
-            fontSize: '1.2em',
-            textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
-          }}>
-          {selectedLocation?.name || ''}
+            minWidth: "4em",
+            maxWidth: "10em",
+            wordBreak: "break-word",
+            fontSize: "1.2em",
+            textShadow: "0 0 8px rgba(161, 227, 255, 0.6)",
+          }}
+        >
+          {selectedLocation?.name || ""}
         </div>
       )}
 
@@ -213,9 +234,9 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
       <div
         className="relative flex justify-center flex-shrink-0 p-1 rounded-lg cursor-pointer hover:scale-[1.02] transition-transform"
         style={{
-          width: 'clamp(30px, 5vw, 60px)',
+          width: "clamp(30px, 5vw, 60px)",
         }}
-        onClick={() => onChange('__OPEN_MAP__')}
+        onClick={() => onChange("__OPEN_MAP__")}
       >
         {/* SVG Shape */}
         <svg
@@ -224,7 +245,7 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
           viewBox="0 0 41 51"
           className="w-full h-auto"
           preserveAspectRatio="xMidYMid meet"
-          style={isDestination ? { transform: 'rotate(180deg)' } : undefined}
+          style={isDestination ? { transform: "rotate(180deg)" } : undefined}
         >
           <path
             d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
@@ -240,7 +261,10 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
             fill="#1F2937"
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ transform: isDestination ? 'rotate(180deg)' : 'none', transformOrigin: '20.5px 30px' }}
+            style={{
+              transform: isDestination ? "rotate(180deg)" : "none",
+              transformOrigin: "20.5px 30px",
+            }}
           >
             {pieceLabel}
           </text>
@@ -249,15 +273,17 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
 
       {/* Station name on right side for start (着) */}
       {!isDestination && (
-        <div className={`${textColor} text-sm font-bold text-left`}
+        <div
+          className={`${textColor} text-sm font-bold text-left`}
           style={{
-            minWidth: '4em',
-            maxWidth: '10em',
-            wordBreak: 'break-word',
-            fontSize: '1.2em',
-            textShadow: '0 0 8px rgba(161, 227, 255, 0.6)'
-          }}>
-          {selectedLocation?.name || ''}
+            minWidth: "4em",
+            maxWidth: "10em",
+            wordBreak: "break-word",
+            fontSize: "1.2em",
+            textShadow: "0 0 8px rgba(161, 227, 255, 0.6)",
+          }}
+        >
+          {selectedLocation?.name || ""}
         </div>
       )}
     </div>
@@ -266,15 +292,26 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
 
 interface RoutePreviewProps {
   routeData: RouteResponse;
+  remainingTime: number;
 }
 
-function RoutePreview({ routeData }: RoutePreviewProps) {
-  const totalDistance = useMemo(() => calculateTotalDistance(routeData.edges), [routeData.edges]);
-  const totalTime = useMemo(() => calculateTotalTime(routeData.edges), [routeData.edges]);
+function RoutePreview({ routeData, remainingTime }: RoutePreviewProps) {
+  const totalDistance = useMemo(
+    () => calculateTotalDistance(routeData.edges),
+    [routeData.edges]
+  );
+  const totalTime = useMemo(
+    () => calculateTotalTime(routeData.edges),
+    [routeData.edges]
+  );
+
+  const actualDurationSeconds = useMemo(() => {
+    return totalTime * TIME_SCALE_FACTOR;
+  }, [totalTime]);
 
   // 计算不同道路类型的数量
   const roadTypeCount = useMemo(() => {
-    const types = new Set(routeData.edges.map(edge => edge.type));
+    const types = new Set(routeData.edges.map((edge) => edge.type));
     return types.size;
   }, [routeData.edges]);
 
@@ -286,11 +323,15 @@ function RoutePreview({ routeData }: RoutePreviewProps) {
         </span>
         <span className="text-gray-600">|</span>
         <span className="text-sm text-purple-300 font-mono font-bold">
-          {formatTime(totalTime)}<span className="text-[12px] font-normal text-gray-500">(デモ)</span>
+          {formatTime(totalTime)}
+          <span className="text-[12px] font-normal text-gray-500">
+            (模擬{Math.round(actualDurationSeconds)}s)
+          </span>
         </span>
         <span className="text-gray-600">|</span>
         <span className="text-sm text-blue-300 font-mono font-bold">
-          {roadTypeCount} <span className="text-[12px] font-normal text-gray-500">種類</span>
+          {roadTypeCount}{" "}
+          <span className="text-[12px] font-normal text-gray-500">種類</span>
         </span>
       </div>
     </div>
@@ -312,7 +353,8 @@ function ProgressBar({ percent }: ProgressBarProps) {
     const precisePercent = Number(clampedPercent.toFixed(1));
 
     // 取消之前的更新
-    if (rafRef.current !== undefined) { // ✅ 类型安全检查
+    if (rafRef.current !== undefined) {
+      // ✅ 类型安全检查
       cancelAnimationFrame(rafRef.current);
     }
 
@@ -329,7 +371,8 @@ function ProgressBar({ percent }: ProgressBarProps) {
       lastUpdateRef.current = now;
     } else {
       const delay = 100 - timeSinceLastUpdate;
-      rafRef.current = requestAnimationFrame(() => { // ✅ 赋值
+      rafRef.current = requestAnimationFrame(() => {
+        // ✅ 赋值
         setTimeout(() => {
           setDisplayPercent(precisePercent);
           lastUpdateRef.current = Date.now();
@@ -338,7 +381,8 @@ function ProgressBar({ percent }: ProgressBarProps) {
     }
 
     return () => {
-      if (rafRef.current !== undefined) { // ✅ 清理时检查
+      if (rafRef.current !== undefined) {
+        // ✅ 清理时检查
         cancelAnimationFrame(rafRef.current);
       }
     };
@@ -358,9 +402,9 @@ function ProgressBar({ percent }: ProgressBarProps) {
           className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full relative"
           style={{
             width: `${displayPercent}%`,
-            transition: 'width 0.15s ease-out',
-            transform: 'translateZ(0)',
-            willChange: 'width'
+            transition: "width 0.15s ease-out",
+            transform: "translateZ(0)",
+            willChange: "width",
           }}
         >
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/50 shadow-[0_0_5px_#fff]" />
@@ -387,26 +431,36 @@ function DrivingStatus({
   currentMode,
   currentSegmentIndex,
   remainingTime,
-  progressPercent
+  progressPercent,
 }: DrivingStatusProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between border-b border-gray-800 pb-1">
-        <span className="text-gray-500 text-[10px] font-mono uppercase">出発地</span>
-        <span className="text-cyan-400 text-xs font-bold truncate max-w-[150px]">{startLocation}</span>
+        <span className="text-gray-500 text-[10px] font-mono uppercase">
+          出発地
+        </span>
+        <span className="text-cyan-400 text-xs font-bold truncate max-w-[150px]">
+          {startLocation}
+        </span>
       </div>
       <div className="flex items-center justify-between border-b border-gray-800 pb-1">
-        <span className="text-gray-500 text-[10px] font-mono uppercase">目的地</span>
-        <span className="text-green-400 text-xs font-bold truncate max-w-[150px]">{destination}</span>
+        <span className="text-gray-500 text-[10px] font-mono uppercase">
+          目的地
+        </span>
+        <span className="text-green-400 text-xs font-bold truncate max-w-[150px]">
+          {destination}
+        </span>
       </div>
 
       {routeData && (
         <>
           <div className="flex items-center justify-between mt-2">
-            <span className="text-gray-500 text-[10px] font-mono uppercase">モード</span>
+            <span className="text-gray-500 text-[10px] font-mono uppercase">
+              モード
+            </span>
             <span className="text-yellow-400 text-xs font-bold flex items-center gap-1">
               <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-              {getModeById(currentMode)?.name || 'UNKNOWN'}
+              {getModeById(currentMode)?.name || "UNKNOWN"}
             </span>
           </div>
 
@@ -414,14 +468,17 @@ function DrivingStatus({
             <div className="bg-gray-800/50 p-1.5 rounded text-center">
               <div className="text-[8px] text-gray-500 uppercase">経路種類</div>
               <div className="text-blue-400 text-sm font-mono font-bold leading-none">
-                {new Set(routeData.edges.map(edge => edge.type)).size}
+                {new Set(routeData.edges.map((edge) => edge.type)).size}
                 <span className="text-[10px] text-gray-600"> 種類</span>
               </div>
             </div>
             <div className="bg-gray-800/50 p-1.5 rounded text-center">
-              <div className="text-[8px] text-gray-500 uppercase">到着予想時刻</div>
+              <div className="text-[8px] text-gray-500 uppercase">
+                到着予想時刻
+              </div>
               <div className="text-purple-400 text-sm font-mono font-bold leading-none">
-                {Math.max(0, Math.floor(remainingTime))}<span className="text-[10px]">s</span>
+                {Math.max(0, Math.floor(remainingTime))}
+                <span className="text-[10px]">s</span>
               </div>
             </div>
           </div>
@@ -454,7 +511,7 @@ export default function HUDPanel({
   progressPercent = 0,
   remainingTime = 0,
   useSimulationMode = false,
-  isAllPreloaded = false
+  isAllPreloaded = false,
 }: HUDPanelProps) {
   // 状态：只存储ID，名称通过派生获取
   const [startLocationId, setStartLocationId] = useState(DEFAULT_START_ID);
@@ -462,19 +519,30 @@ export default function HUDPanel({
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [mapModalOpen, setMapModalOpen] = useState(false);
-  const [mapSelectionMode, setMapSelectionMode] = useState<'start' | 'destination'>('start');
+  const [mapSelectionMode, setMapSelectionMode] = useState<
+    "start" | "destination"
+  >("start");
 
   // Hooks
   const windowSize = useWindowSize();
   const { locations: availableLocations } = useAvailableLocations();
 
   // 派生状态：通过ID获取名称
-  const getLocationName = useCallback((id: string): string => {
-    return availableLocations.find(loc => loc.id === id)?.name || id;
-  }, [availableLocations]);
+  const getLocationName = useCallback(
+    (id: string): string => {
+      return availableLocations.find((loc) => loc.id === id)?.name || id;
+    },
+    [availableLocations]
+  );
 
-  const startLocation = useMemo(() => getLocationName(startLocationId), [getLocationName, startLocationId]);
-  const destination = useMemo(() => getLocationName(destinationId), [getLocationName, destinationId]);
+  const startLocation = useMemo(
+    () => getLocationName(startLocationId),
+    [getLocationName, startLocationId]
+  );
+  const destination = useMemo(
+    () => getLocationName(destinationId),
+    [getLocationName, destinationId]
+  );
 
   // 响应式样式
   const styleConfig = useMemo(
@@ -492,13 +560,13 @@ export default function HUDPanel({
       if (route) {
         setRouteData(route);
         onRouteDataChange?.(route);
-        console.log('🚗 ルートデータ取得成功:', route);
+        console.log("🚗 ルートデータ取得成功:", route);
       } else {
-        console.error('❌ 无法生成路线');
+        console.error("❌ 无法生成路线");
         onRouteDataChange?.(null);
       }
     } catch (error) {
-      console.error('❌ ルートデータ取得エラー:', error);
+      console.error("❌ ルートデータ取得エラー:", error);
       onRouteDataChange?.(null);
     } finally {
       setIsLoadingRoute(false);
@@ -510,7 +578,7 @@ export default function HUDPanel({
     const testRoute = getAllModesRoute();
     setRouteData(testRoute);
     onRouteDataChange?.(testRoute);
-    console.log('🎮 テストルート読み込み完了');
+    console.log("🎮 テストルート読み込み完了");
   }, [onRouteDataChange]);
 
   const handleStartToggle = useCallback(() => {
@@ -519,65 +587,81 @@ export default function HUDPanel({
     onViewToggle(!newIsMoving); // 开始→第三人称，停止→第一人称
   }, [isMoving, onStartStop, onViewToggle]);
 
-  const handleStartLocationChange = useCallback((id: string) => {
-    if (id === '__OPEN_MAP__') {
-      setMapSelectionMode('start');
-      setMapModalOpen(true);
-      return;
-    }
-    setStartLocationId(id);
-    const name = availableLocations.find(loc => loc.id === id)?.name || id;
-    onStartLocationSet?.(name);
-  }, [availableLocations, onStartLocationSet]);
+  const handleStartLocationChange = useCallback(
+    (id: string) => {
+      if (id === "__OPEN_MAP__") {
+        setMapSelectionMode("start");
+        setMapModalOpen(true);
+        return;
+      }
+      setStartLocationId(id);
+      const name = availableLocations.find((loc) => loc.id === id)?.name || id;
+      onStartLocationSet?.(name);
+    },
+    [availableLocations, onStartLocationSet]
+  );
 
-  const handleDestinationChange = useCallback((id: string) => {
-    if (id === '__OPEN_MAP__') {
-      setMapSelectionMode('destination');
-      setMapModalOpen(true);
-      return;
-    }
-    setDestinationId(id);
-    const name = availableLocations.find(loc => loc.id === id)?.name || id;
-    onDestinationSet?.(name);
-  }, [availableLocations, onDestinationSet]);
+  const handleDestinationChange = useCallback(
+    (id: string) => {
+      if (id === "__OPEN_MAP__") {
+        setMapSelectionMode("destination");
+        setMapModalOpen(true);
+        return;
+      }
+      setDestinationId(id);
+      const name = availableLocations.find((loc) => loc.id === id)?.name || id;
+      onDestinationSet?.(name);
+    },
+    [availableLocations, onDestinationSet]
+  );
 
-  const handleMapConfirm = useCallback((startLocationId: string, destinationId: string) => {
-    // if (mapSelectionMode === 'start') {
-    setStartLocationId(startLocationId);
-    // onStartLocationSet?.(selectedName);
-    // } else {
-    setDestinationId(destinationId);
-    // onDestinationSet?.(selectedName);
-    // }
-  }, [mapSelectionMode, onStartLocationSet, onDestinationSet]);
+  const handleMapConfirm = useCallback(
+    (startLocationId: string, destinationId: string) => {
+      // if (mapSelectionMode === 'start') {
+      setStartLocationId(startLocationId);
+      // onStartLocationSet?.(selectedName);
+      // } else {
+      setDestinationId(destinationId);
+      // onDestinationSet?.(selectedName);
+      // }
+    },
+    [mapSelectionMode, onStartLocationSet, onDestinationSet]
+  );
 
   // 位置变化时获取路线（仅在停止状态）
   useEffect(() => {
     if (!isMoving && startLocationId && destinationId && !useSimulationMode) {
       fetchRouteData();
     }
-  }, [startLocationId, destinationId, isMoving, fetchRouteData, useSimulationMode]);
+  }, [
+    startLocationId,
+    destinationId,
+    isMoving,
+    fetchRouteData,
+    useSimulationMode,
+  ]);
 
   // 模拟模式下自动加载测试路线
   useEffect(() => {
     if (useSimulationMode && !routeData) {
-      console.log('🎮 シミュレーションモード: テストルート自動読み込み');
+      console.log("🎮 シミュレーションモード: テストルート自動読み込み");
       loadTestRoute();
-      setDestinationId('OUT_H1'); // 确保目的地为京都駅
-      setStartLocationId('A1'); // 确保出发地为東京駅
+      setDestinationId("OUT_H1"); // 确保目的地为京都駅
+      setStartLocationId("A1"); // 确保出发地为東京駅
     }
   }, [useSimulationMode, routeData, loadTestRoute]);
 
   return (
     <div
-      className={`fixed z-50 transition-all duration-1000 ease-in-out pointer-events-none ${isMoving ? '' : 'flex items-center justify-center'
-        }`}
+      className={`fixed z-50 transition-all duration-1000 ease-in-out pointer-events-none ${
+        isMoving ? "" : "flex items-center justify-center"
+      }`}
       style={{
         top: isMoving ? styleConfig.position.top : 0,
         left: isMoving ? styleConfig.position.left : 0,
-        right: isMoving ? 'auto' : 0,
-        bottom: isMoving ? 'auto' : 0,
-        perspective: '1000px'
+        right: isMoving ? "auto" : 0,
+        bottom: isMoving ? "auto" : 0,
+        perspective: "1000px",
       }}
     >
       <div
@@ -586,20 +670,20 @@ export default function HUDPanel({
           width: styleConfig.width,
           transform: styleConfig.transform,
           boxShadow: styleConfig.shadow,
-          borderRadius: '20px',
-          borderBottomWidth: '3px',
-          borderTopWidth: '1px',
-          maxWidth: isMoving ? 'none' : '95vw',
-          maxHeight: isMoving ? 'calc(100vh - 48px)' : '95vh',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
+          borderRadius: "20px",
+          borderBottomWidth: "3px",
+          borderTopWidth: "1px",
+          maxWidth: isMoving ? "none" : "95vw",
+          maxHeight: isMoving ? "calc(100vh - 48px)" : "95vh",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
           background: isMoving
-            ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(0, 0, 0, 0.95) 100%)'
+            ? "linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(0, 0, 0, 0.95) 100%)"
             : `
               linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%),
               repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(6, 182, 212, 0.03) 20px, rgba(6, 182, 212, 0.03) 21px),
               repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(6, 182, 212, 0.03) 20px, rgba(6, 182, 212, 0.03) 21px)
-            `
+            `,
         }}
       >
         {/* 标题 */}
@@ -607,18 +691,19 @@ export default function HUDPanel({
           <h2
             className={`font-mono font-bold mb-1 transition-all duration-1000 ${styleConfig.titleSize}`}
             style={{
-              background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #EC4899 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              fontSize: isMoving ? '14px' : '48px',
-              letterSpacing: '0.1em',
-              fontStyle: 'italic',
+              background:
+                "linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #EC4899 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              fontSize: isMoving ? "14px" : "48px",
+              letterSpacing: "0.1em",
+              fontStyle: "italic",
               fontWeight: 900,
-              textShadow: 'none'
+              textShadow: "none",
             }}
           >
-            {isMoving ? 'SYSTEM MONITOR' : 'RYU-O'}
+            {isMoving ? "SYSTEM MONITOR" : "RYU-O"}
           </h2>
           {!isMoving && (
             <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent mx-auto mt-4" />
@@ -650,14 +735,15 @@ export default function HUDPanel({
 
               {/* 非模拟模式时显示位置选择器 */}
 
-              <div className="relative w-full aspect-[504/303]"
+              <div
+                className="relative w-full aspect-[504/303]"
                 style={{
-                  backgroundImage: 'url(/assets/hud_chess_board.png)',
-                  backgroundSize: 'contain',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat'
-                }}>
-
+                  backgroundImage: "url(/assets/hud_chess_board.png)",
+                  backgroundSize: "contain",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }}
+              >
                 <div className="absolute right-[15%] top-[16%]">
                   <LocationSelect
                     label="出発地"
@@ -679,30 +765,40 @@ export default function HUDPanel({
                 </div>
               </div>
               {routeData && !isLoadingRoute && (
-                <RoutePreview routeData={routeData} />
+                <RoutePreview
+                  routeData={routeData}
+                  remainingTime={remainingTime}
+                />
               )}
             </div>
           )}
         </div>
 
         {/* 按钮组 */}
-        <div className={`transition-all duration-1000 ${isMoving ? 'space-y-2' : 'space-y-3'}`}>
+        <div
+          className={`transition-all duration-1000 ${
+            isMoving ? "space-y-2" : "space-y-3"
+          }`}
+        >
           <button
             onClick={handleStartToggle}
-            className={`w-full rounded font-bold font-mono tracking-wider transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isMoving
-              ? 'py-2 text-xs bg-red-900/80 hover:bg-red-800 active:bg-red-700 text-red-100 border border-red-500/50'
-              : 'py-4 text-lg bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border-2 border-cyan-500/50'
-              }`}
+            className={`w-full rounded font-bold font-mono tracking-wider transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
+              isMoving
+                ? "py-2 text-xs bg-red-900/80 hover:bg-red-800 active:bg-red-700 text-red-100 border border-red-500/50"
+                : "py-4 text-lg bg-cyan-900/80 hover:bg-cyan-800 active:bg-cyan-700 text-cyan-100 border-2 border-cyan-500/50"
+            }`}
             style={{
-              backgroundColor: 'rgba(31, 41, 55, 0.9)',
-              textShadow: isMoving ? '0 0 5px rgba(220,38,38,0.5)' : '0 0 8px rgba(6,182,212,0.8)',
+              backgroundColor: "rgba(31, 41, 55, 0.9)",
+              textShadow: isMoving
+                ? "0 0 5px rgba(220,38,38,0.5)"
+                : "0 0 8px rgba(6,182,212,0.8)",
               boxShadow: isMoving
-                ? '0 0 15px rgba(220, 38, 38, 0.2)'
-                : '0 0 20px rgba(6, 182, 212, 0.4)',
+                ? "0 0 15px rgba(220, 38, 38, 0.2)"
+                : "0 0 20px rgba(6, 182, 212, 0.4)",
               minHeight: `${TOUCH_MIN_HEIGHT}px`,
-              WebkitTapHighlightColor: 'transparent',
-              fontSize: isMoving ? undefined : '18px',
-              borderRadius: isMoving ? undefined : '12px'
+              WebkitTapHighlightColor: "transparent",
+              fontSize: isMoving ? undefined : "18px",
+              borderRadius: isMoving ? undefined : "12px",
             }}
           >
             {isMoving ? (
@@ -711,9 +807,7 @@ export default function HUDPanel({
                 中止
               </>
             ) : (
-              <>
-                出発
-              </>
+              <>出発</>
             )}
           </button>
         </div>
@@ -721,9 +815,21 @@ export default function HUDPanel({
         {/* 装饰元素 */}
         {!isMoving && (
           <div className="mt-4 flex justify-center gap-1 opacity-50">
-            <div className={`w-1 h-1 rounded-full ${isAllPreloaded ? 'bg-green-500' : 'bg-cyan-500'} animate-pulse`} />
-            <div className={`w-1 h-1 rounded-full ${isAllPreloaded ? 'bg-green-500' : 'bg-cyan-500'} animate-pulse delay-75`} />
-            <div className={`w-1 h-1 rounded-full ${isAllPreloaded ? 'bg-green-500' : 'bg-cyan-500'} animate-pulse delay-150`} />
+            <div
+              className={`w-1 h-1 rounded-full ${
+                isAllPreloaded ? "bg-green-500" : "bg-cyan-500"
+              } animate-pulse`}
+            />
+            <div
+              className={`w-1 h-1 rounded-full ${
+                isAllPreloaded ? "bg-green-500" : "bg-cyan-500"
+              } animate-pulse delay-75`}
+            />
+            <div
+              className={`w-1 h-1 rounded-full ${
+                isAllPreloaded ? "bg-green-500" : "bg-cyan-500"
+              } animate-pulse delay-150`}
+            />
           </div>
         )}
       </div>

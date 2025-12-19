@@ -1,629 +1,812 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import type { RouteResponse } from '../../types/routeAPI';
-import { generateRoute, getAvailableLocations, KyotoEdge, type KyotoNode } from '../../utils/kyotoRouteUtils';
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import type { RouteResponse } from "../../types/routeAPI";
+import {
+  generateRoute,
+  getAvailableLocations,
+  KyotoEdge,
+  type KyotoNode,
+} from "../../utils/kyotoRouteUtils";
 
 interface MapPickerModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: (selectedId: string, selectedName: string) => void;
-    startLocationId: string;
-    destinationId: string;
-    selectionMode: 'start' | 'destination';
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (
+    selectedId: string,
+    selectedName: "start" | "destination"
+  ) => void;
+  startLocationId: string;
+  destinationId: string;
+  selectionMode: "start" | "destination";
 }
 
 // 路线类型颜色映射
 const EDGE_COLORS = {
-    road: '#EBCF65',      // 金将
-    highway: '#F24B90',   // 香車
-    drone: '#13632cff',   // 桂馬
-    airplane: '#98B5C2'   // 飛車
+  road: "#EBCF65", // 金将
+  highway: "#F24B90", // 香車
+  drone: "#13632cff", // 桂馬
+  airplane: "#98B5C2", // 飛車
 };
 
 // 坐标转换：将经纬度转换为Canvas坐标
-function latLngToCanvas(lat: number, lng: number, bounds: any, canvasWidth: number, canvasHeight: number) {
-    const padding = 30;
-    const availableWidth = canvasWidth - padding * 2;
-    const availableHeight = canvasHeight - padding * 2;
+function latLngToCanvas(
+  lat: number,
+  lng: number,
+  bounds: any,
+  canvasWidth: number,
+  canvasHeight: number
+) {
+  const padding = 30;
+  const availableWidth = canvasWidth - padding * 2;
+  const availableHeight = canvasHeight - padding * 2;
 
-    const x = padding + ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * availableWidth;
-    const y = canvasHeight - padding - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * availableHeight;
-    return { x, y };
+  const x =
+    padding +
+    ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * availableWidth;
+  const y =
+    canvasHeight -
+    padding -
+    ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * availableHeight;
+  return { x, y };
 }
 
 export default function MapPickerModal({
-    isOpen,
-    onClose,
-    onConfirm,
-    startLocationId,
-    destinationId,
-    selectionMode
+  isOpen,
+  onClose,
+  onConfirm,
+  startLocationId,
+  destinationId,
+  selectionMode,
 }: MapPickerModalProps) {
-    const [nodes, setNodes] = useState<KyotoNode[]>([]);
-    const [edges, setEdges] = useState<KyotoEdge[]>([]);
-    const [tempStartNode, setTempStartNode] = useState<string>(startLocationId);
-    const [tempDestNode, setTempDestNode] = useState<string>(destinationId);
-    const [highlightedRoute, setHighlightedRoute] = useState<RouteResponse | null>(null);
+  const [nodes, setNodes] = useState<KyotoNode[]>([]);
+  const [edges, setEdges] = useState<KyotoEdge[]>([]);
+  const [tempStartNode, setTempStartNode] = useState<string>(startLocationId);
+  const [tempDestNode, setTempDestNode] = useState<string>(destinationId);
+  const [highlightedRoute, setHighlightedRoute] =
+    useState<RouteResponse | null>(null);
 
-    // 内部状态：当前正在选择起点还是终点（独立于外部selectionMode）
-    const [internalSelectionMode, setInternalSelectionMode] = useState<'start' | 'destination'>('start');
+  // 内部状态：当前正在选择起点还是终点（独立于外部selectionMode）
+  const [internalSelectionMode, setInternalSelectionMode] = useState<
+    "start" | "destination"
+  >("start");
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-    const mouseMoveRafRef = useRef<number | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const mouseMoveRafRef = useRef<number | null>(null);
 
-    // ✅ Bottom-center Toast（不阻塞、不需要确认、自动消失）
-    const [showGuide, setShowGuide] = useState(false);
-    const [guideText, setGuideText] = useState('');
-    const guideTimerRef = useRef<number | null>(null);
+  // ✅ Bottom-center Toast（不阻塞、不需要确认、自动消失）
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideText, setGuideText] = useState("");
+  const guideTimerRef = useRef<number | null>(null);
 
-    // ✅ 记录上一次“缺失状态”，避免重复提示
-    const lastMissingRef = useRef<'needStart' | 'needDest' | null>(null);
+  // ✅ 记录上一次“缺失状态”，避免重复提示
+  const lastMissingRef = useRef<"needStart" | "needDest" | null>(null);
 
-    // ✅ 空白点击强制提示时的节流（避免刷屏）
-    const lastForceAtRef = useRef<number>(0);
+  // ✅ 空白点击强制提示时的节流（避免刷屏）
+  const lastForceAtRef = useRef<number>(0);
 
-    const openGuide = useCallback((mode: 'start' | 'destination') => {
-        const text = mode === 'start' ? '出発地を選択してください' : '目的地を選択してください';
-        setGuideText(text);
-        setShowGuide(true);
+  const openToast = useCallback((text: string) => {
+    setGuideText(text);
+    setShowGuide(true);
 
-        if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
-        guideTimerRef.current = window.setTimeout(() => {
-            setShowGuide(false);
-        }, 1600);
-    }, []);
+    if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
+    guideTimerRef.current = window.setTimeout(() => {
+      setShowGuide(false);
+    }, 1600);
+  }, []);
 
-    const hideGuide = useCallback(() => {
-        if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
-        setShowGuide(false);
-    }, []);
+  const openGuide = useCallback(
+    (mode: "start" | "destination") => {
+      const text =
+        mode === "start"
+          ? "出発地を選択してください"
+          : "目的地を選択してください";
 
-    // 清理 timer
-    useEffect(() => {
-        return () => {
-            if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
-        };
-    }, []);
+      openToast(text);
+    },
+    [openToast]
+  );
 
-    // 缓存地图边界计算
-    const bounds = useMemo(() => {
-        if (nodes.length === 0) return null;
-        const lats = nodes.map(n => n.coordinates.lat);
-        const lngs = nodes.map(n => n.coordinates.lng);
-        return {
-            minLat: Math.min(...lats) - 0.01,
-            maxLat: Math.max(...lats) + 0.01,
-            minLng: Math.min(...lngs) - 0.01,
-            maxLng: Math.max(...lngs) + 0.01
-        };
-    }, [nodes]);
+  const hideGuide = useCallback(() => {
+    if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
+    setShowGuide(false);
+  }, []);
 
-    // ✅ 统一：根据“缺失状态”提示（force=true 用于空白点击强制触发）
-    const triggerMissingGuide = useCallback((force: boolean) => {
-        const hasStart = !!tempStartNode;
-        const hasDest = !!tempDestNode;
+  // 清理 timer
+  useEffect(() => {
+    return () => {
+      if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
+    };
+  }, []);
 
-        // 都选了：不提示
-        if (hasStart && hasDest) {
-            lastMissingRef.current = null;
-            hideGuide();
-            return;
-        }
+  // 缓存地图边界计算
+  const bounds = useMemo(() => {
+    if (nodes.length === 0) return null;
+    const lats = nodes.map((n) => n.coordinates.lat);
+    const lngs = nodes.map((n) => n.coordinates.lng);
+    return {
+      minLat: Math.min(...lats) - 0.01,
+      maxLat: Math.max(...lats) + 0.01,
+      minLng: Math.min(...lngs) - 0.01,
+      maxLng: Math.max(...lngs) + 0.01,
+    };
+  }, [nodes]);
 
-        const missing: 'needStart' | 'needDest' = hasStart ? 'needDest' : 'needStart';
-        const mode: 'start' | 'destination' = missing === 'needStart' ? 'start' : 'destination';
+  // ✅ 统一：根据“缺失状态”提示（force=true 用于空白点击强制触发）
+  const triggerMissingGuide = useCallback(
+    (force: boolean) => {
+      const hasStart = !!tempStartNode;
+      const hasDest = !!tempDestNode;
 
-        if (force) {
-            // 节流：800ms 内不重复弹（你想更敏感可改成 400）
-            const now = Date.now();
-            if (now - lastForceAtRef.current < 800) return;
-            lastForceAtRef.current = now;
+      // 都选了：不提示
+      if (hasStart && hasDest) {
+        lastMissingRef.current = null;
+        hideGuide();
+        return;
+      }
 
-            lastMissingRef.current = missing;
-            openGuide(mode);
-            return;
-        }
+      const missing: "needStart" | "needDest" = hasStart
+        ? "needDest"
+        : "needStart";
+      const mode: "start" | "destination" =
+        missing === "needStart" ? "start" : "destination";
 
-        // 非强制：仅当缺失状态变化时提示一次
-        if (lastMissingRef.current !== missing) {
-            lastMissingRef.current = missing;
-            openGuide(mode);
-        }
-    }, [tempStartNode, tempDestNode, openGuide, hideGuide]);
+      if (force) {
+        // 节流：800ms 内不重复弹（你想更敏感可改成 400）
+        const now = Date.now();
+        if (now - lastForceAtRef.current < 800) return;
+        lastForceAtRef.current = now;
 
-    // 初始化临时选择节点和内部选择模式
-    useEffect(() => {
-        if (isOpen) {
-            setTempStartNode(startLocationId);
-            setTempDestNode(destinationId);
+        lastMissingRef.current = missing;
+        openGuide(mode);
+        return;
+      }
 
-            if (selectionMode === 'start') {
-                setInternalSelectionMode('start');
-            } else {
-                setInternalSelectionMode('destination');
-            }
+      // 非强制：仅当缺失状态变化时提示一次
+      if (lastMissingRef.current !== missing) {
+        lastMissingRef.current = missing;
+        openGuide(mode);
+      }
+    },
+    [tempStartNode, tempDestNode, openGuide, hideGuide]
+  );
 
-            lastMissingRef.current = null;
-            // 打开时由“监测缺失状态”统一处理提示
-        } else {
-            hideGuide();
-            lastMissingRef.current = null;
-        }
-    }, [isOpen, startLocationId, destinationId, selectionMode, hideGuide]);
+  // 初始化临时选择节点和内部选择模式
+  useEffect(() => {
+    if (isOpen) {
+      setTempStartNode(startLocationId);
+      setTempDestNode(destinationId);
 
-    // ✅ 核心：监测是否“未选择”，按规则提示
-    useEffect(() => {
-        if (!isOpen) return;
-        triggerMissingGuide(false);
-    }, [isOpen, tempStartNode, tempDestNode, triggerMissingGuide]);
+      if (selectionMode === "start") {
+        setInternalSelectionMode("start");
+      } else {
+        setInternalSelectionMode("destination");
+      }
 
-    // 加载地图数据
-    useEffect(() => {
-        if (!isOpen) return;
+      lastMissingRef.current = null;
+      // 打开时由“监测缺失状态”统一处理提示
+    } else {
+      hideGuide();
+      lastMissingRef.current = null;
+    }
+  }, [isOpen, startLocationId, destinationId, selectionMode, hideGuide]);
 
-        Promise.all([
-            getAvailableLocations(),
-            fetch('/website-assets/kyoto_routes.json').then(res => res.json())
-        ]).then(([locationNodes, routeData]) => {
-            setNodes(locationNodes);
-            setEdges(routeData.edges || []);
+  // ✅ 核心：监测是否“未选择”，按规则提示
+  useEffect(() => {
+    if (!isOpen) return;
+    triggerMissingGuide(false);
+  }, [isOpen, tempStartNode, tempDestNode, triggerMissingGuide]);
+
+  // 加载地图数据
+  useEffect(() => {
+    if (!isOpen) return;
+
+    Promise.all([
+      getAvailableLocations(),
+      fetch("/website-assets/kyoto_routes.json").then((res) => res.json()),
+    ]).then(([locationNodes, routeData]) => {
+      setNodes(locationNodes);
+      setEdges(routeData.edges || []);
+    });
+  }, [isOpen]);
+
+  // 当地图打开且有起点和终点时，自动计算并显示路线
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !tempStartNode ||
+      !tempDestNode ||
+      tempStartNode === tempDestNode
+    )
+      return;
+
+    const calculateInitialRoute = async () => {
+      try {
+        const route = await generateRoute(tempStartNode, tempDestNode);
+        if (route) setHighlightedRoute(route);
+      } catch (error) {
+        console.error("❌ 初始路线计算失败:", error);
+      }
+    };
+
+    calculateInitialRoute();
+  }, [isOpen, tempStartNode, tempDestNode]);
+
+  // Canvas 尺寸监听
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!isOpen || !canvasRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setCanvasSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
         });
-    }, [isOpen]);
+      }
+    });
 
-    // 当地图打开且有起点和终点时，自动计算并显示路线
-    useEffect(() => {
-        if (!isOpen || !tempStartNode || !tempDestNode || tempStartNode === tempDestNode) return;
+    observer.observe(canvasRef.current);
+    return () => observer.disconnect();
+  }, [isOpen]);
 
-        const calculateInitialRoute = async () => {
-            try {
-                const route = await generateRoute(tempStartNode, tempDestNode);
-                if (route) setHighlightedRoute(route);
-            } catch (error) {
-                console.error('❌ 初始路线计算失败:', error);
-            }
-        };
+  // 绘制地图
+  useEffect(() => {
+    if (!isOpen || !canvasRef.current || !bounds) return;
 
-        calculateInitialRoute();
-    }, [isOpen, tempStartNode, tempDestNode]);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    // Canvas 尺寸监听
-    const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio;
+    canvas.height = rect.height * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-    useEffect(() => {
-        if (!isOpen || !canvasRef.current) return;
+    const canvasWidth = rect.width;
+    const canvasHeight = rect.height;
 
-        const observer = new ResizeObserver((entries) => {
-            const entry = entries[0];
-            if (entry) {
-                setCanvasSize({
-                    width: entry.contentRect.width,
-                    height: entry.contentRect.height
-                });
-            }
-        });
+    ctx.fillStyle = "#0A1929";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-        observer.observe(canvasRef.current);
-        return () => observer.disconnect();
-    }, [isOpen]);
+    ctx.strokeStyle = "rgba(6, 182, 212, 0.1)";
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 10; i++) {
+      const x = (canvasWidth / 10) * i;
+      const y = (canvasHeight / 10) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvasHeight);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvasWidth, y);
+      ctx.stroke();
+    }
 
-    // 绘制地图
-    useEffect(() => {
-        if (!isOpen || !canvasRef.current || !bounds) return;
+    // 绘制所有边
+    edges.forEach((edge) => {
+      const fromNode = nodes.find((n) => n.id === edge.from);
+      const toNode = nodes.find((n) => n.id === edge.to);
+      if (!fromNode || !toNode) return;
 
+      const from = latLngToCanvas(
+        fromNode.coordinates.lat,
+        fromNode.coordinates.lng,
+        bounds,
+        canvasWidth,
+        canvasHeight
+      );
+      const to = latLngToCanvas(
+        toNode.coordinates.lat,
+        toNode.coordinates.lng,
+        bounds,
+        canvasWidth,
+        canvasHeight
+      );
+
+      ctx.strokeStyle =
+        EDGE_COLORS[edge.type as keyof typeof EDGE_COLORS] || "#666666";
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    });
+
+    // 绘制高亮路线
+    if (highlightedRoute) {
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      for (let i = 0; i < highlightedRoute.nodes.length - 1; i++) {
+        const fromNode = highlightedRoute.nodes[i];
+        const toNode = highlightedRoute.nodes[i + 1];
+
+        const edge = highlightedRoute.edges.find(
+          (e) =>
+            (e.from === fromNode.id && e.to === toNode.id) ||
+            (e.from === toNode.id && e.to === fromNode.id)
+        );
+
+        const from = latLngToCanvas(
+          fromNode.coordinates.lat,
+          fromNode.coordinates.lng,
+          bounds,
+          canvasWidth,
+          canvasHeight
+        );
+        const to = latLngToCanvas(
+          toNode.coordinates.lat,
+          toNode.coordinates.lng,
+          bounds,
+          canvasWidth,
+          canvasHeight
+        );
+
+        ctx.strokeStyle = edge?.type
+          ? EDGE_COLORS[edge.type as keyof typeof EDGE_COLORS] || "#FFFFFF"
+          : "#FFFFFF";
+
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 8;
+
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.globalAlpha = 1;
+
+    // 绘制节点
+    nodes.forEach((node) => {
+      if (node.id === tempStartNode || node.id === tempDestNode) return;
+
+      const pos = latLngToCanvas(
+        node.coordinates.lat,
+        node.coordinates.lng,
+        bounds,
+        canvasWidth,
+        canvasHeight
+      );
+
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+
+      if (node.id === hoveredNode) {
+        ctx.fillStyle = "#EBCF65";
+        ctx.shadowColor = "#EBCF65";
+        ctx.shadowBlur = 10;
+      } else {
+        ctx.fillStyle = "#A1E3FF";
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(node.name, pos.x, pos.y - 12);
+    });
+  }, [
+    isOpen,
+    bounds,
+    nodes,
+    edges,
+    tempStartNode,
+    tempDestNode,
+    hoveredNode,
+    highlightedRoute,
+    canvasSize,
+  ]);
+
+  // 处理Canvas点击
+  const handleCanvasClick = useCallback(
+    async (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!canvasRef.current || !bounds) return;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      let closestNode: KyotoNode | null = null;
+      let minDistance = Infinity;
+
+      nodes.forEach((node) => {
+        const pos = latLngToCanvas(
+          node.coordinates.lat,
+          node.coordinates.lng,
+          bounds,
+          rect.width,
+          rect.height
+        );
+        const distance = Math.sqrt(
+          Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2)
+        );
+
+        if (distance < 15 && distance < minDistance) {
+          minDistance = distance;
+          closestNode = node;
+        }
+      });
+
+      // ✅ 空白点击：触发缺失提示（强制 + 节流）
+      if (!closestNode) {
+        triggerMissingGuide(true);
+        return;
+      }
+
+      if (closestNode.id === tempStartNode && closestNode.id === tempDestNode)
+        return;
+
+      let newStartId = tempStartNode;
+      let newDestId = tempDestNode;
+
+      if (internalSelectionMode === "start") {
+        newStartId = closestNode.id;
+        setTempStartNode(closestNode.id);
+
+        // 选完起点后，清空终点 -> 会进入“缺终点提示”状态
+        newDestId = "";
+        setTempDestNode("");
+        setHighlightedRoute(null);
+
+        setInternalSelectionMode("destination");
+      } else {
+        if (closestNode.id === tempStartNode) {
+          openToast("出発地と目的地は同じにできません"); // 你想用日文也行
+          // 保持仍然需要选择目的地
+          setInternalSelectionMode("destination");
+          return;
+        }
+
+        newDestId = closestNode.id;
+        setTempDestNode(closestNode.id);
+
+        setInternalSelectionMode("start");
+      }
+
+      if (newStartId && newDestId && newStartId !== newDestId) {
+        try {
+          const route = await generateRoute(newStartId, newDestId);
+          setHighlightedRoute(route || null);
+        } catch {
+          setHighlightedRoute(null);
+        }
+      } else {
+        setHighlightedRoute(null);
+      }
+    },
+    [
+      bounds,
+      nodes,
+      internalSelectionMode,
+      tempStartNode,
+      tempDestNode,
+      triggerMissingGuide,
+      openToast,
+    ]
+  );
+
+  // hover
+  const handleCanvasMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!canvasRef.current || !bounds) return;
+
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      if (mouseMoveRafRef.current)
+        cancelAnimationFrame(mouseMoveRafRef.current);
+
+      mouseMoveRafRef.current = requestAnimationFrame(() => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!canvas) return;
 
         const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * window.devicePixelRatio;
-        canvas.height = rect.height * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
 
-        const canvasWidth = rect.width;
-        const canvasHeight = rect.height;
-
-        ctx.fillStyle = '#0A1929';
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
-        ctx.lineWidth = 0.5;
-        for (let i = 0; i <= 10; i++) {
-            const x = (canvasWidth / 10) * i;
-            const y = (canvasHeight / 10) * i;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvasHeight);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvasWidth, y);
-            ctx.stroke();
+        let foundNodeId: string | null = null;
+        for (const node of nodes) {
+          const pos = latLngToCanvas(
+            node.coordinates.lat,
+            node.coordinates.lng,
+            bounds,
+            rect.width,
+            rect.height
+          );
+          const distance = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);
+          if (distance < 15) {
+            foundNodeId = node.id;
+            break;
+          }
         }
 
-        // 绘制所有边
-        edges.forEach(edge => {
-            const fromNode = nodes.find(n => n.id === edge.from);
-            const toNode = nodes.find(n => n.id === edge.to);
-            if (!fromNode || !toNode) return;
+        setHoveredNode(foundNodeId);
+      });
+    },
+    [bounds, nodes]
+  );
 
-            const from = latLngToCanvas(fromNode.coordinates.lat, fromNode.coordinates.lng, bounds, canvasWidth, canvasHeight);
-            const to = latLngToCanvas(toNode.coordinates.lat, toNode.coordinates.lng, bounds, canvasWidth, canvasHeight);
+  useEffect(() => {
+    return () => {
+      if (mouseMoveRafRef.current)
+        cancelAnimationFrame(mouseMoveRafRef.current);
+    };
+  }, []);
 
-            ctx.strokeStyle = EDGE_COLORS[edge.type as keyof typeof EDGE_COLORS] || '#666666';
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.4;
-            ctx.beginPath();
-            ctx.moveTo(from.x, from.y);
-            ctx.lineTo(to.x, to.y);
-            ctx.stroke();
-        });
+  const handleConfirm = useCallback(() => {
+    if (!tempStartNode || !tempDestNode) return;
+    if (tempStartNode === tempDestNode) {
+      openToast("出発地と目的地は同じにできません");
+      return;
+    }
 
-        // 绘制高亮路线
-        if (highlightedRoute) {
-            ctx.globalAlpha = 1;
-            ctx.lineWidth = 5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+    onConfirm(tempStartNode, tempDestNode);
+    onClose();
+  }, [tempStartNode, tempDestNode, onConfirm, onClose, openToast]);
 
-            for (let i = 0; i < highlightedRoute.nodes.length - 1; i++) {
-                const fromNode = highlightedRoute.nodes[i];
-                const toNode = highlightedRoute.nodes[i + 1];
+  const canConfirm =
+    !!tempStartNode && !!tempDestNode && tempStartNode !== tempDestNode;
 
-                const edge = highlightedRoute.edges.find(e =>
-                    (e.from === fromNode.id && e.to === toNode.id) ||
-                    (e.from === toNode.id && e.to === fromNode.id)
-                );
+  if (!isOpen) return null;
 
-                const from = latLngToCanvas(fromNode.coordinates.lat, fromNode.coordinates.lng, bounds, canvasWidth, canvasHeight);
-                const to = latLngToCanvas(toNode.coordinates.lat, toNode.coordinates.lng, bounds, canvasWidth, canvasHeight);
-
-                ctx.strokeStyle = edge?.type
-                    ? (EDGE_COLORS[edge.type as keyof typeof EDGE_COLORS] || '#FFFFFF')
-                    : '#FFFFFF';
-
-                ctx.shadowColor = ctx.strokeStyle;
-                ctx.shadowBlur = 8;
-
-                ctx.beginPath();
-                ctx.moveTo(from.x, from.y);
-                ctx.lineTo(to.x, to.y);
-                ctx.stroke();
-            }
-
-            ctx.shadowBlur = 0;
-        }
-
-        ctx.globalAlpha = 1;
-
-        // 绘制节点
-        nodes.forEach(node => {
-            if (node.id === tempStartNode || node.id === tempDestNode) return;
-
-            const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, canvasWidth, canvasHeight);
-
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
-
-            if (node.id === hoveredNode) {
-                ctx.fillStyle = '#EBCF65';
-                ctx.shadowColor = '#EBCF65';
-                ctx.shadowBlur = 10;
-            } else {
-                ctx.fillStyle = '#A1E3FF';
-                ctx.shadowBlur = 0;
-            }
-
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 11px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(node.name, pos.x, pos.y - 12);
-        });
-
-    }, [isOpen, bounds, nodes, edges, tempStartNode, tempDestNode, hoveredNode, highlightedRoute, canvasSize]);
-
-    // 处理Canvas点击
-    const handleCanvasClick = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!canvasRef.current || !bounds) return;
-
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        let closestNode: KyotoNode | null = null;
-        let minDistance = Infinity;
-
-        nodes.forEach(node => {
-            const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
-            const distance = Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2));
-
-            if (distance < 15 && distance < minDistance) {
-                minDistance = distance;
-                closestNode = node;
-            }
-        });
-
-        // ✅ 空白点击：触发缺失提示（强制 + 节流）
-        if (!closestNode) {
-            triggerMissingGuide(true);
-            return;
-        }
-
-        if (closestNode.id === tempStartNode && closestNode.id === tempDestNode) return;
-
-        let newStartId = tempStartNode;
-        let newDestId = tempDestNode;
-
-        if (internalSelectionMode === 'start') {
-            newStartId = closestNode.id;
-            setTempStartNode(closestNode.id);
-
-            // 选完起点后，清空终点 -> 会进入“缺终点提示”状态
-            newDestId = '';
-            setTempDestNode('');
-            setHighlightedRoute(null);
-
-            setInternalSelectionMode('destination');
-        } else {
-            newDestId = closestNode.id;
-            setTempDestNode(closestNode.id);
-
-            setInternalSelectionMode('start');
-        }
-
-        if (newStartId && newDestId && newStartId !== newDestId) {
-            try {
-                const route = await generateRoute(newStartId, newDestId);
-                setHighlightedRoute(route || null);
-            } catch {
-                setHighlightedRoute(null);
-            }
-        } else {
-            setHighlightedRoute(null);
-        }
-    }, [bounds, nodes, internalSelectionMode, tempStartNode, tempDestNode, triggerMissingGuide]);
-
-    // hover
-    const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!canvasRef.current || !bounds) return;
-
-        const clientX = e.clientX;
-        const clientY = e.clientY;
-
-        if (mouseMoveRafRef.current) cancelAnimationFrame(mouseMoveRafRef.current);
-
-        mouseMoveRafRef.current = requestAnimationFrame(() => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-
-            let foundNodeId: string | null = null;
-            for (const node of nodes) {
-                const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
-                const distance = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);
-                if (distance < 15) {
-                    foundNodeId = node.id;
-                    break;
-                }
-            }
-
-            setHoveredNode(foundNodeId);
-        });
-    }, [bounds, nodes]);
-
-    useEffect(() => {
-        return () => {
-            if (mouseMoveRafRef.current) cancelAnimationFrame(mouseMoveRafRef.current);
-        };
-    }, []);
-
-    const handleConfirm = useCallback(() => {
-        if (tempStartNode && tempDestNode) {
-            onConfirm(tempStartNode, tempDestNode);
-            onClose();
-        }
-    }, [tempStartNode, tempDestNode, onConfirm, onClose]);
-
-    const canConfirm = !!tempStartNode && !!tempDestNode;
-
-    if (!isOpen) return null;
-
-    return (
-        <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) onClose();
-            }}
-        >
-            <div
-                className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-cyan-500/50 rounded-xl p-6 shadow-2xl pointer-events-auto"
-                style={{ width: '90vw', height: '90vh', maxWidth: '1600px', maxHeight: '900px' }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* 标题 */}
-                <div className="mb-4">
-                    <h3 className="text-xl font-bold text-cyan-400 mb-2">経路を選択</h3>
-                    <div className="flex gap-4 text-xs text-gray-400">
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-1" style={{ backgroundColor: EDGE_COLORS.road }}></div>
-                            <span>金将(一般道路)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-1" style={{ backgroundColor: EDGE_COLORS.highway }}></div>
-                            <span>香車(高速道路)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-1" style={{ backgroundColor: EDGE_COLORS.drone }}></div>
-                            <span>桂馬(ドローン)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-1" style={{ backgroundColor: EDGE_COLORS.airplane }}></div>
-                            <span>飛車(航空路線)</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 地图Canvas */}
-                <div className="relative" style={{ height: 'calc(100% - 140px)' }}>
-                    <canvas
-                        ref={canvasRef}
-                        className="w-full h-full border border-cyan-500/30 rounded cursor-pointer"
-                        onClick={handleCanvasClick}
-                        onMouseMove={handleCanvasMouseMove}
-                    />
-
-                    {/* ✅ 底部居中 Toast（按缺失状态提示） */}
-                    <div
-                        className="absolute left-1/2 -translate-x-1/2"
-                        style={{ bottom: '18px', pointerEvents: 'none', zIndex: 60 }}
-                    >
-                        <div className={`transition-all duration-200 ease-out ${showGuide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                            <div
-                                className="px-6 py-3 rounded-xl border border-cyan-400/45 bg-black/55 backdrop-blur-md shadow-2xl"
-                                style={{
-                                    boxShadow: '0 0 22px rgba(6, 182, 212, 0.22)',
-                                    textShadow: '0 0 10px rgba(6,182,212,0.55)',
-                                    minWidth: '340px',
-                                    textAlign: 'center'
-                                }}
-                            >
-                                <span className="text-cyan-100 font-bold">{guideText}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* SVG标记层 - 起点和终点 */}
-                    {bounds && canvasRef.current && (
-                        <>
-                            {/* 起点标记 */}
-                            {tempStartNode && (() => {
-                                const node = nodes.find(n => n.id === tempStartNode);
-                                if (!node) return null;
-                                const rect = canvasRef.current!.getBoundingClientRect();
-                                const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
-                                return (
-                                    <div
-                                        className="absolute pointer-events-none"
-                                        style={{
-                                            left: `${pos.x}px`,
-                                            top: `${pos.y}px`,
-                                            transform: 'translate(-50%, -100%)',
-                                            width: 'clamp(30px, 2vw, 60px)',
-                                        }}
-                                    >
-                                        <svg viewBox="0 0 41 51" className="w-full h-auto drop-shadow-lg" preserveAspectRatio="xMidYMid meet">
-                                            <path
-                                                d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
-                                                fill="#60A5FA"
-                                                stroke="#1F2937"
-                                                strokeWidth="1"
-                                            />
-                                            <text x="20.5" y="30" fontSize="20" fontWeight="bold" fill="#ffffffff" textAnchor="middle" dominantBaseline="middle">
-                                                発
-                                            </text>
-                                        </svg>
-                                    </div>
-                                );
-                            })()}
-
-                            {/* 终点标记 */}
-                            {tempDestNode && (() => {
-                                const node = nodes.find(n => n.id === tempDestNode);
-                                if (!node) return null;
-                                const rect = canvasRef.current!.getBoundingClientRect();
-                                const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
-                                return (
-                                    <div
-                                        className="absolute pointer-events-none"
-                                        style={{
-                                            left: `${pos.x}px`,
-                                            top: `${pos.y}px`,
-                                            transform: 'translate(-50%, -100%)',
-                                            width: 'clamp(30px, 2vw, 60px)',
-                                        }}
-                                    >
-                                        <svg
-                                            viewBox="0 0 41 51"
-                                            className="w-full h-auto drop-shadow-lg"
-                                            preserveAspectRatio="xMidYMid meet"
-                                            style={{ transform: 'rotate(180deg)' }}
-                                        >
-                                            <path
-                                                d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
-                                                fill="#F24B90"
-                                                stroke="#1F2937"
-                                                strokeWidth="1"
-                                            />
-                                            <text
-                                                x="20.5"
-                                                y="30"
-                                                fontSize="20"
-                                                fontWeight="bold"
-                                                fill="#ffffffff"
-                                                textAnchor="middle"
-                                                dominantBaseline="middle"
-                                                style={{ transform: 'rotate(180deg)', transformOrigin: '20.5px 30px' }}
-                                            >
-                                                着
-                                            </text>
-                                        </svg>
-                                    </div>
-                                );
-                            })()}
-                        </>
-                    )}
-                </div>
-
-                {/* 底部按钮 */}
-                <div className="mt-4 flex justify-between items-center">
-                    <div className="text-sm space-y-1">
-                        <div className="text-cyan-300">
-                            🚩 出発: {nodes.find(n => n.id === tempStartNode)?.name || '未選択'}
-                        </div>
-                        <div className="text-pink-300">
-                            🎯 目的: {nodes.find(n => n.id === tempDestNode)?.name || '未選択'}
-                        </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="px-8 py-3 bg-red-900/80 hover:bg-red-800 text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-red-500/50 shadow-lg"
-                            style={{
-                                backgroundColor: 'rgba(31, 41, 55, 0.9)',
-                                textShadow: '0 0 8px rgba(6,182,212,0.8)',
-                                boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)',
-                                WebkitTapHighlightColor: 'transparent',
-                                fontSize: '18px',
-                                borderRadius: '12px'
-                            }}
-                        >
-                            キャンセル
-                        </button>
-
-                        <button
-                            onClick={handleConfirm}
-                            disabled={!canConfirm}
-                            className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-cyan-400/50 shadow-lg"
-                            style={{
-                                backgroundColor: 'rgba(31, 41, 55, 0.9)',
-                                textShadow: '0 0 8px rgba(6,182,212,0.8)',
-                                boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)',
-                                WebkitTapHighlightColor: 'transparent',
-                                fontSize: '18px',
-                                borderRadius: '12px'
-                            }}
-                        >
-                            確定
-                        </button>
-                    </div>
-                </div>
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-cyan-500/50 rounded-xl p-6 shadow-2xl pointer-events-auto"
+        style={{
+          width: "90vw",
+          height: "90vh",
+          maxWidth: "1600px",
+          maxHeight: "900px",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 标题 */}
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-cyan-400 mb-2">経路を選択</h3>
+          <div className="flex gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-4 h-1"
+                style={{ backgroundColor: EDGE_COLORS.road }}
+              ></div>
+              <span>金将(一般道路)</span>
             </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-4 h-1"
+                style={{ backgroundColor: EDGE_COLORS.highway }}
+              ></div>
+              <span>香車(高速道路)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-4 h-1"
+                style={{ backgroundColor: EDGE_COLORS.drone }}
+              ></div>
+              <span>桂馬(ドローン)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-4 h-1"
+                style={{ backgroundColor: EDGE_COLORS.airplane }}
+              ></div>
+              <span>飛車(航空路線)</span>
+            </div>
+          </div>
         </div>
-    );
+
+        {/* 地图Canvas */}
+        <div className="relative" style={{ height: "calc(100% - 140px)" }}>
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full border border-cyan-500/30 rounded cursor-pointer"
+            onClick={handleCanvasClick}
+            onMouseMove={handleCanvasMouseMove}
+          />
+
+          {/* ✅ 底部居中 Toast（按缺失状态提示） */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{ bottom: "18px", pointerEvents: "none", zIndex: 60 }}
+          >
+            <div
+              className={`transition-all duration-200 ease-out ${
+                showGuide
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2"
+              }`}
+            >
+              <div
+                className="px-6 py-3 rounded-xl border border-cyan-400/45 bg-black/55 backdrop-blur-md shadow-2xl"
+                style={{
+                  boxShadow: "0 0 22px rgba(6, 182, 212, 0.22)",
+                  textShadow: "0 0 10px rgba(6,182,212,0.55)",
+                  minWidth: "340px",
+                  textAlign: "center",
+                }}
+              >
+                <span className="text-cyan-100 font-bold">{guideText}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SVG标记层 - 起点和终点 */}
+          {bounds && canvasRef.current && (
+            <>
+              {/* 起点标记 */}
+              {tempStartNode &&
+                (() => {
+                  const node = nodes.find((n) => n.id === tempStartNode);
+                  if (!node) return null;
+                  const rect = canvasRef.current!.getBoundingClientRect();
+                  const pos = latLngToCanvas(
+                    node.coordinates.lat,
+                    node.coordinates.lng,
+                    bounds,
+                    rect.width,
+                    rect.height
+                  );
+                  return (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${pos.x}px`,
+                        top: `${pos.y}px`,
+                        transform: "translate(-50%, -100%)",
+                        width: "clamp(30px, 2vw, 60px)",
+                      }}
+                    >
+                      <svg
+                        viewBox="0 0 41 51"
+                        className="w-full h-auto drop-shadow-lg"
+                        preserveAspectRatio="xMidYMid meet"
+                      >
+                        <path
+                          d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+                          fill="#60A5FA"
+                          stroke="#1F2937"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x="20.5"
+                          y="30"
+                          fontSize="20"
+                          fontWeight="bold"
+                          fill="#ffffffff"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          発
+                        </text>
+                      </svg>
+                    </div>
+                  );
+                })()}
+
+              {/* 终点标记 */}
+              {tempDestNode &&
+                (() => {
+                  const node = nodes.find((n) => n.id === tempDestNode);
+                  if (!node) return null;
+                  const rect = canvasRef.current!.getBoundingClientRect();
+                  const pos = latLngToCanvas(
+                    node.coordinates.lat,
+                    node.coordinates.lng,
+                    bounds,
+                    rect.width,
+                    rect.height
+                  );
+                  return (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${pos.x}px`,
+                        top: `${pos.y}px`,
+                        transform: "translate(-50%, -100%)",
+                        width: "clamp(30px, 2vw, 60px)",
+                      }}
+                    >
+                      <svg
+                        viewBox="0 0 41 51"
+                        className="w-full h-auto drop-shadow-lg"
+                        preserveAspectRatio="xMidYMid meet"
+                        style={{ transform: "rotate(180deg)" }}
+                      >
+                        <path
+                          d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+                          fill="#F24B90"
+                          stroke="#1F2937"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x="20.5"
+                          y="30"
+                          fontSize="20"
+                          fontWeight="bold"
+                          fill="#ffffffff"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          style={{
+                            transform: "rotate(180deg)",
+                            transformOrigin: "20.5px 30px",
+                          }}
+                        >
+                          着
+                        </text>
+                      </svg>
+                    </div>
+                  );
+                })()}
+            </>
+          )}
+        </div>
+
+        {/* 底部按钮 */}
+        <div className="mt-4 flex justify-between items-center">
+          <div className="text-sm space-y-1">
+            <div className="text-cyan-300">
+              🚩 出発:{" "}
+              {nodes.find((n) => n.id === tempStartNode)?.name || "未選択"}
+            </div>
+            <div className="text-pink-300">
+              🎯 目的:{" "}
+              {nodes.find((n) => n.id === tempDestNode)?.name || "未選択"}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-8 py-3 bg-red-900/80 hover:bg-red-800 text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-red-500/50 shadow-lg"
+              style={{
+                backgroundColor: "rgba(31, 41, 55, 0.9)",
+                textShadow: "0 0 8px rgba(6,182,212,0.8)",
+                boxShadow: "0 0 20px rgba(6, 182, 212, 0.4)",
+                WebkitTapHighlightColor: "transparent",
+                fontSize: "18px",
+                borderRadius: "12px",
+              }}
+            >
+              キャンセル
+            </button>
+
+            <button
+              onClick={handleConfirm}
+              disabled={!canConfirm}
+              className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-cyan-400/50 shadow-lg"
+              style={{
+                backgroundColor: "rgba(31, 41, 55, 0.9)",
+                textShadow: "0 0 8px rgba(6,182,212,0.8)",
+                boxShadow: "0 0 20px rgba(6, 182, 212, 0.4)",
+                WebkitTapHighlightColor: "transparent",
+                fontSize: "18px",
+                borderRadius: "12px",
+              }}
+            >
+              確定
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
