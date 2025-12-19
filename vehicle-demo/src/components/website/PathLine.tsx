@@ -82,7 +82,7 @@ export const PathLine: React.FC<PathLineProps> = ({
     geo.computeVertexNormals()
 
     const mat = new THREE.MeshBasicMaterial({
-      color: color,
+      color: new THREE.Color(color),
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,

@@ -722,8 +722,8 @@ export default function CyberpunkCityDemo() {
             const modeDisplay = {
               road: { icon: '🚗', name: '金将', color: '#EBCF65' },
               highway: { icon: '🏎️', name: '香車', color: '#F24B90' },
-              drone: { icon: '🚁', name: '桂馬', color: '#B1C075' },
-              airplane: { icon: '✈️', name: '飛車', color: '#98B5C2' }
+              drone: { icon: '🚁', name: '桂馬', color: '#13632cff' },
+              airplane: { icon: '✈️', name: '飛車', color: '#0670b2ff' }
             }[vehicleStatus.currentMode] || { icon: '🚗', name: '金将', color: '#EBCF65' };
 
             const displayInteger = Math.round(vehicleStatus.progress);
@@ -851,7 +851,7 @@ export default function CyberpunkCityDemo() {
                       textAlign: 'center',
                       boxShadow: `0 0 10px ${modeDisplay.color}40, inset 0 2px 8px ${modeDisplay.color}20`
                     }}>
-                      <div style={{ fontSize: '10px', color: '#888', marginBottom: '2px' }}>現在のモード</div>
+                      <div style={{ fontSize: '10px', color: '#ffffffff', marginBottom: '2px' }}>現在のモード</div>
                       {/* <div style={{ fontSize: '24px', marginBottom: '2px' }}>{modeDisplay.icon}</div> */}
                       <div style={{ fontSize: '14px', fontWeight: 'bold', color: modeDisplay.color }}>
                         {modeDisplay.name}
@@ -866,11 +866,10 @@ export default function CyberpunkCityDemo() {
                       border: '2px solid #00ffff',
                       textAlign: 'center'
                     }}>
-                      <div style={{ fontSize: '10px', color: '#888', marginBottom: '2px' }}>スピード</div>
+                      <div style={{ fontSize: '10px', color: '#ffffffff', marginBottom: '2px' }}>スピード</div>
                       <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#00ffff', lineHeight: '1.2' }}>
-                        {vehicleStatus.currentSpeed.toFixed(0)}
+                        {vehicleStatus.currentSpeed.toFixed(0)}/KM
                       </div>
-                      <div style={{ fontSize: '11px', color: '#888' }}>km/h</div>
                     </div>
                   </div>
 
@@ -1323,11 +1322,11 @@ export default function CyberpunkCityDemo() {
             <span>高速道路（香車）</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#B1C075', fontSize: '16px' }}>━━</span>
+            <span style={{ color: '#13632cff', fontSize: '16px' }}>━━</span>
             <span>ドローン（桂馬）</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#98B5C2', fontSize: '16px' }}>━━</span>
+            <span style={{ color: '#0670b2ff', fontSize: '16px' }}>━━</span>
             <span>航空路線（飛車）</span>
           </div>
         </div>

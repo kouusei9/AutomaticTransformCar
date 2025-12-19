@@ -24,7 +24,9 @@ const EDGE_COLORS = {
   road: "#EBCF65", // 金将
   highway: "#F24B90", // 香車
   drone: "#13632cff", // 桂馬
-  airplane: "#98B5C2", // 飛車
+  sky: "#0670b2", // 飛車
+  // mistake sky === airplane
+  airplane: "#0670b2", // 飛車
 };
 
 // 坐标转换：将经纬度转换为Canvas坐标
@@ -607,7 +609,7 @@ export default function MapPickerModal({
             <div className="flex items-center gap-2">
               <div
                 className="w-4 h-1"
-                style={{ backgroundColor: EDGE_COLORS.airplane }}
+                style={{ backgroundColor: EDGE_COLORS.sky }}
               ></div>
               <span>飛車(航空路線)</span>
             </div>

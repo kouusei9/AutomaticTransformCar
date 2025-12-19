@@ -1172,7 +1172,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
             <PathLine
               key={`aerial-${index}`}
               path={item.path}
-              color="#B1C075"
+              color="#13632c"
               animated
               lineWidth={2}
               dimmed={highlightedRoute !== null && !isHighlighted}
@@ -1203,7 +1203,7 @@ export const CityGround: React.FC<CityGroundProps> = ({
             <PathLine
               key={`airplane-${index}`}
               path={item.path}
-              color="#98B5C2"
+              color="#0670b2"
               animated
               lineWidth={2}
               dimmed={highlightedRoute !== null && !isHighlighted}
