@@ -32,7 +32,9 @@ export default function CyberpunkCityDemo() {
   const isAutoModeRef = useRef(false) // 跟踪自动模式状态
   const stickyVehicleIdRef = useRef<string | null>(null) // 粘性跟踪的车辆ID
   const routePathsRef = useRef<Map<string, THREE.CurvePath<THREE.Vector3>>>(new Map()) // 路径 ref
+  const uiOverlayRef = useRef<HTMLDivElement>(null) // UI 面板 ref
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false) // 全体情报展开状态
+  const [notificationTop, setNotificationTop] = useState(380) // 通知面板动态位置
   const [floatingLandmarks, setFloatingLandmarks] = useState<Array<{
     position: [number, number, number]
     name: string
@@ -174,6 +176,26 @@ export default function CyberpunkCityDemo() {
   useEffect(() => {
     routePathsRef.current = routePaths
   }, [routePaths])
+
+  // 监听 UI 面板高度变化，动态调整通知位置
+  useEffect(() => {
+    if (!uiOverlayRef.current) return
+
+    const updateNotificationPosition = () => {
+      const rect = uiOverlayRef.current!.getBoundingClientRect()
+      const newTop = rect.bottom + 10 // UI 面板底部 + 10px 间距
+      setNotificationTop(newTop)
+    }
+
+    // 初始计算
+    updateNotificationPosition()
+
+    // 使用 ResizeObserver 监听尺寸变化
+    const observer = new ResizeObserver(updateNotificationPosition)
+    observer.observe(uiOverlayRef.current)
+
+    return () => observer.disconnect()
+  }, [selectedVehicleId, isOverviewExpanded, activeVehicleIds]) // 依赖关键状态
 
   // 切换到指定车辆的回调
   const handleSwitchToVehicle = useCallback((vehicleId: string) => {
@@ -684,6 +706,7 @@ export default function CyberpunkCityDemo() {
 
       {/* UIオーバーレイ */}
       <div
+        ref={uiOverlayRef}
         onClick={() => !selectedVehicleId && setIsOverviewExpanded(!isOverviewExpanded)}
         style={{
           position: 'absolute',
@@ -780,17 +803,11 @@ export default function CyberpunkCityDemo() {
                   <div style={{ fontSize: '13px', color: '#00ffff', marginBottom: '6px', fontWeight: 'bold' }}>
                     状態情報
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px' }}>
                     <div>
                       <span style={{ color: '#888' }}>ルート:</span>
                       <div style={{ color: '#fff', fontWeight: 'bold', marginTop: '2px', fontSize: '13px' }}>
                         {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#888' }}>総距離:</span>
-                      <div style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '16px', marginTop: '2px' }}>
-                        {(vehicleStatus.totalDistance / 1000).toFixed(2)} km
                       </div>
                     </div>
                     <div>
@@ -823,6 +840,12 @@ export default function CyberpunkCityDemo() {
                         }}>
                           {vehicleStatus.remainingEnergy.toFixed(0)}%
                         </div>
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#888' }}>総距離:</span>
+                      <div style={{ color: '#00ffff', fontWeight: 'bold', fontSize: '16px', marginTop: '2px' }}>
+                        {(vehicleStatus.totalDistance / 1000).toFixed(2)} km
                       </div>
                     </div>
                   </div>
@@ -951,10 +974,10 @@ export default function CyberpunkCityDemo() {
             {!isOverviewExpanded ? (
               // 缩略版
               <div style={{ lineHeight: '2', textAlign: 'left' }}>
-                {vehicleRoutes.filter(r => activeVehicles.has(r.id)).slice(0, 3).map((route, idx) => (
+                {vehicleRoutes.filter(r => activeVehicles.has(r.id)).slice(0, 10).map((route, idx) => (
                   <div key={route.id} style={{ fontSize: '16px', marginBottom: '8px' }}>• 車両{idx + 1}: {route.name}</div>
                 ))}
-                {vehicleRoutes.filter(r => activeVehicles.has(r.id)).length > 3 && (
+                {vehicleRoutes.filter(r => activeVehicles.has(r.id)).length > 10 && (
                   <div style={{ fontSize: '16px', color: '#888', marginBottom: '8px' }}>
                     ... 他 {vehicleRoutes.filter(r => activeVehicles.has(r.id)).length - 3} 台
                   </div>
@@ -1238,7 +1261,7 @@ export default function CyberpunkCityDemo() {
         <div
           style={{
             position: 'absolute',
-            top: selectedVehicleId !== null ? '450px' : (isOverviewExpanded ? '650px' : '380px'),
+            top: `${notificationTop}px`, // 使用动态计算的值
             left: 20,
             zIndex: 9,
             display: 'flex',
