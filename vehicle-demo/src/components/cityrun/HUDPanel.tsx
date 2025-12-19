@@ -213,7 +213,7 @@ function LocationSelect({ label, value, onChange, options, colorClass }: Locatio
       <div
         className="relative flex justify-center flex-shrink-0 p-1 rounded-lg cursor-pointer hover:scale-[1.02] transition-transform"
         style={{
-          width: 'clamp(30px, 5vw, 60px)', // 👈 你现在调这个一定会生效
+          width: 'clamp(30px, 5vw, 60px)',
         }}
         onClick={() => onChange('__OPEN_MAP__')}
       >
@@ -286,7 +286,7 @@ function RoutePreview({ routeData }: RoutePreviewProps) {
         </span>
         <span className="text-gray-600">|</span>
         <span className="text-sm text-purple-300 font-mono font-bold">
-          {formatTime(totalTime)}
+          {formatTime(totalTime)}<span className="text-[12px] font-normal text-gray-500">(デモ)</span>
         </span>
         <span className="text-gray-600">|</span>
         <span className="text-sm text-blue-300 font-mono font-bold">

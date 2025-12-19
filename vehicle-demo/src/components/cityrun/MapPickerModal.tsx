@@ -15,34 +15,75 @@ interface MapPickerModalProps {
 const EDGE_COLORS = {
     road: '#EBCF65',      // 金将
     highway: '#F24B90',   // 香車
-    drone: '#13632cff',     // 桂馬
+    drone: '#13632cff',   // 桂馬
     airplane: '#98B5C2'   // 飛車
 };
 
 // 坐标转换：将经纬度转换为Canvas坐标
 function latLngToCanvas(lat: number, lng: number, bounds: any, canvasWidth: number, canvasHeight: number) {
-    const padding = 30; // 上下左右留出空间，避免标签被裁剪
+    const padding = 30;
     const availableWidth = canvasWidth - padding * 2;
     const availableHeight = canvasHeight - padding * 2;
-    
+
     const x = padding + ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * availableWidth;
     const y = canvasHeight - padding - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * availableHeight;
     return { x, y };
 }
 
-export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocationId, destinationId, selectionMode }: MapPickerModalProps) {
+export default function MapPickerModal({
+    isOpen,
+    onClose,
+    onConfirm,
+    startLocationId,
+    destinationId,
+    selectionMode
+}: MapPickerModalProps) {
     const [nodes, setNodes] = useState<KyotoNode[]>([]);
     const [edges, setEdges] = useState<KyotoEdge[]>([]);
     const [tempStartNode, setTempStartNode] = useState<string>(startLocationId);
     const [tempDestNode, setTempDestNode] = useState<string>(destinationId);
     const [highlightedRoute, setHighlightedRoute] = useState<RouteResponse | null>(null);
-    
+
     // 内部状态：当前正在选择起点还是终点（独立于外部selectionMode）
     const [internalSelectionMode, setInternalSelectionMode] = useState<'start' | 'destination'>('start');
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-    const mouseMoveRafRef = useRef<number>();
+    const mouseMoveRafRef = useRef<number | null>(null);
+
+    // ✅ Bottom-center Toast（不阻塞、不需要确认、自动消失）
+    const [showGuide, setShowGuide] = useState(false);
+    const [guideText, setGuideText] = useState('');
+    const guideTimerRef = useRef<number | null>(null);
+
+    // ✅ 记录上一次“缺失状态”，避免重复提示
+    const lastMissingRef = useRef<'needStart' | 'needDest' | null>(null);
+
+    // ✅ 空白点击强制提示时的节流（避免刷屏）
+    const lastForceAtRef = useRef<number>(0);
+
+    const openGuide = useCallback((mode: 'start' | 'destination') => {
+        const text = mode === 'start' ? '出発地を選択してください' : '目的地を選択してください';
+        setGuideText(text);
+        setShowGuide(true);
+
+        if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
+        guideTimerRef.current = window.setTimeout(() => {
+            setShowGuide(false);
+        }, 1600);
+    }, []);
+
+    const hideGuide = useCallback(() => {
+        if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
+        setShowGuide(false);
+    }, []);
+
+    // 清理 timer
+    useEffect(() => {
+        return () => {
+            if (guideTimerRef.current) window.clearTimeout(guideTimerRef.current);
+        };
+    }, []);
 
     // 缓存地图边界计算
     const bounds = useMemo(() => {
@@ -57,22 +98,64 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         };
     }, [nodes]);
 
+    // ✅ 统一：根据“缺失状态”提示（force=true 用于空白点击强制触发）
+    const triggerMissingGuide = useCallback((force: boolean) => {
+        const hasStart = !!tempStartNode;
+        const hasDest = !!tempDestNode;
+
+        // 都选了：不提示
+        if (hasStart && hasDest) {
+            lastMissingRef.current = null;
+            hideGuide();
+            return;
+        }
+
+        const missing: 'needStart' | 'needDest' = hasStart ? 'needDest' : 'needStart';
+        const mode: 'start' | 'destination' = missing === 'needStart' ? 'start' : 'destination';
+
+        if (force) {
+            // 节流：800ms 内不重复弹（你想更敏感可改成 400）
+            const now = Date.now();
+            if (now - lastForceAtRef.current < 800) return;
+            lastForceAtRef.current = now;
+
+            lastMissingRef.current = missing;
+            openGuide(mode);
+            return;
+        }
+
+        // 非强制：仅当缺失状态变化时提示一次
+        if (lastMissingRef.current !== missing) {
+            lastMissingRef.current = missing;
+            openGuide(mode);
+        }
+    }, [tempStartNode, tempDestNode, openGuide, hideGuide]);
+
     // 初始化临时选择节点和内部选择模式
     useEffect(() => {
         if (isOpen) {
             setTempStartNode(startLocationId);
             setTempDestNode(destinationId);
-            
-            // 根据外部selectionMode初始化内部状态
+
             if (selectionMode === 'start') {
-                // 点击"着"：第一次选择出发地
                 setInternalSelectionMode('start');
             } else {
-                // 点击"発"：第一次选择目的地
                 setInternalSelectionMode('destination');
             }
+
+            lastMissingRef.current = null;
+            // 打开时由“监测缺失状态”统一处理提示
+        } else {
+            hideGuide();
+            lastMissingRef.current = null;
         }
-    }, [isOpen, startLocationId, destinationId, selectionMode]);
+    }, [isOpen, startLocationId, destinationId, selectionMode, hideGuide]);
+
+    // ✅ 核心：监测是否“未选择”，按规则提示
+    useEffect(() => {
+        if (!isOpen) return;
+        triggerMissingGuide(false);
+    }, [isOpen, tempStartNode, tempDestNode, triggerMissingGuide]);
 
     // 加载地图数据
     useEffect(() => {
@@ -94,10 +177,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         const calculateInitialRoute = async () => {
             try {
                 const route = await generateRoute(tempStartNode, tempDestNode);
-                if (route) {
-                    console.log('📍 初始路线显示:', route);
-                    setHighlightedRoute(route);
-                }
+                if (route) setHighlightedRoute(route);
             } catch (error) {
                 console.error('❌ 初始路线计算失败:', error);
             }
@@ -134,7 +214,6 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // 设置Canvas尺寸
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * window.devicePixelRatio;
         canvas.height = rect.height * window.devicePixelRatio;
@@ -143,11 +222,9 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         const canvasWidth = rect.width;
         const canvasHeight = rect.height;
 
-        // 清空画布
         ctx.fillStyle = '#0A1929';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-        // 绘制网格
         ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
         ctx.lineWidth = 0.5;
         for (let i = 0; i <= 10; i++) {
@@ -163,7 +240,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             ctx.stroke();
         }
 
-        // 绘制所有边（路线）
+        // 绘制所有边
         edges.forEach(edge => {
             const fromNode = nodes.find(n => n.id === edge.from);
             const toNode = nodes.find(n => n.id === edge.to);
@@ -192,7 +269,6 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 const fromNode = highlightedRoute.nodes[i];
                 const toNode = highlightedRoute.nodes[i + 1];
 
-                // 双向查找edge，因为路线可能以任意方向遍历边
                 const edge = highlightedRoute.edges.find(e =>
                     (e.from === fromNode.id && e.to === toNode.id) ||
                     (e.from === toNode.id && e.to === fromNode.id)
@@ -201,15 +277,10 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 const from = latLngToCanvas(fromNode.coordinates.lat, fromNode.coordinates.lng, bounds, canvasWidth, canvasHeight);
                 const to = latLngToCanvas(toNode.coordinates.lat, toNode.coordinates.lng, bounds, canvasWidth, canvasHeight);
 
-                // 根据edge类型设置颜色
-                if (edge && edge.type) {
-                    ctx.strokeStyle = EDGE_COLORS[edge.type as keyof typeof EDGE_COLORS] || '#FFFFFF';
-                } else {
-                    ctx.strokeStyle = '#FFFFFF';
-                    console.warn('⚠️ 未找到边的类型:', fromNode.id, '→', toNode.id);
-                }
+                ctx.strokeStyle = edge?.type
+                    ? (EDGE_COLORS[edge.type as keyof typeof EDGE_COLORS] || '#FFFFFF')
+                    : '#FFFFFF';
 
-                // 添加阴影效果使高亮更明显
                 ctx.shadowColor = ctx.strokeStyle;
                 ctx.shadowBlur = 8;
 
@@ -219,27 +290,22 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 ctx.stroke();
             }
 
-            // 重置阴影
             ctx.shadowBlur = 0;
         }
 
         ctx.globalAlpha = 1;
 
-        // 绘制节点（起点和终点使用SVG标记，其他节点用圆圈）
+        // 绘制节点
         nodes.forEach(node => {
-            // 起点和终点跳过，使用SVG标记显示
-            if (node.id === tempStartNode || node.id === tempDestNode) {
-                return;
-            }
+            if (node.id === tempStartNode || node.id === tempDestNode) return;
 
             const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, canvasWidth, canvasHeight);
 
-            // 节点圆圈
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
 
             if (node.id === hoveredNode) {
-                ctx.fillStyle = '#EBCF65'; // 金色 - hover
+                ctx.fillStyle = '#EBCF65';
                 ctx.shadowColor = '#EBCF65';
                 ctx.shadowBlur = 10;
             } else {
@@ -250,13 +316,10 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 节点标签（只显示hover的节点名称）
-            // if (node.id === hoveredNode) {
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(node.name, pos.x, pos.y - 12);
-            // }
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(node.name, pos.x, pos.y - 12);
         });
 
     }, [isOpen, bounds, nodes, edges, tempStartNode, tempDestNode, hoveredNode, highlightedRoute, canvasSize]);
@@ -269,7 +332,6 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // 查找最近的节点
         let closestNode: KyotoNode | null = null;
         let minDistance = Infinity;
 
@@ -283,75 +345,54 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             }
         });
 
+        // ✅ 空白点击：触发缺失提示（强制 + 节流）
         if (!closestNode) {
-            console.log('⚠️ 未找到节点，点击位置:', { x, y });
+            triggerMissingGuide(true);
             return;
         }
 
-        // 检查是否选择了相同的节点
-        if (closestNode.id === tempStartNode && closestNode.id === tempDestNode) {
-            console.log('⚠️ 出発地と目的地は同じにできません');
-            return;
-        }
+        if (closestNode.id === tempStartNode && closestNode.id === tempDestNode) return;
 
         let newStartId = tempStartNode;
         let newDestId = tempDestNode;
 
         if (internalSelectionMode === 'start') {
-            // 当前正在选择出发地
-            console.log('✅ 选择出発地:', closestNode.name);
             newStartId = closestNode.id;
             setTempStartNode(closestNode.id);
-            
-            // 清除目的地和高亮路线
+
+            // 选完起点后，清空终点 -> 会进入“缺终点提示”状态
             newDestId = '';
             setTempDestNode('');
             setHighlightedRoute(null);
-            
-            // 切换到选择目的地模式
+
             setInternalSelectionMode('destination');
         } else {
-            // 当前正在选择目的地
-            console.log('✅ 选择目的地:', closestNode.name);
             newDestId = closestNode.id;
             setTempDestNode(closestNode.id);
-            
-            // 切换到选择出发地模式
+
             setInternalSelectionMode('start');
         }
 
-        // 如果起点终点都存在且不同，计算路线
         if (newStartId && newDestId && newStartId !== newDestId) {
-            console.log('📍 计算路线:', { start: newStartId, dest: newDestId });
             try {
                 const route = await generateRoute(newStartId, newDestId);
-                if (route) {
-                    console.log('✅ 路线计算成功');
-                    setHighlightedRoute(route);
-                } else {
-                    console.log('⚠️ 无法生成路线');
-                    setHighlightedRoute(null);
-                }
-            } catch (error) {
-                console.error('❌ 路线计算失败:', error);
+                setHighlightedRoute(route || null);
+            } catch {
                 setHighlightedRoute(null);
             }
         } else {
             setHighlightedRoute(null);
         }
-    }, [bounds, nodes, internalSelectionMode, tempStartNode, tempDestNode]);
+    }, [bounds, nodes, internalSelectionMode, tempStartNode, tempDestNode, triggerMissingGuide]);
 
-    // 处理鼠标移动（显示hover效果）- 使用RAF节流
+    // hover
     const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!canvasRef.current || !bounds) return;
 
-        // 先提取坐标值，避免事件对象在 RAF 回调时失效
         const clientX = e.clientX;
         const clientY = e.clientY;
 
-        if (mouseMoveRafRef.current) {
-            cancelAnimationFrame(mouseMoveRafRef.current);
-        }
+        if (mouseMoveRafRef.current) cancelAnimationFrame(mouseMoveRafRef.current);
 
         mouseMoveRafRef.current = requestAnimationFrame(() => {
             const canvas = canvasRef.current;
@@ -365,10 +406,9 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             for (const node of nodes) {
                 const pos = latLngToCanvas(node.coordinates.lat, node.coordinates.lng, bounds, rect.width, rect.height);
                 const distance = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);
-
                 if (distance < 15) {
                     foundNodeId = node.id;
-                    break; // 找到第一个就退出，比 forEach 更高效
+                    break;
                 }
             }
 
@@ -376,37 +416,20 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
         });
     }, [bounds, nodes]);
 
-    // 清理RAF
     useEffect(() => {
         return () => {
-            if (mouseMoveRafRef.current) {
-                cancelAnimationFrame(mouseMoveRafRef.current);
-            }
+            if (mouseMoveRafRef.current) cancelAnimationFrame(mouseMoveRafRef.current);
         };
     }, []);
 
     const handleConfirm = useCallback(() => {
-        if (tempDestNode && tempStartNode) {
+        if (tempStartNode && tempDestNode) {
             onConfirm(tempStartNode, tempDestNode);
             onClose();
         }
+    }, [tempStartNode, tempDestNode, onConfirm, onClose]);
 
-        // if (selectionMode === 'start') {
-        //     const startNode = nodes.find(n => n.id === tempStartNode);
-        //     if (startNode) {
-        //         console.log('✅ 确认出发地:', startNode.name);
-        //         onConfirm(tempStartNode, startNode.name);
-        //         onClose();
-        //     }
-        // } else {
-        //     const destNode = nodes.find(n => n.id === tempDestNode);
-        //     if (destNode) {
-        //         console.log('✅ 确认目的地:', destNode.name);
-        //         onConfirm(tempDestNode, destNode.name);
-        //         onClose();
-        //     }
-        // }
-    }, [nodes, tempStartNode, tempDestNode, selectionMode, onConfirm, onClose]);
+    const canConfirm = !!tempStartNode && !!tempDestNode;
 
     if (!isOpen) return null;
 
@@ -424,9 +447,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
             >
                 {/* 标题 */}
                 <div className="mb-4">
-                    <h3 className="text-xl font-bold text-cyan-400 mb-2">
-                        経路を選択
-                    </h3>
+                    <h3 className="text-xl font-bold text-cyan-400 mb-2">経路を選択</h3>
                     <div className="flex gap-4 text-xs text-gray-400">
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-1" style={{ backgroundColor: EDGE_COLORS.road }}></div>
@@ -455,7 +476,27 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                         onClick={handleCanvasClick}
                         onMouseMove={handleCanvasMouseMove}
                     />
-                    
+
+                    {/* ✅ 底部居中 Toast（按缺失状态提示） */}
+                    <div
+                        className="absolute left-1/2 -translate-x-1/2"
+                        style={{ bottom: '18px', pointerEvents: 'none', zIndex: 60 }}
+                    >
+                        <div className={`transition-all duration-200 ease-out ${showGuide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                            <div
+                                className="px-6 py-3 rounded-xl border border-cyan-400/45 bg-black/55 backdrop-blur-md shadow-2xl"
+                                style={{
+                                    boxShadow: '0 0 22px rgba(6, 182, 212, 0.22)',
+                                    textShadow: '0 0 10px rgba(6,182,212,0.55)',
+                                    minWidth: '340px',
+                                    textAlign: 'center'
+                                }}
+                            >
+                                <span className="text-cyan-100 font-bold">{guideText}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* SVG标记层 - 起点和终点 */}
                     {bounds && canvasRef.current && (
                         <>
@@ -475,33 +516,21 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                                             width: 'clamp(30px, 2vw, 60px)',
                                         }}
                                     >
-                                        <svg
-                                            viewBox="0 0 41 51"
-                                            className="w-full h-auto drop-shadow-lg"
-                                            preserveAspectRatio="xMidYMid meet"
-                                        >
+                                        <svg viewBox="0 0 41 51" className="w-full h-auto drop-shadow-lg" preserveAspectRatio="xMidYMid meet">
                                             <path
                                                 d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
                                                 fill="#60A5FA"
                                                 stroke="#1F2937"
                                                 strokeWidth="1"
                                             />
-                                            <text
-                                                x="20.5"
-                                                y="30"
-                                                fontSize="20"
-                                                fontWeight="bold"
-                                                fill="#ffffffff"
-                                                textAnchor="middle"
-                                                dominantBaseline="middle"
-                                            >
+                                            <text x="20.5" y="30" fontSize="20" fontWeight="bold" fill="#ffffffff" textAnchor="middle" dominantBaseline="middle">
                                                 発
                                             </text>
                                         </svg>
                                     </div>
                                 );
                             })()}
-                            
+
                             {/* 终点标记 */}
                             {tempDestNode && (() => {
                                 const node = nodes.find(n => n.id === tempDestNode);
@@ -553,9 +582,6 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                 {/* 底部按钮 */}
                 <div className="mt-4 flex justify-between items-center">
                     <div className="text-sm space-y-1">
-                        {/* <div className="text-yellow-300 text-base font-bold mb-2">
-                            {internalSelectionMode === 'start' ? '🚩 出発地を選択してください' : '🎯 目的地を選択してください'}
-                        </div> */}
                         <div className="text-cyan-300">
                             🚩 出発: {nodes.find(n => n.id === tempStartNode)?.name || '未選択'}
                         </div>
@@ -563,6 +589,7 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                             🎯 目的: {nodes.find(n => n.id === tempDestNode)?.name || '未選択'}
                         </div>
                     </div>
+
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
@@ -578,9 +605,10 @@ export default function MapPickerModal({ isOpen, onClose, onConfirm, startLocati
                         >
                             キャンセル
                         </button>
+
                         <button
                             onClick={handleConfirm}
-                            disabled={selectionMode === 'start' ? !tempStartNode : !tempDestNode}
+                            disabled={!canConfirm}
                             className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-cyan-400/50 shadow-lg"
                             style={{
                                 backgroundColor: 'rgba(31, 41, 55, 0.9)',
