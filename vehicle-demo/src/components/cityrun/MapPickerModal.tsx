@@ -80,7 +80,7 @@ export default function MapPickerModal({
   const [guideText, setGuideText] = useState("");
   const guideTimerRef = useRef<number | null>(null);
 
-  // ✅ 记录上一次“缺失状态”，避免重复提示
+  // ✅ 记录上一次"缺失状态"，避免重复提示
   const lastMissingRef = useRef<"needStart" | "needDest" | null>(null);
 
   // ✅ 空白点击强制提示时的节流（避免刷屏）
@@ -133,7 +133,7 @@ export default function MapPickerModal({
     };
   }, [nodes]);
 
-  // ✅ 统一：根据“缺失状态”提示（force=true 用于空白点击强制触发）
+  // ✅ 统一：根据"缺失状态"提示（force=true 用于空白点击强制触发）
   const triggerMissingGuide = useCallback(
     (force: boolean) => {
       const hasStart = !!tempStartNode;
@@ -185,14 +185,14 @@ export default function MapPickerModal({
       }
 
       lastMissingRef.current = null;
-      // 打开时由“监测缺失状态”统一处理提示
+      // 打开时由"监测缺失状态"统一处理提示
     } else {
       hideGuide();
       lastMissingRef.current = null;
     }
   }, [isOpen, startLocationId, destinationId, selectionMode, hideGuide]);
 
-  // ✅ 核心：监测是否“未选择”，按规则提示
+  // ✅ 核心：监测是否"未选择"，按规则提示
   useEffect(() => {
     if (!isOpen) return;
     triggerMissingGuide(false);
@@ -458,7 +458,7 @@ export default function MapPickerModal({
         newStartId = closestNode.id;
         setTempStartNode(closestNode.id);
 
-        // 选完起点后，清空终点 -> 会进入“缺终点提示”状态
+        // 选完起点后，清空终点 -> 会进入"缺终点提示"状态
         newDestId = "";
         setTempDestNode("");
         setHighlightedRoute(null);
@@ -572,7 +572,7 @@ export default function MapPickerModal({
       }}
     >
       <div
-        className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-cyan-500/50 rounded-xl p-6 shadow-2xl pointer-events-auto"
+        className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-cyan-500/50 rounded-xl p-6 shadow-2xl pointer-events-auto flex gap-4"
         style={{
           width: "90vw",
           height: "90vh",
@@ -581,43 +581,8 @@ export default function MapPickerModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 标题 */}
-        <div className="mb-4">
-          <h3 className="text-xl font-bold text-cyan-400 mb-2">経路を選択</h3>
-          <div className="flex gap-4 text-xs text-gray-400">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-1"
-                style={{ backgroundColor: EDGE_COLORS.road }}
-              ></div>
-              <span>金将(一般道路)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-1"
-                style={{ backgroundColor: EDGE_COLORS.highway }}
-              ></div>
-              <span>香車(高速道路)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-1"
-                style={{ backgroundColor: EDGE_COLORS.drone }}
-              ></div>
-              <span>桂馬(ドローン)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-1"
-                style={{ backgroundColor: EDGE_COLORS.sky }}
-              ></div>
-              <span>飛車(航空路線)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 地图Canvas */}
-        <div className="relative" style={{ height: "calc(100% - 140px)" }}>
+        {/* 左侧：地图Canvas */}
+        <div className="flex-1 relative">
           <canvas
             ref={canvasRef}
             className="w-full h-full border border-cyan-500/30 rounded cursor-pointer"
@@ -631,11 +596,10 @@ export default function MapPickerModal({
             style={{ bottom: "18px", pointerEvents: "none", zIndex: 60 }}
           >
             <div
-              className={`transition-all duration-200 ease-out ${
-                showGuide
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-2"
-              }`}
+              className={`transition-all duration-200 ease-out ${showGuide
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-2"
+                }`}
             >
               <div
                 className="px-6 py-3 rounded-xl border border-cyan-400/45 bg-black/55 backdrop-blur-md shadow-2xl"
@@ -762,50 +726,100 @@ export default function MapPickerModal({
           )}
         </div>
 
-        {/* 底部按钮 */}
-        <div className="mt-4 flex justify-between items-center">
-          <div className="text-sm space-y-1">
-            <div className="text-cyan-300">
-              🚩 出発:{" "}
-              {nodes.find((n) => n.id === tempStartNode)?.name || "未選択"}
-            </div>
-            <div className="text-pink-300">
-              🎯 目的:{" "}
-              {nodes.find((n) => n.id === tempDestNode)?.name || "未選択"}
+        {/* 右侧：控制面板（标题 + 图例 + 出发/目的 + 按钮） */}
+        <div
+          className="flex flex-col justify-between"
+          style={{ width: "200px", minWidth: "180px" }}
+        >
+          {/* 标题 + 图例 */}
+          <div>
+            <h3 className="text-xl font-bold text-cyan-400 mb-4">経路を選択</h3>
+            <div className="flex flex-col gap-4 text-xs text-gray-400">
+              <div className="flex items-center gap-15">
+                <div
+                  className="w-4 h-1 flex-shrink-0"
+                  style={{ backgroundColor: EDGE_COLORS.road }}
+                ></div>
+                <span>金将(一般道路)</span>
+              </div>
+              <div className="flex items-center gap-15">
+                <div
+                  className="w-4 h-1 flex-shrink-0"
+                  style={{ backgroundColor: EDGE_COLORS.highway }}
+                ></div>
+                <span>香車(高速道路)</span>
+              </div>
+              <div className="flex items-center gap-15">
+                <div
+                  className="w-4 h-1 flex-shrink-0"
+                  style={{ backgroundColor: EDGE_COLORS.drone }}
+                ></div>
+                <span>桂馬(ドローン)</span>
+              </div>
+              <div className="flex items-center gap-15">
+                <div
+                  className="w-4 h-1 flex-shrink-0"
+                  style={{ backgroundColor: EDGE_COLORS.sky }}
+                ></div>
+                <span>飛車(航空路線)</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-8 py-3 bg-red-900/80 hover:bg-red-800 text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-red-500/50 shadow-lg"
-              style={{
-                backgroundColor: "rgba(31, 41, 55, 0.9)",
-                textShadow: "0 0 8px rgba(6,182,212,0.8)",
-                boxShadow: "0 0 20px rgba(6, 182, 212, 0.4)",
-                WebkitTapHighlightColor: "transparent",
-                fontSize: "18px",
-                borderRadius: "12px",
-              }}
-            >
-              キャンセル
-            </button>
+          {/* 出发/目的信息 + 按钮 */}
+          <div className="flex flex-col gap-6">
+            {/* 出发/目的信息 */}
+            <div className="text-sm space-y-2">
+              <div className="text-cyan-300">
+                🚩 出発:{" "}
+                <span className="font-medium">
+                  {nodes.find((n) => n.id === tempStartNode)?.name || "未選択"}
+                </span>
+              </div>
+              <div className="text-pink-300">
+                🎯 目的:{" "}
+                <span className="font-medium">
+                  {nodes.find((n) => n.id === tempDestNode)?.name || "未選択"}
+                </span>
+              </div>
+            </div>
 
-            <button
-              onClick={handleConfirm}
-              disabled={!canConfirm}
-              className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-cyan-400/50 shadow-lg"
-              style={{
-                backgroundColor: "rgba(31, 41, 55, 0.9)",
-                textShadow: "0 0 8px rgba(6,182,212,0.8)",
-                boxShadow: "0 0 20px rgba(6, 182, 212, 0.4)",
-                WebkitTapHighlightColor: "transparent",
-                fontSize: "18px",
-                borderRadius: "12px",
-              }}
-            >
-              確定
-            </button>
+            {/* 按钮 */}
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={handleConfirm}
+                disabled={!canConfirm}
+                className="w-full px-4 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-cyan-400/50 shadow-lg"
+                style={{
+                  backgroundColor: canConfirm
+                    ? "rgba(6, 182, 212, 0.3)"
+                    : "rgba(31, 41, 55, 0.9)",
+                  textShadow: "0 0 8px rgba(6,182,212,0.8)",
+                  boxShadow: canConfirm
+                    ? "0 0 20px rgba(6, 182, 212, 0.4)"
+                    : "none",
+                  WebkitTapHighlightColor: "transparent",
+                  fontSize: "16px",
+                  borderRadius: "12px",
+                }}
+              >
+                確定
+              </button>
+
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-3 bg-red-900/80 hover:bg-red-800 text-white text-lg font-bold rounded-lg font-mono transition-colors border-2 border-gray-500/50 shadow-lg"
+                style={{
+                  backgroundColor: "rgba(31, 41, 55, 0.9)",
+                  textShadow: "0 0 8px rgba(156, 163, 175, 0.6)",
+                  WebkitTapHighlightColor: "transparent",
+                  fontSize: "16px",
+                  borderRadius: "12px",
+                }}
+              >
+                キャンセル
+              </button>
+            </div>
           </div>
         </div>
       </div>
