@@ -482,6 +482,13 @@ export default function CyberpunkCityDemo() {
     const route = getVehicleRoute(vehicleId)
     if (!route || route.isCycle) return
     removeVehicle(vehicleId)
+
+    if (selectedVehicleId === vehicleId) {
+      stopFollowing()
+      setVehicleStatus(null)
+      vehicleStatusRef.current = null
+    }
+
     // 如果是粘性跟踪的车辆完成了，解除粘性跟踪
     if (stickyVehicleIdRef.current === vehicleId) {
       console.log(`🔓 粘性跟踪解除: ${route?.name || vehicleId}`)
@@ -1356,7 +1363,7 @@ export default function CyberpunkCityDemo() {
           pointerEvents: 'none'
         }}
       >
-        <h3 style={{ margin: '0 0 8px 0', color: '#ff00ff', fontSize: '14px' }}>
+        <h3 style={{ margin: '0 0 0 0', color: '#ff00ff', fontSize: '14px' }}>
           🗺️ ルート図例
         </h3>
         <div style={{ lineHeight: '1.8' }}>
@@ -1404,7 +1411,7 @@ export default function CyberpunkCityDemo() {
             WebkitBackdropFilter: 'blur(10px)',
             padding: '15px',
             borderRadius: '10px',
-            border: '2px solid #00ffff',
+            border: '1px solid #00ffff',
             boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
             animation: 'fadeIn 0.3s ease-out'
           }}
