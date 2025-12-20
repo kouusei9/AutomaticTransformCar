@@ -707,8 +707,8 @@ export default function CyberpunkCityDemo() {
                 <RouteMarkers
                   startPosition={startPos}
                   endPosition={endPos}
-                  startName={route.nodes[0]?.id || 'START'}
-                  endName={route.nodes[route.nodes.length - 1]?.id || 'END'}
+                  startName={getNodeName(route.nodes[0]?.id) || 'START'}
+                  endName={getNodeName(route.nodes[route.nodes.length - 1]?.id) || 'END'}
                 />
               )}
             </group>
