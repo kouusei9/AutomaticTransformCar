@@ -70,6 +70,7 @@ export default function CyberpunkCityDemo() {
     distanceToDestination: number
     remainingTime: number
     progress: number
+    direction?: number
   } | null>(null)
 
   // 实时状态数据的 ref（避免每帧更新 state 导致的无限循环）
@@ -79,6 +80,7 @@ export default function CyberpunkCityDemo() {
     distanceToDestination: number
     remainingTime: number
     progress: number
+    direction?: number
   } | null>(null)
 
   // 用于跟踪所有通知和道路状况的 timer
@@ -159,7 +161,7 @@ export default function CyberpunkCityDemo() {
                 remainingTime: 0,
                 progress: 0
               })
-              
+
               // 设置粘性跟踪标记
               stickyVehicleIdRef.current = vehicleId
               console.log(`🔒 粘性跟踪启用: ${route.name}`)
@@ -415,6 +417,7 @@ export default function CyberpunkCityDemo() {
         edgeType: string
         speedKmh: number
         progress: number
+        direction?: number
       }) => {
         updateVehiclePosition(vehicleId, position, forward)
 
@@ -425,15 +428,32 @@ export default function CyberpunkCityDemo() {
         if (!route) return
 
         const totalDistance = route.edges.reduce((sum, edge) => sum + edge.length, 0)
+        const totalTime = route.edges.reduce((sum, edge) => sum + edge.cost / 1000 / 60, 0) // 分
         const distanceToDestination = totalDistance * (1 - progress)
+
+        const direction = progressData.direction || 1
+        let displayProgress: number
+        let displayRemainingTime: number
+        let displayDistance: number
+
+        if (route.isCycle) {
+          displayProgress = direction === 1 ? progress : (1 - progress)
+          displayRemainingTime = direction === 1 ? Math.floor(totalTime * (1 - progress) * 3) : Math.floor(totalTime * (progress) * 3)
+          displayDistance = direction === 1 ? totalDistance * (1 - progress) : totalDistance * progress
+        } else {
+          displayProgress = progress
+          displayRemainingTime = Math.floor(totalTime * (1 - progress) * 3)
+          displayDistance = distanceToDestination
+        }
 
         // 只更新 ref，不触发重渲染
         vehicleStatusRef.current = {
           currentMode: edgeType,
           currentSpeed: speedKmh,
-          distanceToDestination,
-          remainingTime: speedKmh > 0 ? (distanceToDestination / 1000 / speedKmh) * 60 : 0,
-          progress: progress * 100
+          distanceToDestination: displayDistance,
+          remainingTime: speedKmh > 0 ? displayRemainingTime : 0, // 秒
+          progress: displayProgress * 100,
+          direction: direction
         }
       },
     [selectedVehicleId, updateVehiclePosition]
@@ -750,6 +770,9 @@ export default function CyberpunkCityDemo() {
             }[vehicleStatus.currentMode] || { icon: '🚗', name: '金将', color: '#EBCF65' };
 
             const displayInteger = Math.round(vehicleStatus.progress);
+            const routeDisplay = vehicleStatus.direction === 1
+              ? getRouteNames(extractNodeIdsFromRoute(selectedRoute))
+              : getRouteNames(extractNodeIdsFromRoute(selectedRoute).reverse())
 
             return (
               <>
@@ -807,7 +830,7 @@ export default function CyberpunkCityDemo() {
                     <div>
                       <span style={{ color: '#888' }}>ルート:</span>
                       <div style={{ color: '#fff', fontWeight: 'bold', marginTop: '2px', fontSize: '13px' }}>
-                        {getRouteNames(extractNodeIdsFromRoute(selectedRoute))}
+                        {routeDisplay}
                       </div>
                     </div>
                     <div>
@@ -874,9 +897,9 @@ export default function CyberpunkCityDemo() {
                       textAlign: 'center',
                       boxShadow: `0 0 10px ${modeDisplay.color}40, inset 0 2px 8px ${modeDisplay.color}20`
                     }}>
-                      <div style={{ fontSize: '10px', color: '#ffffffff', marginBottom: '2px' }}>現在のモード</div>
+                      <div style={{ fontSize: '10px', color: modeDisplay.color, marginBottom: '2px' }}>現在のモード</div>
                       {/* <div style={{ fontSize: '24px', marginBottom: '2px' }}>{modeDisplay.icon}</div> */}
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: modeDisplay.color }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: modeDisplay.color }}>
                         {modeDisplay.name}
                       </div>
                     </div>
@@ -889,7 +912,7 @@ export default function CyberpunkCityDemo() {
                       border: '2px solid #00ffff',
                       textAlign: 'center'
                     }}>
-                      <div style={{ fontSize: '10px', color: '#ffffffff', marginBottom: '2px' }}>スピード</div>
+                      <div style={{ fontSize: '10px', color: '#00ffff', marginBottom: '2px' }}>スピード</div>
                       <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#00ffff', lineHeight: '1.2' }}>
                         {vehicleStatus.currentSpeed.toFixed(0)}/KM
                       </div>
@@ -910,6 +933,7 @@ export default function CyberpunkCityDemo() {
                     <div>
                       <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px' }}>残り時間</div>
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffaa00' }}>
+                        {vehicleStatus.remainingTime} 秒
                       </div>
                     </div>
                   </div>
