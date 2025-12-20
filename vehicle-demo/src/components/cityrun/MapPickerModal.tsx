@@ -645,10 +645,11 @@ export default function MapPickerModal({
                         viewBox="0 0 41 51"
                         className="w-full h-auto drop-shadow-lg"
                         preserveAspectRatio="xMidYMid meet"
+                        style={{ transform: "rotate(180deg)" }}
                       >
                         <path
                           d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
-                          fill="#60A5FA"
+                          fill="#F24B90"
                           stroke="#1F2937"
                           strokeWidth="1"
                         />
@@ -660,10 +661,15 @@ export default function MapPickerModal({
                           fill="#ffffffff"
                           textAnchor="middle"
                           dominantBaseline="middle"
+                          style={{
+                            transform: "rotate(180deg)",
+                            transformOrigin: "20.5px 30px",
+                          }}
                         >
                           発
                         </text>
                       </svg>
+
                     </div>
                   );
                 })()}
@@ -695,11 +701,10 @@ export default function MapPickerModal({
                         viewBox="0 0 41 51"
                         className="w-full h-auto drop-shadow-lg"
                         preserveAspectRatio="xMidYMid meet"
-                        style={{ transform: "rotate(180deg)" }}
                       >
                         <path
                           d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
-                          fill="#F24B90"
+                          fill="#60A5FA"
                           stroke="#1F2937"
                           strokeWidth="1"
                         />
@@ -711,10 +716,6 @@ export default function MapPickerModal({
                           fill="#ffffffff"
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          style={{
-                            transform: "rotate(180deg)",
-                            transformOrigin: "20.5px 30px",
-                          }}
                         >
                           着
                         </text>
@@ -732,31 +733,31 @@ export default function MapPickerModal({
           style={{ width: "200px", minWidth: "180px" }}
         >
           {/* 标题 + 图例 */}
-          <div>
-            <h3 className="text-xl font-bold text-cyan-400 mb-4">経路を選択</h3>
-            <div className="flex flex-col gap-4 text-xs text-gray-400">
-              <div className="flex items-center gap-15">
+          <div className="">
+            <h3 className="text-xl font-bold text-cyan-400 mb-4 text-center">経路を選択</h3>
+            <div className="flex flex-col gap-4 text-xs items-center text-gray-400">
+              <div className="flex items-center gap-2">
                 <div
                   className="w-4 h-1 flex-shrink-0"
                   style={{ backgroundColor: EDGE_COLORS.road }}
                 ></div>
                 <span>金将(一般道路)</span>
               </div>
-              <div className="flex items-center gap-15">
+              <div className="flex items-center gap-2">
                 <div
                   className="w-4 h-1 flex-shrink-0"
                   style={{ backgroundColor: EDGE_COLORS.highway }}
                 ></div>
                 <span>香車(高速道路)</span>
               </div>
-              <div className="flex items-center gap-15">
+              <div className="flex items-center gap-2">
                 <div
                   className="w-4 h-1 flex-shrink-0"
                   style={{ backgroundColor: EDGE_COLORS.drone }}
                 ></div>
                 <span>桂馬(ドローン)</span>
               </div>
-              <div className="flex items-center gap-15">
+              <div className="flex items-center gap-2">
                 <div
                   className="w-4 h-1 flex-shrink-0"
                   style={{ backgroundColor: EDGE_COLORS.sky }}
@@ -769,15 +770,81 @@ export default function MapPickerModal({
           {/* 出发/目的信息 + 按钮 */}
           <div className="flex flex-col gap-6">
             {/* 出发/目的信息 */}
-            <div className="text-sm space-y-2">
-              <div className="text-cyan-300">
-                🚩 出発:{" "}
+            <div className="text-sm space-y-2 flex flex-col items-start ml-10">
+              <div className="text-cyan-300 inline-flex items-center gap-2">
+                <div
+                  className="pointer-events-none"
+                  style={{
+                    width: "clamp(30px, 2vw, 60px)",
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 41 51"
+                    className="w-full h-auto drop-shadow-lg"
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{ transform: "rotate(180deg)" }}
+                  >
+                    <path
+                      d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+                      fill="#F24B90"
+                      stroke="#1F2937"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x="20.5"
+                      y="30"
+                      fontSize="20"
+                      fontWeight="bold"
+                      fill="#ffffffff"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{
+                        transform: "rotate(180deg)",
+                        transformOrigin: "20.5px 30px",
+                      }}
+                    >
+                      発
+                    </text>
+                  </svg>
+                </div>
                 <span className="font-medium">
                   {nodes.find((n) => n.id === tempStartNode)?.name || "未選択"}
                 </span>
+
               </div>
-              <div className="text-pink-300">
-                🎯 目的:{" "}
+              <br></br>
+              <div className="text-pink-300 inline-flex items-center gap-2">
+                <div
+                  className="pointer-events-none"
+                  style={{
+                    width: "clamp(30px, 2vw, 60px)",
+                  }}
+                >
+
+                  <svg
+                    viewBox="0 0 41 51"
+                    className="w-full h-auto drop-shadow-lg"
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <path
+                      d="M6.07446 10.5L0.574463 50L39.5745 50L34.0745 10.5L20.5745 0.5L6.07446 10.5Z"
+                      fill="#60A5FA"
+                      stroke="#1F2937"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x="20.5"
+                      y="30"
+                      fontSize="20"
+                      fontWeight="bold"
+                      fill="#ffffffff"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      着
+                    </text>
+                  </svg>
+                </div>
                 <span className="font-medium">
                   {nodes.find((n) => n.id === tempDestNode)?.name || "未選択"}
                 </span>
