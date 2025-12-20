@@ -412,8 +412,7 @@ export default function MiniRouteMap({
     <div className="relative w-full h-32 bg-black/80 rounded-lg border border-cyan-500/30 overflow-hidden backdrop-blur-sm">
       {/* Header */}
       <div className="absolute top-1 left-2 text-[10px] text-cyan-400 font-mono font-bold z-10 tracking-wider opacity-80">
-        NAV SYSTEM ///
-      </div>
+        NAV SYSTEM  </div>
 
       {/* Debug警告 */}
       {progressMismatch && (
