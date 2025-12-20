@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, use } from 'react';
 import ThreeScene from '../components/cityrun/ThreeScene.tsx';
 import FirstPersonView from '../components/cityrun/FirstPersonView.tsx';
 import ThirdPersonView from '../components/cityrun/ThirdPersonView.tsx';
@@ -774,7 +774,7 @@ export default function CityRunCore({ useSimulationMode = false }: CityRunCorePr
         </ThreeScene>
 
         {/* 暂停按钮 */}
-        {isMoving && !isFirstPerson && (
+        {isMoving && !isFirstPerson && useSimulationMode && (
           <PauseButton isPaused={isPaused} onToggle={handlePauseToggle} />
         )}
 
