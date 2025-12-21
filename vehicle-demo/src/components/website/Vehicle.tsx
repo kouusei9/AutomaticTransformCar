@@ -182,12 +182,11 @@ export const Vehicle: React.FC<VehicleProps> = ({
   useFrame((state, delta) => {
     if (!meshRef.current || !path) return
 
-    delta = Math.min(delta, 0.033) // 大きなフレーム時間を制限
-
+    // 不再限制 delta，让 updateProgress 内部使用真实时间处理
     const mesh = meshRef.current
     const camera = state.camera
 
-    // 更新进度
+    // 更新进度（内部使用真实时间，不受帧率影响）
     updateProgress(delta)
 
     // 获取当前段信息

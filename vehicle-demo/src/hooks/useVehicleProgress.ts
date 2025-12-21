@@ -39,6 +39,7 @@ export function useVehicleProgress({
   const directionRef = useRef<1 | -1>(1) // 1: 前进, -1: 后退
   const hasCompletedRef = useRef(false)
   const segmentInfoRef = useRef<PathSegmentInfo | null>(null)
+  const lastUpdateTimeRef = useRef(Date.now()) // 真实时间追踪
 
   /**
    * 获取当前路径段信息（带缓存）
@@ -94,12 +95,17 @@ export function useVehicleProgress({
   const updateProgress = useCallback((delta: number) => {
     if (!path) return
 
+    // 使用真实时间而非帧时间（避免卡顿影响时间计算）
+    const now = Date.now()
+    const realDelta = Math.min((now - lastUpdateTimeRef.current) / 1000, 0.1) // 限制最大 100ms
+    lastUpdateTimeRef.current = now
+
     // 获取当前段信息
     const segmentInfo = getCurrentSegmentInfo()
     segmentInfoRef.current = segmentInfo
 
-    // 更新进度
-    progressRef.current += segmentInfo.speed * delta * directionRef.current
+    // 使用真实时间增量更新进度
+    progressRef.current += segmentInfo.speed * realDelta * directionRef.current
 
     // 到达终点或起点时的处理
     if (isCycle) {
